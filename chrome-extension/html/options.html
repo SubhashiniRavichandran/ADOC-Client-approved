@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ADOC Reliability Metrics - Settings</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
+      background: #f9fafb;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      padding: 32px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 32px;
+      padding-bottom: 24px;
+      border-bottom: 2px solid #e5e7eb;
+    }
+
+    .logo {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 700;
+      font-size: 28px;
+    }
+
+    h1 {
+      font-size: 24px;
+      color: #1f2937;
+    }
+
+    .section {
+      margin-bottom: 32px;
+    }
+
+    h2 {
+      font-size: 18px;
+      color: #1f2937;
+      margin-bottom: 16px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      color: #374151;
+      margin-bottom: 8px;
+    }
+
+    input[type="text"],
+    input[type="password"],
+    input[type="url"] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #3b82f6;
+    }
+
+    .help-text {
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: 4px;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: #3b82f6;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #2563eb;
+    }
+
+    .btn-secondary {
+      background: #f3f4f6;
+      color: #374151;
+    }
+
+    .btn-secondary:hover {
+      background: #e5e7eb;
+    }
+
+    .btn-test {
+      background: #10b981;
+      color: white;
+    }
+
+    .btn-test:hover {
+      background: #059669;
+    }
+
+    .status-message {
+      padding: 12px 16px;
+      border-radius: 6px;
+      font-size: 14px;
+      margin-top: 16px;
+      display: none;
+    }
+
+    .status-message.success {
+      background: #d1fae5;
+      color: #065f46;
+      display: block;
+    }
+
+    .status-message.error {
+      background: #fee2e2;
+      color: #991b1b;
+      display: block;
+    }
+
+    .info-box {
+      background: #eff6ff;
+      border-left: 4px solid #3b82f6;
+      padding: 16px;
+      border-radius: 4px;
+      margin-top: 24px;
+    }
+
+    .info-box h3 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #1e40af;
+      margin-bottom: 8px;
+    }
+
+    .info-box p {
+      font-size: 13px;
+      color: #1e40af;
+      line-height: 1.6;
+    }
+
+    .info-box a {
+      color: #3b82f6;
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo">a</div>
+      <div>
+        <h1>Settings</h1>
+        <p style="color: #6b7280; font-size: 14px; margin-top: 4px;">ADOC Reliability Metrics</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>ADOC Connection</h2>
+
+      <div class="form-group">
+        <label for="server-url">Server URL</label>
+        <input
+          type="url"
+          id="server-url"
+          value="https://indiumtech.acceldata.app"
+          placeholder="https://indiumtech.acceldata.app"
+        />
+        <div class="help-text">Your ADOC instance URL</div>
+      </div>
+
+      <div class="form-group">
+        <label for="access-key">API Access Key</label>
+        <input
+          type="text"
+          id="access-key"
+          placeholder="Enter your access key"
+        />
+        <div class="help-text">Generate from ADOC Admin Central</div>
+      </div>
+
+      <div class="form-group">
+        <label for="secret-key">API Secret Key</label>
+        <input
+          type="password"
+          id="secret-key"
+          placeholder="Enter your secret key"
+        />
+        <div class="help-text">Keep this confidential</div>
+      </div>
+
+      <div class="button-group">
+        <button class="btn-primary" id="save-btn">Save Settings</button>
+        <button class="btn-test" id="test-btn">Test Connection</button>
+        <button class="btn-secondary" id="clear-btn">Clear</button>
+      </div>
+
+      <div class="status-message" id="status-message"></div>
+    </div>
+
+    <div class="info-box">
+      <h3>How to Get API Credentials</h3>
+      <p>
+        1. Log in to ADOC at <a href="https://indiumtech.acceldata.app" target="_blank">indiumtech.acceldata.app</a><br>
+        2. Navigate to Admin Central → API Keys<br>
+        3. Click "Generate New Key"<br>
+        4. Copy both Access Key and Secret Key<br>
+        5. Paste them in the fields above
+      </p>
+    </div>
+
+    <div class="section" style="margin-top: 32px;">
+      <h2>About</h2>
+      <p style="font-size: 14px; color: #6b7280; line-height: 1.6;">
+        <strong>Version:</strong> 1.0.0<br>
+        <strong>Manifest Version:</strong> 3<br>
+        <strong>Supported BI Tools:</strong> Power BI<br>
+        <strong>Support:</strong> <a href="mailto:support@acceldata.io">support@acceldata.io</a>
+      </p>
+    </div>
+  </div>
+
+  <script src="../js/options.js"></script>
+</body>
+</html>
