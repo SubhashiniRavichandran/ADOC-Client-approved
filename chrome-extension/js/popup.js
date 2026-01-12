@@ -86,6 +86,9 @@ class PopupController {
     // Open ADOC login page
     const loginUrl = 'https://indiumtech.acceldata.app/';
 
+    // Close current popup
+    window.close();
+
     // Create a new tab for authentication
     chrome.tabs.create({ url: loginUrl }, (tab) => {
       const authTabId = tab.id;
@@ -112,14 +115,15 @@ class PopupController {
                   adoc_token: 'authenticated',
                   adoc_login_time: Date.now()
                 }, () => {
-                  // Remove listener
+                  // Remove listeners
                   chrome.tabs.onUpdated.removeListener(listener);
+                  chrome.tabs.onRemoved.removeListener(removeListener);
 
                   // Close the auth tab
-                  chrome.tabs.remove(authTabId, () => {
-                    // Show fetch view
-                    this.showView('fetch');
-                  });
+                  chrome.tabs.remove(authTabId);
+
+                  // Open the extension popup again
+                  chrome.action.openPopup();
                 });
               }, 1000);
             }
