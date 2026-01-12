@@ -86,68 +86,14 @@ class PopupController {
     // Open ADOC login page
     const loginUrl = 'https://indiumtech.acceldata.app/';
 
-    // Close current popup
-    window.close();
-
-    // Create a new tab for authentication
-    chrome.tabs.create({ url: loginUrl }, (tab) => {
-      const authTabId = tab.id;
-
-      // Listen for tab updates to detect successful login
-      const listener = (tabId, changeInfo, updatedTab) => {
-        if (tabId === authTabId) {
-          // Check if URL has changed and user is logged in
-          // Look for dashboard or main page after login
-          if (changeInfo.url || changeInfo.status === 'complete') {
-            const url = updatedTab.url || '';
-
-            // Check if user navigated past login page (to dashboard/home)
-            if (url.includes('acceldata.app') &&
-                !url.includes('/login') &&
-                !url.includes('/signin') &&
-                changeInfo.status === 'complete') {
-
-              // Wait a moment to ensure session is established
-              setTimeout(() => {
-                // Authentication successful
-                chrome.storage.local.set({
-                  adoc_authenticated: true,
-                  adoc_token: 'authenticated',
-                  adoc_login_time: Date.now()
-                }, () => {
-                  // Remove listeners
-                  chrome.tabs.onUpdated.removeListener(listener);
-                  chrome.tabs.onRemoved.removeListener(removeListener);
-
-                  // Close the auth tab
-                  chrome.tabs.remove(authTabId);
-
-                  // Open the extension popup again
-                  chrome.action.openPopup();
-                });
-              }, 1000);
-            }
-          }
-        }
-      };
-
-      // Also listen for tab removal (user closed tab)
-      const removeListener = (removedTabId) => {
-        if (removedTabId === authTabId) {
-          chrome.tabs.onUpdated.removeListener(listener);
-          chrome.tabs.onRemoved.removeListener(removeListener);
-        }
-      };
-
-      chrome.tabs.onUpdated.addListener(listener);
-      chrome.tabs.onRemoved.addListener(removeListener);
-
-      // Timeout after 5 minutes
-      setTimeout(() => {
-        chrome.tabs.onUpdated.removeListener(listener);
-        chrome.tabs.onRemoved.removeListener(removeListener);
-      }, 300000);
+    // Send message to background script to start monitoring
+    chrome.runtime.sendMessage({
+      action: 'startAuthMonitoring',
+      loginUrl: loginUrl
     });
+
+    // Close the popup
+    window.close();
   }
 
   async handleFetch() {

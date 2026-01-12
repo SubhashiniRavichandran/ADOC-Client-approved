@@ -123,7 +123,90 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       .catch(error => sendResponse({ success: false, error: error.message }));
     return true;
   }
+
+  if (request.action === 'startAuthMonitoring') {
+    startAuthenticationMonitoring(request.loginUrl);
+    sendResponse({ success: true });
+    return true;
+  }
 });
+
+// Authentication monitoring function
+function startAuthenticationMonitoring(loginUrl) {
+  // Create a new tab for authentication
+  chrome.tabs.create({ url: loginUrl }, (tab) => {
+    const authTabId = tab.id;
+
+    // Listen for tab updates to detect successful login
+    const listener = (tabId, changeInfo, updatedTab) => {
+      if (tabId === authTabId) {
+        // Check if URL has changed and user is logged in
+        if (changeInfo.url || changeInfo.status === 'complete') {
+          const url = updatedTab.url || '';
+
+          // Check if user navigated past login page (to dashboard/home)
+          if (url.includes('acceldata.app') &&
+              !url.includes('/login') &&
+              !url.includes('/signin') &&
+              changeInfo.status === 'complete') {
+
+            // Wait a moment to ensure session is established
+            setTimeout(() => {
+              // Authentication successful
+              chrome.storage.local.set({
+                adoc_authenticated: true,
+                adoc_token: 'authenticated',
+                adoc_login_time: Date.now()
+              }, () => {
+                // Remove listeners
+                chrome.tabs.onUpdated.removeListener(listener);
+                chrome.tabs.onRemoved.removeListener(removeListener);
+
+                // Close the auth tab
+                chrome.tabs.remove(authTabId);
+
+                // Update extension badge
+                chrome.action.setBadgeText({ text: '✓' });
+                chrome.action.setBadgeBackgroundColor({ color: '#10b981' });
+
+                // Show notification to user
+                chrome.notifications.create({
+                  type: 'basic',
+                  iconUrl: 'icons/icon128.png',
+                  title: 'ADOC Login Successful',
+                  message: 'Click the extension icon to fetch reliability data',
+                  priority: 2
+                });
+
+                // Clear badge after 3 seconds
+                setTimeout(() => {
+                  chrome.action.setBadgeText({ text: '' });
+                }, 3000);
+              });
+            }, 1000);
+          }
+        }
+      }
+    };
+
+    // Also listen for tab removal (user closed tab)
+    const removeListener = (removedTabId) => {
+      if (removedTabId === authTabId) {
+        chrome.tabs.onUpdated.removeListener(listener);
+        chrome.tabs.onRemoved.removeListener(removeListener);
+      }
+    };
+
+    chrome.tabs.onUpdated.addListener(listener);
+    chrome.tabs.onRemoved.addListener(removeListener);
+
+    // Timeout after 5 minutes
+    setTimeout(() => {
+      chrome.tabs.onUpdated.removeListener(listener);
+      chrome.tabs.onRemoved.removeListener(removeListener);
+    }, 300000);
+  });
+}
 
 // Fetch reliability data for given assets
 async function handleFetchReliabilityData(assets) {
