@@ -1,5 +1,8 @@
 // ADOC Reliability Metrics - Background Service Worker
 
+// Import encryption service
+importScripts('encryption.js');
+
 // ADOC API Client
 class AdocApiClient {
   constructor() {
@@ -151,38 +154,38 @@ function startAuthenticationMonitoring(loginUrl) {
               changeInfo.status === 'complete') {
 
             // Wait a moment to ensure session is established
-            setTimeout(() => {
-              // Authentication successful
-              chrome.storage.local.set({
-                adoc_authenticated: true,
-                adoc_token: 'authenticated',
-                adoc_login_time: Date.now()
-              }, () => {
-                // Remove listeners
-                chrome.tabs.onUpdated.removeListener(listener);
-                chrome.tabs.onRemoved.removeListener(removeListener);
-
-                // Close the auth tab
-                chrome.tabs.remove(authTabId);
-
-                // Update extension badge
-                chrome.action.setBadgeText({ text: '✓' });
-                chrome.action.setBadgeBackgroundColor({ color: '#10b981' });
-
-                // Show notification to user
-                chrome.notifications.create({
-                  type: 'basic',
-                  iconUrl: 'icons/icon128.png',
-                  title: 'ADOC Login Successful',
-                  message: 'Click the extension icon to fetch reliability data',
-                  priority: 2
-                });
-
-                // Clear badge after 3 seconds
-                setTimeout(() => {
-                  chrome.action.setBadgeText({ text: '' });
-                }, 3000);
+            setTimeout(async () => {
+              // Authentication successful - store using encryption
+              await encryptionService.secureStore('adoc_auth', {
+                authenticated: true,
+                token: 'authenticated',
+                loginTime: Date.now()
               });
+
+              // Remove listeners
+              chrome.tabs.onUpdated.removeListener(listener);
+              chrome.tabs.onRemoved.removeListener(removeListener);
+
+              // Close the auth tab
+              chrome.tabs.remove(authTabId);
+
+              // Update extension badge
+              chrome.action.setBadgeText({ text: '✓' });
+              chrome.action.setBadgeBackgroundColor({ color: '#10b981' });
+
+              // Show notification to user
+              chrome.notifications.create({
+                type: 'basic',
+                iconUrl: 'icons/icon128.png',
+                title: 'ADOC Login Successful',
+                message: 'Click the extension icon to fetch reliability data',
+                priority: 2
+              });
+
+              // Clear badge after 3 seconds
+              setTimeout(() => {
+                chrome.action.setBadgeText({ text: '' });
+              }, 3000);
             }, 1000);
           }
         }

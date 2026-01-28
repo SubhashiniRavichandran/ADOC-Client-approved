@@ -1,8 +1,10 @@
-// ADOC Reliability Metrics - Popup Script
+// ADOC Reliability Metrics - Popup Script (Enhanced)
+// Features: AES-256 Encryption, Auto-fetch, No Assets Error, Logout
 
 class PopupController {
   constructor() {
     this.currentView = 'login';
+    this.encryption = encryptionService; // From encryption.js
     this.init();
   }
 
@@ -11,20 +13,14 @@ class PopupController {
     const authStatus = await this.checkAuthStatus();
 
     if (authStatus.authenticated) {
-      this.showView('fetch');
+      // Authenticated - automatically fetch data
+      this.autoFetchData();
     } else {
       this.showView('login');
     }
 
     // Setup event listeners
     this.setupEventListeners();
-
-    // Check if we have cached results
-    const cachedResults = await this.getCachedResults();
-    if (cachedResults) {
-      this.displayResults(cachedResults);
-      this.showView('results');
-    }
   }
 
   setupEventListeners() {
@@ -33,9 +29,9 @@ class PopupController {
       this.handleLogin();
     });
 
-    // Fetch button
-    document.getElementById('fetch-btn')?.addEventListener('click', () => {
-      this.handleFetch();
+    // Fetch Again button (from error view)
+    document.getElementById('fetch-again-btn')?.addEventListener('click', () => {
+      this.autoFetchData();
     });
 
     // Refresh button
@@ -43,8 +39,17 @@ class PopupController {
       this.handleRefresh();
     });
 
+    // Logout buttons
+    document.getElementById('logout-btn')?.addEventListener('click', () => {
+      this.handleLogout();
+    });
+
+    document.getElementById('logout-from-error-btn')?.addEventListener('click', () => {
+      this.handleLogout();
+    });
+
     // Close buttons
-    const closeButtons = ['close-btn', 'close-btn-2', 'close-btn-3', 'close-btn-4'];
+    const closeButtons = ['close-btn', 'close-btn-fetching', 'close-btn-noassets', 'close-btn-results'];
     closeButtons.forEach(id => {
       document.getElementById(id)?.addEventListener('click', () => {
         window.close();
@@ -53,26 +58,17 @@ class PopupController {
   }
 
   async checkAuthStatus() {
-    return new Promise((resolve) => {
-      chrome.storage.local.get(['adoc_authenticated', 'adoc_token'], (result) => {
-        resolve({
-          authenticated: result.adoc_authenticated || false,
-          token: result.adoc_token || null
-        });
-      });
-    });
-  }
-
-  async getCachedResults() {
-    return new Promise((resolve) => {
-      chrome.storage.local.get(['cached_results'], (result) => {
-        resolve(result.cached_results || null);
-      });
-    });
+    // Use encrypted storage
+    const authData = await this.encryption.secureRetrieve('adoc_auth');
+    return {
+      authenticated: authData?.authenticated || false,
+      token: authData?.token || null,
+      loginTime: authData?.loginTime || null
+    };
   }
 
   showView(viewName) {
-    const views = ['login', 'fetch', 'fetching', 'results'];
+    const views = ['login', 'fetching', 'no-assets', 'results'];
     views.forEach(view => {
       const element = document.getElementById(`${view}-view`);
       if (element) {
@@ -83,20 +79,29 @@ class PopupController {
   }
 
   async handleLogin() {
-    // Open ADOC login page
-    const loginUrl = 'https://indiumtech.acceldata.app/';
-
     // Send message to background script to start monitoring
     chrome.runtime.sendMessage({
       action: 'startAuthMonitoring',
-      loginUrl: loginUrl
+      loginUrl: 'https://indiumtech.acceldata.app/'
     });
 
     // Close the popup
     window.close();
   }
 
-  async handleFetch() {
+  async handleLogout() {
+    // Clear all authentication data
+    await this.encryption.secureRemove('adoc_auth');
+    await this.encryption.secureRemove('cached_results');
+
+    // Clear regular storage
+    chrome.storage.local.clear(() => {
+      // Show login view
+      this.showView('login');
+    });
+  }
+
+  async autoFetchData() {
     this.showView('fetching');
 
     try {
@@ -106,7 +111,7 @@ class PopupController {
 
       if (!currentTab || !currentTab.url.includes('powerbi.com')) {
         this.showError('Please open a Power BI report to fetch reliability data.');
-        this.showView('fetch');
+        this.showView('no-assets');
         return;
       }
 
@@ -114,40 +119,45 @@ class PopupController {
       chrome.tabs.sendMessage(currentTab.id, { action: 'extractAssets' }, async (response) => {
         if (chrome.runtime.lastError) {
           console.error('Error:', chrome.runtime.lastError);
-          this.showError('Unable to access Power BI report. Please refresh the page.');
-          this.showView('fetch');
+          this.showView('no-assets');
           return;
         }
 
-        if (response && response.assets) {
+        if (response && response.assets && response.assets.length > 0) {
           // Fetch reliability data from ADOC
           const results = await this.fetchReliabilityData(response.assets);
 
-          // Cache results
-          chrome.storage.local.set({ cached_results: results });
+          // Check if any assets were found
+          if (results.totalAssets === 0 || !results.assets || results.assets.length === 0) {
+            // No assets found in ADOC
+            this.showView('no-assets');
+            return;
+          }
+
+          // Cache results using encryption
+          await this.encryption.secureStore('cached_results', results);
 
           // Display results
           this.displayResults(results);
           this.showView('results');
         } else {
-          this.showError('No assets found in the Power BI report.');
-          this.showView('fetch');
+          // No assets found in Power BI
+          this.showView('no-assets');
         }
       });
     } catch (error) {
       console.error('Error fetching data:', error);
-      this.showError('Failed to fetch reliability data. Please try again.');
-      this.showView('fetch');
+      this.showView('no-assets');
     }
   }
 
   async handleRefresh() {
     const refreshBtn = document.getElementById('refresh-btn');
-    refreshBtn.classList.add('spinning');
+    refreshBtn?.classList.add('spinning');
 
-    await this.handleFetch();
+    await this.autoFetchData();
 
-    refreshBtn.classList.remove('spinning');
+    refreshBtn?.classList.remove('spinning');
   }
 
   async fetchReliabilityData(assets) {
@@ -159,63 +169,41 @@ class PopupController {
           if (response && response.results) {
             resolve(response.results);
           } else {
-            // Mock data for demonstration if API fails
-            resolve(this.generateMockResults(assets));
+            // Return empty results if API fails
+            resolve({
+              reportStatus: 'Unknown',
+              totalAssets: 0,
+              assetsWithAlerts: 0,
+              assets: []
+            });
           }
         }
       );
     });
   }
 
-  generateMockResults(assets) {
-    // Generate mock results for testing
-    const mockAssets = assets.map((asset, index) => {
-      const hasAlerts = Math.random() > 0.7;
-      const score = hasAlerts ? Math.floor(Math.random() * 30) + 70 : Math.floor(Math.random() * 10) + 90;
-
-      return {
-        name: asset.name || `Asset_${index + 1}`,
-        type: asset.type || 'TABLE',
-        reliabilityScore: score,
-        dataFreshness: '100%',
-        lastProfiled: new Date().toLocaleDateString('en-US', {
-          day: 'numeric',
-          month: 'short',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit'
-        }),
-        openAlerts: hasAlerts ? Math.floor(Math.random() * 5) + 1 : 0,
-        upstreamIssues: hasAlerts ? Math.floor(Math.random() * 3) + 1 : 0,
-        adocLink: `https://indiumtech.acceldata.app/assets/${asset.name}`
-      };
-    });
-
-    const totalAlerts = mockAssets.filter(a => a.openAlerts > 0).length;
-
-    return {
-      reportStatus: totalAlerts > 0 ? 'Risky' : 'Healthy',
-      totalAssets: mockAssets.length,
-      assetsWithAlerts: totalAlerts,
-      assets: mockAssets
-    };
-  }
-
   displayResults(results) {
     // Update summary
     const statusBadge = document.getElementById('report-status');
-    statusBadge.textContent = results.reportStatus;
-    statusBadge.className = `badge ${results.reportStatus === 'Healthy' ? 'badge-healthy' : 'badge-risky'}`;
+    if (statusBadge) {
+      statusBadge.textContent = results.reportStatus;
+      statusBadge.className = `badge ${results.reportStatus === 'Healthy' ? 'badge-healthy' : 'badge-risky'}`;
+    }
 
-    document.getElementById('total-assets').textContent = results.totalAssets;
-    document.getElementById('alert-count').textContent = results.assetsWithAlerts;
+    const totalAssets = document.getElementById('total-assets');
+    if (totalAssets) totalAssets.textContent = results.totalAssets;
+
+    const alertCount = document.getElementById('alert-count');
+    if (alertCount) alertCount.textContent = results.assetsWithAlerts;
 
     const alertsLink = document.getElementById('alerts-link');
-    if (results.assetsWithAlerts > 0) {
-      alertsLink.classList.remove('hidden');
-      alertsLink.href = 'https://indiumtech.acceldata.app/alerts';
-    } else {
-      alertsLink.classList.add('hidden');
+    if (alertsLink) {
+      if (results.assetsWithAlerts > 0) {
+        alertsLink.classList.remove('hidden');
+        alertsLink.href = 'https://indiumtech.acceldata.app/alerts';
+      } else {
+        alertsLink.classList.add('hidden');
+      }
     }
 
     // Show/hide no alerts message
@@ -223,11 +211,11 @@ class PopupController {
     const assetsList = document.getElementById('assets-list');
 
     if (results.assetsWithAlerts === 0) {
-      noAlertsMsg.style.display = 'block';
-      assetsList.style.display = 'none';
+      if (noAlertsMsg) noAlertsMsg.style.display = 'block';
+      if (assetsList) assetsList.style.display = 'none';
     } else {
-      noAlertsMsg.style.display = 'none';
-      assetsList.style.display = 'block';
+      if (noAlertsMsg) noAlertsMsg.style.display = 'none';
+      if (assetsList) assetsList.style.display = 'block';
 
       // Display asset cards
       this.displayAssets(results.assets.filter(a => a.openAlerts > 0));
@@ -236,6 +224,8 @@ class PopupController {
 
   displayAssets(assets) {
     const assetsList = document.getElementById('assets-list');
+    if (!assetsList) return;
+
     assetsList.innerHTML = '';
 
     assets.forEach(asset => {
@@ -303,7 +293,7 @@ class PopupController {
 
     // Add copy functionality
     const copyBtn = card.querySelector('.copy-btn');
-    copyBtn.addEventListener('click', (e) => {
+    copyBtn?.addEventListener('click', (e) => {
       const text = e.currentTarget.getAttribute('data-copy');
       navigator.clipboard.writeText(text);
     });
@@ -326,8 +316,7 @@ class PopupController {
   }
 
   showError(message) {
-    // Simple alert for now - could be enhanced with a toast notification
-    alert(message);
+    console.error(message);
   }
 }
 
