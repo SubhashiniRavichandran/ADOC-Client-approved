@@ -1,10 +1,11 @@
-// ADOC Reliability Metrics - Popup Script (Enhanced)
-// Features: AES-256 Encryption, Auto-fetch, No Assets Error, Logout
+// ADOC Reliability Metrics - Popup Script (DEMO VERSION with Mock Data)
+// Features: AES-256 Encryption, Auto-fetch, No Assets Error, Logout, Mock Data for Demo
 
 class PopupController {
   constructor() {
     this.currentView = 'login';
     this.encryption = encryptionService; // From encryption.js
+    this.mockDataScenarios = this.generateMockScenarios();
     this.init();
   }
 
@@ -13,7 +14,7 @@ class PopupController {
     const authStatus = await this.checkAuthStatus();
 
     if (authStatus.authenticated) {
-      // Authenticated - automatically fetch data
+      // Authenticated - automatically fetch data with mock
       this.autoFetchData();
     } else {
       this.showView('login');
@@ -23,13 +24,125 @@ class PopupController {
     this.setupEventListeners();
   }
 
+  // Generate mock data scenarios for demo
+  generateMockScenarios() {
+    return {
+      // Scenario 1: Healthy - No alerts
+      healthy: {
+        reportStatus: 'Healthy',
+        totalAssets: 175,
+        assetsWithAlerts: 0,
+        assets: []
+      },
+
+      // Scenario 2: No assets found (handled by error view)
+      noAssets: null,
+
+      // Scenario 3: Risky - With open alerts
+      risky: {
+        reportStatus: 'Risky',
+        totalAssets: 175,
+        assetsWithAlerts: 25,
+        assets: [
+          {
+            name: 'TRANSACTIONS_DATA',
+            type: 'TABLE',
+            reliabilityScore: 92.12,
+            dataFreshness: '100%',
+            lastProfiled: '25 Jun 2024, 14:24 PM',
+            openAlerts: 2,
+            upstreamIssues: 5,
+            adocLink: 'https://indiumtech.acceldata.app/assets/trans-001'
+          },
+          {
+            name: 'PharmaSalesbyDistributor',
+            type: 'TABLE',
+            reliabilityScore: 92.12,
+            dataFreshness: '100%',
+            lastProfiled: '15 Feb 2024, 14:24 PM',
+            openAlerts: 1,
+            upstreamIssues: 0,
+            adocLink: 'https://indiumtech.acceldata.app/assets/pharma-002'
+          },
+          {
+            name: 'Customer_details',
+            type: 'TABLE',
+            reliabilityScore: 76.3,
+            dataFreshness: '98%',
+            lastProfiled: '22 Jun 2024, 10:15 AM',
+            openAlerts: 3,
+            upstreamIssues: 2,
+            adocLink: 'https://indiumtech.acceldata.app/assets/cust-003'
+          },
+          {
+            name: 'Sales_Summary',
+            type: 'TABLE',
+            reliabilityScore: 88.5,
+            dataFreshness: '100%',
+            lastProfiled: '28 Jun 2024, 09:30 AM',
+            openAlerts: 1,
+            upstreamIssues: 1,
+            adocLink: 'https://indiumtech.acceldata.app/assets/sales-004'
+          },
+          {
+            name: 'Inventory_Master',
+            type: 'TABLE',
+            reliabilityScore: 94.7,
+            dataFreshness: '100%',
+            lastProfiled: '30 Jun 2024, 16:45 PM',
+            openAlerts: 2,
+            upstreamIssues: 3,
+            adocLink: 'https://indiumtech.acceldata.app/assets/inv-005'
+          },
+          {
+            name: 'Product_Catalog',
+            type: 'TABLE',
+            reliabilityScore: 82.1,
+            dataFreshness: '95%',
+            lastProfiled: '20 Jun 2024, 11:20 AM',
+            openAlerts: 1,
+            upstreamIssues: 0,
+            adocLink: 'https://indiumtech.acceldata.app/assets/prod-006'
+          },
+          {
+            name: 'Order_Details',
+            type: 'TABLE',
+            reliabilityScore: 79.3,
+            dataFreshness: '97%',
+            lastProfiled: '24 Jun 2024, 13:15 PM',
+            openAlerts: 2,
+            upstreamIssues: 4,
+            adocLink: 'https://indiumtech.acceldata.app/assets/order-007'
+          },
+          {
+            name: 'Shipping_Info',
+            type: 'TABLE',
+            reliabilityScore: 91.8,
+            dataFreshness: '100%',
+            lastProfiled: '29 Jun 2024, 08:50 AM',
+            openAlerts: 1,
+            upstreamIssues: 1,
+            adocLink: 'https://indiumtech.acceldata.app/assets/ship-008'
+          }
+        ]
+      }
+    };
+  }
+
+  // Get random mock scenario
+  getRandomScenario() {
+    const scenarios = ['healthy', 'noAssets', 'risky'];
+    const randomIndex = Math.floor(Math.random() * scenarios.length);
+    return scenarios[randomIndex];
+  }
+
   setupEventListeners() {
     // Login button
     document.getElementById('login-btn')?.addEventListener('click', () => {
       this.handleLogin();
     });
 
-    // Fetch Again button (from error view)
+    // Fetch Again button (from error view) - randomly select scenario
     document.getElementById('fetch-again-btn')?.addEventListener('click', () => {
       this.autoFetchData();
     });
@@ -104,47 +217,29 @@ class PopupController {
   async autoFetchData() {
     this.showView('fetching');
 
-    try {
-      // Get current Power BI context
-      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-      const currentTab = tabs[0];
+    // Simulate fetching delay for realistic demo
+    await new Promise(resolve => setTimeout(resolve, 1500));
 
-      if (!currentTab || !currentTab.url.includes('powerbi.com')) {
-        this.showError('Please open a Power BI report to fetch reliability data.');
+    try {
+      // DEMO MODE: Use random mock scenario instead of real API
+      const scenario = this.getRandomScenario();
+
+      if (scenario === 'noAssets') {
+        // Show no assets error
         this.showView('no-assets');
         return;
       }
 
-      // Send message to content script to extract Power BI assets
-      chrome.tabs.sendMessage(currentTab.id, { action: 'extractAssets' }, async (response) => {
-        if (chrome.runtime.lastError) {
-          console.error('Error:', chrome.runtime.lastError);
-          this.showView('no-assets');
-          return;
-        }
+      // Get mock data for the scenario
+      const results = this.mockDataScenarios[scenario];
 
-        if (response && response.assets && response.assets.length > 0) {
-          // Fetch reliability data from ADOC
-          const results = await this.fetchReliabilityData(response.assets);
+      // Cache results using encryption
+      await this.encryption.secureStore('cached_results', results);
 
-          // Check if any assets were found
-          if (results.totalAssets === 0 || !results.assets || results.assets.length === 0) {
-            // No assets found in ADOC
-            this.showView('no-assets');
-            return;
-          }
+      // Display results
+      this.displayResults(results);
+      this.showView('results');
 
-          // Cache results using encryption
-          await this.encryption.secureStore('cached_results', results);
-
-          // Display results
-          this.displayResults(results);
-          this.showView('results');
-        } else {
-          // No assets found in Power BI
-          this.showView('no-assets');
-        }
-      });
     } catch (error) {
       console.error('Error fetching data:', error);
       this.showView('no-assets');
@@ -158,28 +253,6 @@ class PopupController {
     await this.autoFetchData();
 
     refreshBtn?.classList.remove('spinning');
-  }
-
-  async fetchReliabilityData(assets) {
-    // Send request to background script to fetch data from ADOC API
-    return new Promise((resolve) => {
-      chrome.runtime.sendMessage(
-        { action: 'fetchReliabilityData', assets: assets },
-        (response) => {
-          if (response && response.results) {
-            resolve(response.results);
-          } else {
-            // Return empty results if API fails
-            resolve({
-              reportStatus: 'Unknown',
-              totalAssets: 0,
-              assetsWithAlerts: 0,
-              assets: []
-            });
-          }
-        }
-      );
-    });
   }
 
   displayResults(results) {
@@ -211,13 +284,13 @@ class PopupController {
     const assetsList = document.getElementById('assets-list');
 
     if (results.assetsWithAlerts === 0) {
-      if (noAlertsMsg) noAlertsMsg.style.display = 'block';
+      if (noAlertsMsg) noAlertsMsg.style.display = 'flex';
       if (assetsList) assetsList.style.display = 'none';
     } else {
       if (noAlertsMsg) noAlertsMsg.style.display = 'none';
       if (assetsList) assetsList.style.display = 'block';
 
-      // Display asset cards
+      // Display asset cards (only show assets with alerts)
       this.displayAssets(results.assets.filter(a => a.openAlerts > 0));
     }
   }
@@ -236,14 +309,14 @@ class PopupController {
 
   createAssetCard(asset) {
     const card = document.createElement('div');
-    card.className = 'asset-card has-alerts';
+    card.className = asset.openAlerts > 0 ? 'asset-card has-alerts' : 'asset-card';
 
     const scoreClass = asset.reliabilityScore >= 90 ? 'score-high' :
                        asset.reliabilityScore >= 70 ? 'score-medium' : 'score-low';
 
     card.innerHTML = `
       <div class="asset-header">
-        <div class="asset-icon ${asset.type === 'TABLE' ? 'table-icon' : 'file-icon'}">
+        <div class="asset-icon">
           ${this.getAssetIcon(asset.type)}
         </div>
         <div class="asset-title">
@@ -256,7 +329,6 @@ class PopupController {
               </svg>
             </button>
           </div>
-          <div class="asset-type">${asset.type}</div>
         </div>
       </div>
       <div class="asset-metrics">
@@ -274,19 +346,27 @@ class PopupController {
         </div>
       </div>
       <div class="asset-footer">
-        <div>
-          <div class="alert-info">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-            Open Alerts: ${asset.openAlerts}
-            <a href="${asset.adocLink}/alerts" target="_blank" class="link-icon">
+        <div class="footer-row">
+          <span>Open Alerts:</span>
+          <span class="footer-value">
+            ${asset.openAlerts}
+            <a href="${asset.adocLink}/alerts" target="_blank" class="link-icon" title="View alerts in ADOC">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </a>
-          </div>
-          <div class="upstream-info">Upstream Issues: ${asset.upstreamIssues}</div>
+          </span>
+        </div>
+        <div class="footer-row">
+          <span>Upstream Issues:</span>
+          <span class="footer-value">
+            ${asset.upstreamIssues}
+            <a href="${asset.adocLink}/lineage" target="_blank" class="link-icon" title="View lineage in ADOC">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+          </span>
         </div>
       </div>
     `;
@@ -296,23 +376,24 @@ class PopupController {
     copyBtn?.addEventListener('click', (e) => {
       const text = e.currentTarget.getAttribute('data-copy');
       navigator.clipboard.writeText(text);
+
+      // Visual feedback
+      const btn = e.currentTarget;
+      btn.style.color = '#10b981';
+      setTimeout(() => {
+        btn.style.color = '';
+      }, 500);
     });
 
     return card;
   }
 
   getAssetIcon(type) {
-    if (type === 'TABLE') {
-      return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/>
-        <path d="M3 9h18M3 15h18M12 3v18" stroke="currentColor" stroke-width="2"/>
-      </svg>`;
-    } else {
-      return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" stroke-width="2"/>
-        <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke="currentColor" stroke-width="2"/>
-      </svg>`;
-    }
+    // Table icon
+    return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/>
+      <path d="M3 9h18M3 15h18M12 3v18" stroke="currentColor" stroke-width="2"/>
+    </svg>`;
   }
 
   showError(message) {
