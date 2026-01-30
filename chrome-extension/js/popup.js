@@ -301,34 +301,39 @@ class PopupController {
 
     assetsList.innerHTML = '';
 
-    assets.forEach(asset => {
-      const card = this.createAssetCard(asset);
+    assets.forEach((asset, index) => {
+      const card = this.createAssetCard(asset, index);
       assetsList.appendChild(card);
     });
   }
 
-  createAssetCard(asset) {
+  createAssetCard(asset, index = 0) {
     const card = document.createElement('div');
-    card.className = asset.openAlerts > 0 ? 'asset-card has-alerts' : 'asset-card';
+    card.className = 'asset-card';
 
     const scoreClass = asset.reliabilityScore >= 90 ? 'score-high' :
                        asset.reliabilityScore >= 70 ? 'score-medium' : 'score-low';
 
+    const badgeInfo = this.getBadgeIcon(index);
+
     card.innerHTML = `
       <div class="asset-header">
+        <div class="asset-badge ${badgeInfo.class}">
+          ${badgeInfo.icon}
+        </div>
         <div class="asset-icon">
           ${this.getAssetIcon(asset.type)}
         </div>
         <div class="asset-title">
-          <div class="asset-name">
+          <span class="asset-name">
             ${asset.name}
-            <button class="copy-btn" title="Copy name" data-copy="${asset.name}">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/>
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" stroke="currentColor" stroke-width="2"/>
-              </svg>
-            </button>
-          </div>
+          </span>
+          <button class="copy-btn" title="Copy name" data-copy="${asset.name}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" stroke="currentColor" stroke-width="2"/>
+            </svg>
+          </button>
         </div>
       </div>
       <div class="asset-metrics">
@@ -388,9 +393,35 @@ class PopupController {
     return card;
   }
 
+  getBadgeIcon(index) {
+    const badges = [
+      {
+        class: 'badge-cyan',
+        icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2L15 9L22 9L16 14L18.5 21L12 16.5L5.5 21L8 14L2 9L9 9L12 2Z" fill="currentColor"/>
+        </svg>`
+      },
+      {
+        class: 'badge-red',
+        icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" fill="currentColor"/>
+          <polyline points="14 2 14 8 20 8" fill="currentColor"/>
+        </svg>`
+      },
+      {
+        class: 'badge-blue',
+        icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="12" r="10" fill="currentColor"/>
+        </svg>`
+      }
+    ];
+
+    return badges[index % badges.length];
+  }
+
   getAssetIcon(type) {
     // Table icon
-    return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
       <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/>
       <path d="M3 9h18M3 15h18M12 3v18" stroke="currentColor" stroke-width="2"/>
     </svg>`;
