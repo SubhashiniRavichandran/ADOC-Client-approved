@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>ADOC Chrome Extension - User Guide</title>
+<style>
+body {
+    font-family: 'Calibri', 'Arial', sans-serif;
+    line-height: 1.6;
+    color: #000000;
+    max-width: 8.5in;
+    margin: 0 auto;
+    padding: 1in;
+    background: white;
+}
+
+/* Headers - Blue */
+h1 {
+    color: #1e3a8a;
+    font-size: 24pt;
+    font-weight: bold;
+    border-bottom: 3px solid #1e3a8a;
+    padding-bottom: 10px;
+    margin-top: 30px;
+}
+
+h2 {
+    color: #2563eb;
+    font-size: 18pt;
+    font-weight: bold;
+    margin-top: 25px;
+    page-break-before: always;
+}
+
+h3 {
+    color: #3b82f6;
+    font-size: 14pt;
+    font-weight: bold;
+    margin-top: 20px;
+}
+
+/* Text - Black */
+p, li, td {
+    color: #000000;
+    font-size: 11pt;
+}
+
+/* Code - Red and Italic */
+code, .code {
+    color: #dc2626;
+    font-style: italic;
+    font-family: 'Courier New', monospace;
+    font-size: 10pt;
+    background: #fee;
+    padding: 2px 6px;
+    border-radius: 3px;
+}
+
+/* Tips - Green */
+.tip {
+    background: #d1fae5;
+    border-left: 4px solid #10b981;
+    padding: 12px;
+    margin: 15px 0;
+}
+
+.tip-title {
+    color: #16a34a;
+    font-weight: bold;
+    font-style: italic;
+}
+
+/* Screenshots */
+.screenshot {
+    background: #f3f4f6;
+    border: 2px dashed #9ca3af;
+    padding: 40px;
+    text-align: center;
+    margin: 20px 0;
+    color: #6b7280;
+    font-style: italic;
+}
+
+/* Tables */
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 15px 0;
+}
+
+th {
+    background: #2563eb;
+    color: white;
+    padding: 10px;
+    text-align: left;
+    font-weight: bold;
+}
+
+td {
+    border: 1px solid #e5e7eb;
+    padding: 8px;
+}
+
+tr:nth-child(even) {
+    background: #f9fafb;
+}
+
+/* Important boxes */
+.important {
+    background: #fef3c7;
+    border-left: 4px solid #f59e0b;
+    padding: 12px;
+    margin: 15px 0;
+}
+
+.success {
+    background: #d1fae5;
+    border-left: 4px solid #10b981;
+    padding: 12px;
+    margin: 15px 0;
+}
+
+.warning {
+    background: #fee2e2;
+    border-left: 4px solid #ef4444;
+    padding: 12px;
+    margin: 15px 0;
+}
+
+/* Step boxes */
+.step {
+    background: #f0f9ff;
+    border-left: 4px solid #2563eb;
+    padding: 15px;
+    margin: 15px 0;
+}
+
+/* Icon indicators */
+.icon-healthy {
+    color: #10b981;
+    font-size: 16pt;
+}
+
+.icon-risky {
+    color: #f59e0b;
+    font-size: 16pt;
+}
+
+.icon-error {
+    color: #ef4444;
+    font-size: 16pt;
+}
+
+.page-break {
+    page-break-after: always;
+}
+</style>
+</head>
+<body>
+
+<h1>ADOC Chrome Extension</h1>
+<h2 style="page-break-before: avoid; color: #2563eb; margin-top: 0;">User Guide with Tips & Tricks</h2>
+
+<p style="text-align: center; color: #6b7280; margin-bottom: 30px;">
+<strong>Version:</strong> 1.1.0 | <strong>Date:</strong> January 30, 2026<br>
+<strong>Document Type:</strong> End User Instructions
+</p>
+
+<div class="page-break"></div>
+
+<h2>Quick Start Guide</h2>
+
+<h3>What is ADOC Chrome Extension?</h3>
+
+<p>The ADOC Chrome Extension brings real-time data quality insights directly into your Power BI workflow. Instead of switching between applications, you can instantly check if your report data is reliable.</p>
+
+<div class="success">
+<p><strong>Key Benefits:</strong></p>
+<ul>
+<li>✓ Check data reliability in seconds</li>
+<li>✓ See alerts before sharing reports</li>
+<li>✓ Identify data quality issues instantly</li>
+<li>✓ One-click access to detailed analysis</li>
+</ul>
+</div>
+
+<h3>First Time Setup (2 Minutes)</h3>
+
+<div class="step">
+<p><strong>Step 1:</strong> Look for the ADOC icon in your Chrome toolbar</p>
+<ul>
+<li>It's a dark blue <strong>"a"</strong> logo</li>
+<li>Usually near the top-right corner of Chrome</li>
+</ul>
+
+<div class="screenshot">
+<strong>[INSERT SCREENSHOT]</strong><br>
+Chrome toolbar showing ADOC icon (blue "a") among other extension icons
+</div>
+</div>
+
+<div class="step">
+<p><strong>Step 2:</strong> Click the ADOC icon</p>
+<p>A popup window opens showing the login screen</p>
+
+<div class="screenshot">
+<strong>[INSERT SCREENSHOT]</strong><br>
+Login screen with ADOC logo, chart icon, and "Login to Acceldata" button
+</div>
+</div>
+
+<div class="step">
+<p><strong>Step 3:</strong> Click <strong>"Login to Acceldata"</strong></p>
+<p>A new tab opens to <code>indiumtech.acceldata.app</code></p>
+
+<div class="screenshot">
+<strong>[INSERT SCREENSHOT]</strong><br>
+Acceldata login page in new browser tab
+</div>
+</div>
+
+<div class="step">
+<p><strong>Step 4:</strong> Login with your Acceldata credentials</p>
+<ul>
+<li>Enter your email and password</li>
+<li>Click login</li>
+<li>The tab will close automatically</li>
+</ul>
+
+<div class="tip">
+<p class="tip-title">💡 Tip:</p>
+<p>You only need to login once! Your credentials are securely encrypted and stored in your browser.</p>
+</div>
+</div>
+
+<div class="step">
+<p><strong>Step 5:</strong> Watch for the success notification</p>
+<p>You'll see: <strong>"ADOC Login Successful"</strong></p>
+
+<div class="screenshot">
+<strong>[INSERT SCREENSHOT]</strong><br>
+Chrome notification showing "ADOC Login Successful - Click the extension icon to fetch reliability data"
+</div>
+</div>
+
+<div class="step">
+<p><strong>Step 6:</strong> Click the ADOC icon again</p>
+<p>The extension automatically fetches data!</p>
+
+<div class="screenshot">
+<strong>[INSERT SCREENSHOT]</strong><br>
+Fetching screen with database icon and spinner animation
+</div>
+</div>
+
+<div class="success">
+<p><strong>Setup Complete!</strong> You're ready to check data reliability for any Power BI report.</p>
+</div>
+
+<div class="page-break"></div>
+
+<h2>Daily Usage</h2>
+
+<h3>Checking a Power BI Report</h3>
+
+<p><strong>Scenario:</strong> You're about to present a Power BI report and want to verify data quality.</p>
+
+<ol>
+<li>Open your Power BI report in Chrome</li>
+<li>Click the ADOC icon in toolbar</li>
+<li>Extension automatically fetches reliability data</li>
+<li>View results (see scenarios below)</li>
+</ol>
+
+<div class="tip">
+<p class="tip-title">💡 Pro Tip:</p>
+<p>Always check ADOC before sharing important reports with stakeholders. It takes only 5 seconds and can save you from embarrassing data quality issues!</p>
+</div>
+
+<div class="page-break"></div>
+
+<h2>Understanding the Three Scenarios</h2>
+
+<h3>Scenario 1: Healthy Report <span class="icon-healthy">✓</span></h3>
+
+<p><strong>What You'll See:</strong></p>
+
+<div class="screenshot">
+<strong>[INSERT SCREENSHOT]</strong><br>
+Full extension popup showing Healthy scenario with:
+- Green "Healthy" badge
+- 175 total assets
+- 0 assets with alerts
+- Large green checkmark icon
+- Message: "There are no assets with open alerts powering this report"
+</div>
+
+<h4>Report Summary Section</h4>
+
+<table>
+<tr>
+<th>Field</th>
+<th>Value</th>
+<th>Meaning</th>
+</tr>
+<tr>
+<td><strong>Report Status</strong></td>
+<td><span style="background: #d1fae5; color: #065f46; padding: 4px 10px; border-radius: 12px; font-weight: bold;">Healthy</span></td>
+<td>All data sources are reliable</td>
+</tr>
+<tr>
+<td><strong>Total Assets fetched</strong></td>
+<td>175</td>
+<td>Number of datasets analyzed</td>
+</tr>
+<tr>
+<td><strong>Assets with Alerts</strong></td>
+<td>0</td>
+<td>No quality issues detected</td>
+</tr>
+</table>
+
+<h4>What This Means</h4>
+
+<p class="icon-healthy">✓ <strong>All systems operational</strong> - Your data is reliable and up-to-date</p>
+<p class="icon-healthy">✓ <strong>Safe to proceed</strong> - You can confidently use and share this report</p>
+<p class="icon-healthy">✓ <strong>No action needed</strong> - Continue with your analysis</p>
+
+<div class="tip">
+<p class="tip-title">💡 Best Practice:</p>
+<p>Even with a healthy status, click the link icon to occasionally review detailed metrics in ADOC. This helps you understand your data's baseline quality.</p>
+</div>
+
+<h4>What You Should Do</h4>
+
+<ol>
+<li><strong>Continue working</strong> with confidence</li>
+<li><strong>Share your report</strong> knowing data is reliable</li>
+<li><strong>Make decisions</strong> based on the insights</li>
+<li><strong>Refresh periodically</strong> to stay updated</li>
+</ol>
+
+<div class="page-break"></div>
+
+<h3>Scenario 2: Risky Report <span class="icon-risky">⚠️</span></h3>
+
+<p><strong>What You'll See:</strong></p>
+
+<div class="screenshot">
+<strong>[INSERT SCREENSHOT]</strong><br>
+Full extension popup showing Risky scenario with:
+- Amber "Risky" badge
+- 175 total assets
+- 25 assets with alerts
+- Asset cards list with scroll
+</div>
+
+<h4>Report Summary Section</h4>
+
+<table>
+<tr>
+<th>Field</th>
+<th>Value</th>
+<th>Meaning</th>
+</tr>
+<tr>
+<td><strong>Report Status</strong></td>
+<td><span style="background: #fef3c7; color: #d97706; padding: 4px 10px; border-radius: 12px; font-weight: bold;">Risky</span></td>
+<td>Data quality issues detected</td>
+</tr>
+<tr>
+<td><strong>Total Assets fetched</strong></td>
+<td>175</td>
+<td>Number of datasets analyzed</td>
+</tr>
+<tr>
+<td><strong>Assets with Alerts</strong></td>
+<td>25 <span style="color: #3b82f6;">🔗</span></td>
+<td>Datasets with active issues (click link to view in ADOC)</td>
+</tr>
+</table>
+
+<h4>What This Means</h4>
+
+<p class="icon-risky">⚠️ <strong>Data quality issues detected</strong> - Some datasets have problems</p>
+<p class="icon-risky">⚠️ <strong>Review required</strong> - Check asset details before proceeding</p>
+<p class="icon-risky">⚠️ <strong>Validate insights</strong> - Cross-check critical numbers</p>
+
+<div class="warning">
+<p><strong>Caution:</strong> Don't share this report with stakeholders until you've reviewed the issues and validated the data.</p>
+</div>
+
+<h4>Reliability Details - Asset Cards</h4>
+
+<p>The extension shows detailed cards for each dataset with issues. Here's how to read them:</p>
+
+<div class="screenshot">
+<strong>[INSERT SCREENSHOT]</strong><br>
+Close-up of single asset card showing all components:
+- Colored badge (cyan/red/blue) on left
+- Table icon
+- Asset name: "TRANSACTIONS_DATA"
+- Copy button
+- Data Reliability Score: 92.12% (green badge)
+- Data Freshness: 100%
+- Last Profiled: 25 Jun 2024, 14:24 PM
+- Open Alerts: 2 (with link icon)
+- Upstream Issues: 5 (with link icon)
+</div>
+
+<h4>Understanding Asset Card Components</h4>
+
+<table>
+<tr>
+<th>Component</th>
+<th>What It Means</th>
+<th>How to Use It</th>
+</tr>
+<tr>
+<td><strong>Colored Badge</strong><br>🔷 🔴 🔵</td>
+<td>Visual identifier for quick scanning</td>
+<td>Helps you quickly find the same dataset when scrolling</td>
+</tr>
+<tr>
+<td><strong>Table Icon</strong><br>📊</td>
+<td>Indicates this is a dataset/table</td>
+<td>Confirms the asset type</td>
+</tr>
+<tr>
+<td><strong>Asset Name</strong></td>
+<td>Full dataset name</td>
+<td>Identifies which data source has issues</td>
+</tr>
+<tr>
+<td><strong>Copy Button</strong><br>📋</td>
+<td>Copies name to clipboard</td>
+<td>Click to easily share the name with data teams</td>
+</tr>
+<tr>
+<td><strong>Reliability Score</strong></td>
+<td>Overall data quality percentage</td>
+<td>Higher = better. Look for red/amber scores first</td>
+</tr>
+<tr>
+<td><strong>Data Freshness</strong></td>
+<td>How current the data is</td>
+<td>100% = up-to-date. Lower = potentially stale</td>
+</tr>
+<tr>
+<td><strong>Last Profiled</strong></td>
+<td>When data was last checked</td>
+<td>Recent date = reliable check. Old date = may need refresh</td>
+</tr>
+<tr>
+<td><strong>Open Alerts</strong></td>
+<td>Number of active quality issues</td>
+<td>Click 🔗 to see alert details in ADOC</td>
+</tr>
+<tr>
+<td><strong>Upstream Issues</strong></td>
+<td>Problems in source datasets</td>
+<td>Click 🔗 to see data lineage in ADOC</td>
+</tr>
+</table>
+
+<h4>Reliability Score Color Guide</h4>
+
+<table>
+<tr>
+<th>Score Range</th>
+<th>Color Badge</th>
+<th>Meaning</th>
+<th>Action Required</th>
+</tr>
+<tr>
+<td><strong>90% - 100%</strong></td>
+<td><span style="background: #d1fae5; color: #065f46; padding: 2px 8px; border-radius: 4px; font-weight: bold;">92.12%</span></td>
+<td>Excellent quality</td>
+<td>Low priority - Minor issues only</td>
+</tr>
+<tr>
+<td><strong>70% - 89%</strong></td>
+<td><span style="background: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 4px; font-weight: bold;">76.3%</span></td>
+<td>Moderate quality</td>
+<td>Medium priority - Review recommended</td>
+</tr>
+<tr>
+<td><strong>Below 70%</strong></td>
+<td><span style="background: #fee2e2; color: #991b1b; padding: 2px 8px; border-radius: 4px; font-weight: bold;">65.8%</span></td>
+<td>Poor quality</td>
+<td>High priority - Immediate attention needed</td>
+</tr>
+</table>
+
+<div class="screenshot">
+<strong>[INSERT SCREENSHOT]</strong><br>
+Multiple asset cards in scrollable list showing different reliability scores (green, amber, red badges)
+</div>
+
+<h4>What You Should Do</h4>
+
+<div class="step">
+<p><strong>Step 1: Scroll through asset cards</strong></p>
+<p>Quickly scan for red or amber reliability scores</p>
+
+<div class="tip">
+<p class="tip-title">💡 Quick Tip:</p>
+<p>Focus on assets with scores below 80%. These are most likely to cause problems in your report.</p>
+</div>
+</div>
+
+<div class="step">
+<p><strong>Step 2: Click "Open Alerts" link icons</strong></p>
+<p>Opens ADOC platform in new tab showing detailed alert information</p>
+
+<div class="screenshot">
+<strong>[INSERT SCREENSHOT]</strong><br>
+ADOC platform showing alerts page with detailed information about specific data quality issues
+</div>
+
+<div class="tip">
+<p class="tip-title">💡 Power User Tip:</p>
+<p>Keep the extension popup open while viewing alerts in ADOC. You can easily refer back to other assets without re-fetching.</p>
+</div>
+</div>
+
+<div class="step">
+<p><strong>Step 3: Use copy button to share with data team</strong></p>
+<p>Click the copy button (📋) next to asset name</p>
+<p>Paste into email/Slack to alert your data team</p>
+
+<div class="tip">
+<p class="tip-title">💡 Email Template:</p>
+<p><em>"Hi Data Team, I'm seeing quality issues with <strong>[paste asset name]</strong>. Can you investigate? The ADOC extension shows [X] open alerts and [Y] upstream issues. Report link: [paste report URL]. Thanks!"</em></p>
+</div>
+</div>
+
+<div class="step">
+<p><strong>Step 4: Wait for resolution</strong></p>
+<p>Monitor issues in ADOC platform until fixed</p>
+</div>
+
+<div class="step">
+<p><strong>Step 5: Refresh extension</strong></p>
+<p>Click the refresh icon (🔄) to verify issues are resolved</p>
+
+<div class="screenshot">
+<strong>[INSERT SCREENSHOT]</strong><br>
+Extension header showing refresh icon in top-right corner next to logout and close buttons
+</div>
+</div>
+
+<div class="step">
+<p><strong>Step 6: Proceed when "Healthy"</strong></p>
+<p>Once status returns to Healthy, your report is safe to share</p>
+</div>
+
+<div class="page-break"></div>
+
+<h3>Scenario 3: No Assets Found <span class="icon-error">🚫</span></h3>
+
+<p><strong>What You'll See:</strong></p>
+
+<div class="screenshot">
+<strong>[INSERT SCREENSHOT]</strong><br>
+Error view showing:
+- Orange warning triangle icon
+- Error message: "We couldn't find the datasets powering this report in Acceldata"
+- "Fetch Again" button
+- "Logout" button
+</div>
+
+<h4>What This Means</h4>
+
+<p>This error appears when:</p>
+
+<ul>
+<li>The Power BI report uses datasets that aren't tracked in ADOC yet</li>
+<li>Dataset names don't match between Power BI and ADOC</li>
+<li>You don't have permission to view these assets in ADOC</li>
+<li>There's a temporary network issue</li>
+</ul>
+
+<div class="important">
+<p><strong>Important:</strong> This doesn't necessarily mean your data is bad! It just means ADOC doesn't have information about these specific datasets.</p>
+</div>
+
+<h4>What You Should Do</h4>
+
+<table>
+<tr>
+<th>If This Happens...</th>
+<th>Do This...</th>
+</tr>
+<tr>
+<td><strong>First time seeing this error</strong></td>
+<td>
+<ol>
+<li>Click <strong>"Fetch Again"</strong> to retry</li>
+<li>If still fails, check your internet connection</li>
+<li>Verify you can access ADOC platform directly</li>
+</ol>
+</td>
+</tr>
+<tr>
+<td><strong>Error persists</strong></td>
+<td>
+<ol>
+<li>Contact your ADOC administrator</li>
+<li>Request onboarding for these datasets</li>
+<li>Verify you have permissions in ADOC</li>
+</ol>
+</td>
+</tr>
+<tr>
+<td><strong>Need to switch accounts</strong></td>
+<td>
+<ol>
+<li>Click <strong>"Logout"</strong> button</li>
+<li>Login with different credentials</li>
+<li>Try fetching again</li>
+</ol>
+</td>
+</tr>
+<tr>
+<td><strong>Want to test with different report</strong></td>
+<td>
+<ol>
+<li>Open a different Power BI report</li>
+<li>Click ADOC icon</li>
+<li>See if that report's data is tracked</li>
+</ol>
+</td>
+</tr>
+</table>
+
+<div class="tip">
+<p class="tip-title">💡 Workaround:</p>
+<p>If your datasets aren't in ADOC yet, use traditional data quality checks until onboarding is complete. Meanwhile, bookmark reports that DO work with ADOC as your "verified" reports.</p>
+</div>
+
+<div class="page-break"></div>
+
+<h2>Key Features & How to Use Them</h2>
+
+<h3>Feature 1: Refresh Data 🔄</h3>
+
+<p><strong>Location:</strong> Top-right corner of extension popup (circular arrow icon)</p>
+
+<p><strong>When to Use:</strong></p>
+<ul>
+<li>After your data team fixes reported issues</li>
+<li>To get the latest reliability metrics</li>
+<li>When you want to see a different demo scenario (demo mode only)</li>
+<li>If you suspect data has changed since last check</li>
+</ul>
+
+<p><strong>How It Works:</strong></p>
+<ol>
+<li>Click the refresh icon</li>
+<li>Extension re-fetches data from ADOC</li>
+<li>Results update in 1-2 seconds</li>
+<li>See updated status and metrics</li>
+</ol>
+
+<div class="screenshot">
+<strong>[INSERT SCREENSHOT]</strong><br>
+Extension header highlighting the refresh button with mouse cursor hovering
+</div>
+
+<div class="tip">
+<p class="tip-title">💡 Refresh Strategy:</p>
+<p>Create a habit: Check once in the morning, refresh before important meetings. This ensures you always have the latest data quality status.</p>
+</div>
+
+<h3>Feature 2: View in ADOC 🔗</h3>
+
+<p><strong>Location:</strong> Blue link icons next to "Open Alerts" and "Upstream Issues"</p>
+
+<p><strong>When to Use:</strong></p>
+<ul>
+<li>To understand what specific alerts mean</li>
+<li>To see detailed data lineage</li>
+<li>To investigate root cause of issues</li>
+<li>To track issue resolution progress</li>
+</ul>
+
+<p><strong>How It Works:</strong></p>
+<ol>
+<li>Find an asset with alerts or upstream issues</li>
+<li>Click the blue link icon (🔗) next to the number</li>
+<li>ADOC platform opens in new tab</li>
+<li>View detailed information</li>
+<li>Return to extension popup when done</li>
+</ol>
+
+<div class="screenshot">
+<strong>[INSERT SCREENSHOT]</strong><br>
+Asset card with blue link icon highlighted next to "Open Alerts: 2"
+</div>
+
+<div class="tip">
+<p class="tip-title">💡 Navigation Tip:</p>
+<p>Right-click the link icon and choose "Open in new tab" to keep your current view. This way you don't lose your place in the extension.</p>
+</div>
+
+<h3>Feature 3: Copy Asset Name 📋</h3>
+
+<p><strong>Location:</strong> Small copy icon next to each asset name</p>
+
+<p><strong>When to Use:</strong></p>
+<ul>
+<li>To share problem datasets with your data team</li>
+<li>To create tickets in your tracking system</li>
+<li>To document issues in emails or Slack</li>
+<li>To search for the dataset in ADOC manually</li>
+</ul>
+
+<p><strong>How It Works:</strong></p>
+<ol>
+<li>Find the asset you want to reference</li>
+<li>Click the copy button (📋) next to the name</li>
+<li>Icon briefly turns green confirming copy</li>
+<li>Paste (Ctrl+V or Cmd+V) into your document</li>
+</ol>
+
+<div class="screenshot">
+<strong>[INSERT SCREENSHOT]</strong><br>
+Asset name with copy button highlighted, showing the green confirmation state after clicking
+</div>
+
+<div class="tip">
+<p class="tip-title">💡 Batch Copy Tip:</p>
+<p>Need to report multiple assets? Open a text editor, then quickly click copy buttons for all problematic assets. Paste them all at once into your email or ticket.</p>
+</div>
+
+<h3>Feature 4: Logout 🚪</h3>
+
+<p><strong>Location:</strong> Top-right corner of extension popup (logout icon)</p>
+
+<p><strong>When to Use:</strong></p>
+<ul>
+<li>To switch between ADOC accounts</li>
+<li>When troubleshooting login issues</li>
+<li>At end of day for security (optional)</li>
+<li>Before sharing your computer with someone</li>
+</ul>
+
+<p><strong>How It Works:</strong></p>
+<ol>
+<li>Click the logout icon</li>
+<li>All encrypted data is cleared from browser</li>
+<li>Extension returns to login screen</li>
+<li>You'll need to login again to use the extension</li>
+</ol>
+
+<div class="screenshot">
+<strong>[INSERT SCREENSHOT]</strong><br>
+Extension header with logout button highlighted between refresh and close buttons
+</div>
+
+<div class="important">
+<p><strong>Security Note:</strong> Logout completely removes all stored credentials from your browser. This ensures your ADOC access is secure.</p>
+</div>
+
+<div class="page-break"></div>
+
+<h2>Tips & Tricks for Power Users</h2>
+
+<h3>Tip 1: Pre-Presentation Check</h3>
+
+<div class="tip">
+<p class="tip-title">💡 Best Practice Workflow:</p>
+<ol>
+<li>30 minutes before meeting: Open Power BI report</li>
+<li>Click ADOC extension</li>
+<li>If Healthy: Proceed with confidence ✓</li>
+<li>If Risky: Review alerts and decide if issues affect your key insights</li>
+<li>If critical issues: Postpone presentation and contact data team</li>
+<li>5 minutes before meeting: Refresh one more time to confirm status</li>
+</ol>
+</div>
+
+<h3>Tip 2: Daily Data Quality Dashboard</h3>
+
+<div class="tip">
+<p class="tip-title">💡 Create a Morning Routine:</p>
+<ol>
+<li>Open your 3-5 most important reports</li>
+<li>Check ADOC status for each</li>
+<li>Create a simple tracking spreadsheet:
+<table style="margin-top: 10px;">
+<tr><th>Report</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th></tr>
+<tr><td>Sales Dashboard</td><td>✓</td><td>✓</td><td>⚠️</td><td>✓</td><td>✓</td></tr>
+<tr><td>Inventory Report</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td></tr>
+</table>
+</li>
+<li>Spot trends and proactively request fixes</li>
+</ol>
+</div>
+
+<h3>Tip 3: Priority-Based Triage</h3>
+
+<div class="tip">
+<p class="tip-title">💡 Smart Alert Management:</p>
+<p><strong>When you see "Risky" status:</strong></p>
+<table>
+<tr>
+<th>Priority</th>
+<th>Criteria</th>
+<th>Action</th>
+</tr>
+<tr style="background: #fee2e2;">
+<td><strong>P1 - Critical</strong></td>
+<td>• Score < 70%<br>• 5+ open alerts<br>• Revenue/compliance data</td>
+<td>Stop work, escalate immediately</td>
+</tr>
+<tr style="background: #fef3c7;">
+<td><strong>P2 - High</strong></td>
+<td>• Score 70-80%<br>• 3-4 open alerts<br>• Executive reports</td>
+<td>Investigate before use, document assumptions</td>
+</tr>
+<tr style="background: #dbeafe;">
+<td><strong>P3 - Medium</strong></td>
+<td>• Score 80-90%<br>• 1-2 open alerts<br>• Operational reports</td>
+<td>Note in report, mention to stakeholders</td>
+</tr>
+<tr style="background: #d1fae5;">
+<td><strong>P4 - Low</strong></td>
+<td>• Score > 90%<br>• 1 minor alert<br>• Internal use only</td>
+<td>Proceed, create ticket for data team</td>
+</tr>
+</table>
+</div>
+
+<h3>Tip 4: Keyboard Shortcuts & Speed Hacks</h3>
+
+<div class="tip">
+<p class="tip-title">💡 Work Faster:</p>
+<ul>
+<li><strong>Quick Open:</strong> Click extension icon OR press <code>Alt+Shift+A</code> (if configured)</li>
+<li><strong>Quick Close:</strong> Press <code>Esc</code> key when popup is open</li>
+<li><strong>Batch Check:</strong> Open multiple Power BI tabs, check each one sequentially</li>
+<li><strong>Bookmark Healthy Reports:</strong> Create Chrome bookmark folder for verified reports</li>
+</ul>
+</div>
+
+<h3>Tip 5: Collaboration with Data Team</h3>
+
+<div class="tip">
+<p class="tip-title">💡 Effective Communication:</p>
+<p><strong>When reporting issues, include:</strong></p>
+<ol>
+<li><strong>Asset Name:</strong> (use copy button)</li>
+<li><strong>Reliability Score:</strong> "76.3%"</li>
+<li><strong>Alert Count:</strong> "3 open alerts"</li>
+<li><strong>Report Impact:</strong> "Affects Q4 revenue numbers in slide 5"</li>
+<li><strong>Screenshot:</strong> Take screenshot of ADOC extension showing the issue</li>
+<li><strong>Urgency:</strong> "Need fix by EOD for board meeting tomorrow"</li>
+</ol>
+
+<p><strong>Example good ticket:</strong></p>
+<div style="background: #f9fafb; padding: 10px; border: 1px solid #e5e7eb; margin: 10px 0;">
+<p><strong>Title:</strong> Data Quality Issue - Customer_details dataset<br>
+<strong>Priority:</strong> High<br>
+<strong>Description:</strong> ADOC extension shows Customer_details with 76.3% reliability score and 3 open alerts. This affects our customer segmentation report used in tomorrow's exec meeting. Need fix by 5pm today.<br>
+<strong>Asset:</strong> Customer_details<br>
+<strong>Link:</strong> [ADOC alert link from extension]<br>
+<strong>Screenshot:</strong> [Attached]</p>
+</div>
+</div>
+
+<h3>Tip 6: Demo Mode - Seeing All Scenarios</h3>
+
+<div class="tip">
+<p class="tip-title">💡 Demo Mode Behavior:</p>
+<p>The current version (v1.1.0) uses <strong>demo data</strong> that randomly shows one of three scenarios each time you fetch:</p>
+<ul>
+<li>33% chance: Healthy (no alerts)</li>
+<li>33% chance: Risky (25 assets with alerts)</li>
+<li>33% chance: No Assets Found (error)</li>
+</ul>
+<p><strong>To see different scenarios:</strong> Click the refresh button (🔄) multiple times. Each refresh shows a random scenario.</p>
+<p><strong>In production:</strong> You'll see real data based on actual ADOC metrics.</p>
+</div>
+
+<div class="page-break"></div>
+
+<h2>Troubleshooting</h2>
+
+<h3>Problem: Extension icon is grayed out</h3>
+
+<div class="screenshot">
+<strong>[INSERT SCREENSHOT]</strong><br>
+Chrome toolbar showing grayed out ADOC icon (inactive state)
+</div>
+
+<p><strong>Solution:</strong></p>
+<ol>
+<li>Navigate to a Power BI report page (<code>app.powerbi.com</code>)</li>
+<li>Icon should turn active/colored</li>
+<li>If still gray, refresh the page</li>
+</ol>
+
+<div class="tip">
+<p class="tip-title">💡 Why This Happens:</p>
+<p>Extension only activates on Power BI pages for security. On other websites, the icon appears gray and inactive.</p>
+</div>
+
+<h3>Problem: Stuck on "Fetching..." screen</h3>
+
+<div class="screenshot">
+<strong>[INSERT SCREENSHOT]</strong><br>
+Fetching screen stuck with spinner animation
+</div>
+
+<p><strong>Solution:</strong></p>
+<ol>
+<li>Wait 10 seconds (might be slow network)</li>
+<li>If still stuck: Close popup and click icon again</li>
+<li>If persists: Check internet connection</li>
+<li>Last resort: Logout and login again</li>
+</ol>
+
+<h3>Problem: "No Assets Found" for all reports</h3>
+
+<p><strong>Possible Causes:</strong></p>
+<ul>
+<li>Datasets not onboarded to ADOC platform</li>
+<li>Permission issues in ADOC</li>
+<li>Network/firewall blocking ADOC API</li>
+</ul>
+
+<p><strong>Solution:</strong></p>
+<ol>
+<li>Test with a known-good report (ask colleagues)</li>
+<li>Login to ADOC platform directly and verify access</li>
+<li>Contact ADOC administrator: <code>support@acceldata.io</code></li>
+</ol>
+
+<h3>Problem: Login doesn't redirect back</h3>
+
+<p><strong>Solution:</strong></p>
+<ol>
+<li>After login, manually close the auth tab</li>
+<li>Wait for success notification</li>
+<li>Click extension icon again</li>
+<li>Extension should show fetching/results</li>
+</ol>
+
+<h3>Getting Help</h3>
+
+<p><strong>When contacting support, include:</strong></p>
+<ul>
+<li>Chrome version (<code>chrome://version/</code>)</li>
+<li>Extension version (1.1.0)</li>
+<li>Screenshot of error</li>
+<li>Steps to reproduce</li>
+<li>Your email for follow-up</li>
+</ul>
+
+<div class="page-break"></div>
+
+<h2>Quick Reference Card</h2>
+
+<h3>Status Meanings</h3>
+
+<table>
+<tr>
+<th>Status Badge</th>
+<th>Visual</th>
+<th>Meaning</th>
+<th>Action</th>
+</tr>
+<tr>
+<td><strong>Healthy</strong></td>
+<td><span style="background: #d1fae5; color: #065f46; padding: 4px 10px; border-radius: 12px; font-weight: bold;">Healthy</span></td>
+<td>No issues</td>
+<td>✓ Proceed with confidence</td>
+</tr>
+<tr>
+<td><strong>Risky</strong></td>
+<td><span style="background: #fef3c7; color: #d97706; padding: 4px 10px; border-radius: 12px; font-weight: bold;">Risky</span></td>
+<td>Has alerts</td>
+<td>⚠️ Review assets before use</td>
+</tr>
+<tr>
+<td><strong>Error</strong></td>
+<td>🚫 Orange triangle</td>
+<td>Not found</td>
+<td>🔄 Retry or contact admin</td>
+</tr>
+</table>
+
+<h3>Icon Guide</h3>
+
+<table>
+<tr>
+<th>Icon</th>
+<th>Name</th>
+<th>Action</th>
+</tr>
+<tr>
+<td>🔄</td>
+<td>Refresh</td>
+<td>Re-fetch latest data</td>
+</tr>
+<tr>
+<td>🔗</td>
+<td>Link</td>
+<td>Open in ADOC platform</td>
+</tr>
+<tr>
+<td>📋</td>
+<td>Copy</td>
+<td>Copy asset name to clipboard</td>
+</tr>
+<tr>
+<td>🚪</td>
+<td>Logout</td>
+<td>Clear credentials and return to login</td>
+</tr>
+<tr>
+<td>✕</td>
+<td>Close</td>
+<td>Close extension popup</td>
+</tr>
+</table>
+
+<h3>Reliability Score Guide</h3>
+
+<table>
+<tr>
+<th>Score</th>
+<th>Badge Color</th>
+<th>Priority</th>
+<th>Typical Action</th>
+</tr>
+<tr>
+<td>90-100%</td>
+<td><span style="background: #d1fae5; color: #065f46; padding: 2px 8px; border-radius: 4px; font-weight: bold;">Green</span></td>
+<td>Low</td>
+<td>Use data confidently</td>
+</tr>
+<tr>
+<td>70-89%</td>
+<td><span style="background: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 4px; font-weight: bold;">Amber</span></td>
+<td>Medium</td>
+<td>Review alerts, proceed with caution</td>
+</tr>
+<tr>
+<td><70%</td>
+<td><span style="background: #fee2e2; color: #991b1b; padding: 2px 8px; border-radius: 4px; font-weight: bold;">Red</span></td>
+<td>High</td>
+<td>Investigate immediately, don't use yet</td>
+</tr>
+</table>
+
+<div class="page-break"></div>
+
+<h2>Support and Resources</h2>
+
+<div style="background: #dbeafe; padding: 20px; border-left: 4px solid #2563eb; margin: 20px 0;">
+<h3 style="margin-top: 0; color: #1e40af;">Need Help?</h3>
+
+<table style="border: none;">
+<tr>
+<td style="border: none; width: 40%;"><strong>Email Support:</strong></td>
+<td style="border: none;"><code>support@acceldata.io</code></td>
+</tr>
+<tr>
+<td style="border: none;"><strong>Response Time:</strong></td>
+<td style="border: none;">24-48 hours (business days)</td>
+</tr>
+<tr>
+<td style="border: none;"><strong>ADOC Platform:</strong></td>
+<td style="border: none;"><code>https://indiumtech.acceldata.app</code></td>
+</tr>
+<tr>
+<td style="border: none;"><strong>Company Website:</strong></td>
+<td style="border: none;"><code>https://acceldata.io</code></td>
+</tr>
+</table>
+</div>
+
+<div style="background: #d1fae5; padding: 20px; border-left: 4px solid #10b981; margin: 20px 0;">
+<h3 style="margin-top: 0; color: #065f46;">Additional Resources</h3>
+
+<ul>
+<li><strong>Deployment Guide:</strong> For IT teams installing the extension</li>
+<li><strong>Development Guide:</strong> For developers customizing the extension</li>
+<li><strong>Training Videos:</strong> Available in ADOC platform</li>
+<li><strong>FAQs:</strong> Common questions and answers</li>
+</ul>
+</div>
+
+<div style="background: #fef3c7; padding: 20px; border-left: 4px solid #f59e0b; margin: 20px 0;">
+<h3 style="margin-top: 0; color: #92400e;">Document Information</h3>
+
+<table style="border: none;">
+<tr>
+<td style="border: none; width: 40%;"><strong>Version:</strong></td>
+<td style="border: none;">1.0</td>
+</tr>
+<tr>
+<td style="border: none;"><strong>Extension Version:</strong></td>
+<td style="border: none;">1.1.0 (Demo)</td>
+</tr>
+<tr>
+<td style="border: none;"><strong>Last Updated:</strong></td>
+<td style="border: none;">January 30, 2026</td>
+</tr>
+<tr>
+<td style="border: none;"><strong>Next Review:</strong></td>
+<td style="border: none;">April 30, 2026</td>
+</tr>
+<tr>
+<td style="border: none;"><strong>Support Valid Until:</strong></td>
+<td style="border: none;">December 31, 2026</td>
+</tr>
+</table>
+</div>
+
+<div style="text-align: center; margin-top: 50px; padding-top: 20px; border-top: 2px solid #2563eb;">
+<p style="color: #6b7280; font-size: 10pt;">
+<strong>© 2026 Acceldata. All rights reserved.</strong><br>
+This document contains confidential information intended for authorized users only.
+</p>
+</div>
+
+</body>
+</html>

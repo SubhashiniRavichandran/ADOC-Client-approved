@@ -45,7 +45,7 @@
   "options_page": "html/options.html",
   "web_accessible_resources": [
     {
-      "resources": ["html/sidebar.html", "css/sidebar.css", "icons/*"],
+      "resources": ["html/sidebar.html", "css/sidebar.css", "icons/*", "js/encryption.js"],
       "matches": ["<all_urls>"]
     }
   ]
