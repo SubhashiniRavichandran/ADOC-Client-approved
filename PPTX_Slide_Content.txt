@@ -1,0 +1,341 @@
+ADOC CHROME EXTENSION - DEPLOYMENT GUIDE
+Client Presentation Slide Content
+Support Until: February 13, 2026
+Contacts: subhashini.ravichandran@indium.tech, srivathsan.rangaprasad@indium.tech
+
+================================================================================
+SLIDE 1: TITLE SLIDE
+================================================================================
+[Use Indium template title slide with city lights background]
+
+Title: ADOC Chrome Extension
+Subtitle: Deployment Guide for Power BI Integration
+Date: February 2026
+Footer: © Indium
+
+================================================================================
+SLIDE 2: WHAT IS ADOC EXTENSION?
+================================================================================
+[Indium logo top right, orange accent bar left]
+
+Title: ADOC Chrome Extension
+
+Real-time data quality insights directly in Power BI
+
+Key Features:
+• Instant data reliability checks
+• View alerts and quality scores
+• One-click access to ADOC platform
+• Secure encrypted credential storage
+
+Benefit:
+Make confident decisions with trusted data
+
+================================================================================
+SLIDE 3: INSTALLATION - STEP 1
+================================================================================
+[Indium logo top right, orange accent bar left]
+
+Title: Installation Steps
+
+Step 1: Download Extension
+• Receive ADOC-Extension-v1.1.0.zip file
+• Extract to your computer
+• Verify contents include manifest.json
+
+Step 2: Open Chrome Extensions
+• Navigate to: chrome://extensions/
+• Enable "Developer mode" (top right toggle)
+• Click "Load unpacked"
+
+================================================================================
+SLIDE 4: INSTALLATION - STEP 2
+================================================================================
+[Indium logo top right, orange accent bar left]
+
+Title: Load Extension
+
+Step 3: Select Extension Folder
+• Click "Load unpacked" button
+• Browse to extracted chrome-extension folder
+• Click "Select Folder"
+
+Step 4: Verify Installation
+✓ Extension appears in extensions list
+✓ ADOC icon visible in Chrome toolbar
+✓ Status shows "On"
+
+================================================================================
+SLIDE 5: FIRST TIME LOGIN
+================================================================================
+[Indium logo top right, orange accent bar left]
+
+Title: Getting Started
+
+Step 1: Click ADOC Icon
+Look for the blue "a" icon in Chrome toolbar
+
+Step 2: Login
+• Click "Login to Acceldata" button
+• Enter your credentials
+• Tab closes automatically after success
+
+[INSERT SCREENSHOT: screenshot_01_login_screen.png]
+[Place screenshot center, resize to 60% slide width]
+
+================================================================================
+SLIDE 6: SCENARIO 1 - HEALTHY REPORT
+================================================================================
+[Indium logo top right, orange accent bar left]
+
+Title: Healthy Report Status
+
+What You'll See:
+✓ Green "Healthy" badge
+✓ Total Assets: 175
+✓ Assets with Alerts: 0
+✓ Green checkmark icon
+
+What It Means:
+• All data sources are reliable
+• No quality issues detected
+• Safe to proceed with report
+• Continue your analysis confidently
+
+[INSERT SCREENSHOT: screenshot_02_healthy_scenario.png]
+[Place screenshot right side, resize to 50% slide width]
+
+================================================================================
+SLIDE 7: SCENARIO 2 - RISKY REPORT
+================================================================================
+[Indium logo top right, orange accent bar left]
+
+Title: Risky Report Status
+
+What You'll See:
+⚠️ Amber "Risky" badge
+⚠️ Total Assets: 175
+⚠️ Assets with Alerts: 25
+⚠️ Asset cards with details
+
+Asset Card Shows:
+• Data Reliability Score (color-coded)
+• Data Freshness percentage
+• Open Alerts count (clickable link)
+• Upstream Issues count
+
+[INSERT SCREENSHOT: screenshot_05_risky_scenario_cards.png]
+[Place screenshot right side, resize to 50% slide width]
+
+================================================================================
+SLIDE 8: VIEWING DETAILS IN ADOC
+================================================================================
+[Indium logo top right, orange accent bar left]
+
+Title: Deep Dive into Alerts
+
+Click Blue Link Icons
+Click on "Open Alerts" or "Upstream Issues" links
+
+ADOC Platform Opens:
+• View detailed alert information
+• See data lineage and dependencies
+• Track issue resolution progress
+• Investigate root causes
+
+[INSERT SCREENSHOT: screenshot_04_adoc_platform_alerts.png]
+[Place screenshot center, full width]
+
+================================================================================
+SLIDE 9: SCENARIO 3 - NO ASSETS FOUND
+================================================================================
+[Indium logo top right, orange accent bar left]
+
+Title: No Assets Found
+
+What You'll See:
+🚫 Orange warning icon
+🚫 Error message
+
+What It Means:
+• Datasets not tracked in ADOC yet
+• Need to onboard datasets
+• Check permissions in ADOC
+
+What To Do:
+1. Click "Fetch Again" to retry
+2. Contact ADOC administrator
+3. Request dataset onboarding
+
+[INSERT SCREENSHOT: screenshot_03_no_assets_error.png]
+[Place screenshot right side, resize to 50% slide width]
+
+================================================================================
+SLIDE 10: KEY FEATURES
+================================================================================
+[Indium logo top right, orange accent bar left]
+
+Title: Extension Features
+
+[Two Column Layout]
+
+Left Column:
+🔄 Refresh Data
+• Click refresh icon (top right)
+• Get latest reliability metrics
+• Update after issues are fixed
+
+🔗 View in ADOC
+• Click blue link icons
+• Open detailed alerts
+• See data lineage
+
+Right Column:
+📋 Copy Asset Name
+• Click copy button
+• Paste into email/ticket
+• Share with data team
+
+🚪 Logout
+• Click logout icon
+• Switch accounts
+• Secure exit
+
+================================================================================
+SLIDE 11: BEST PRACTICES
+================================================================================
+[Indium logo top right, orange accent bar left]
+
+Title: Tips for Success
+
+Before Presentations:
+✓ Check data quality 30 minutes before meetings
+✓ Review any risky assets
+✓ Contact data team if critical issues found
+✓ Refresh 5 minutes before presenting
+
+Daily Workflow:
+✓ Check important reports each morning
+✓ Create a tracking spreadsheet
+✓ Set up alerts for critical datasets
+✓ Document issues for data team
+
+Communication:
+✓ Use copy button to share asset names
+✓ Include reliability scores in tickets
+✓ Screenshot issues for support
+✓ Mention urgency and impact
+
+================================================================================
+SLIDE 12: TROUBLESHOOTING
+================================================================================
+[Indium logo top right, orange accent bar left]
+
+Title: Common Issues & Solutions
+
+Extension not visible:
+→ Refresh chrome://extensions/ page
+→ Pin extension to toolbar
+
+Login doesn't work:
+→ Close auth tab manually
+→ Click extension icon again
+
+Stuck on fetching:
+→ Wait 10 seconds
+→ Close and reopen popup
+
+No assets for all reports:
+→ Verify datasets in ADOC
+→ Check user permissions
+
+================================================================================
+SLIDE 13: SUPPORT & CONTACT
+================================================================================
+[Indium logo top right, orange accent bar left]
+
+Title: Need Help?
+
+📧 Technical Support
+
+Subhashini Ravichandran
+subhashini.ravichandran@indium.tech
+
+Srivathsan Rangaprasad
+srivathsan.rangaprasad@indium.tech
+
+📅 Support Available Until:
+February 13, 2026 (This Weekend)
+
+🌐 Additional Resources:
+• ADOC Platform: indiumtech.acceldata.app
+• User Guide: Available in documentation
+• Training Materials: Contact support team
+
+================================================================================
+SLIDE 14: SUMMARY
+================================================================================
+[Indium logo top right, orange accent bar left]
+
+Title: Quick Reference
+
+Three Status Types:
+
+🟢 Healthy
+→ All clear, proceed with confidence
+
+🟠 Risky
+→ Review alerts, validate data before use
+
+🔴 No Assets Found
+→ Contact ADOC admin for onboarding
+
+Remember:
+✓ Login once, works automatically
+✓ Check before important meetings
+✓ Click links to view detailed alerts
+✓ Contact support team for help
+
+================================================================================
+SLIDE 15: THANK YOU
+================================================================================
+[Indium closing slide template]
+
+Thank You!
+
+Questions?
+
+Contact Support:
+subhashini.ravichandran@indium.tech
+srivathsan.rangaprasad@indium.tech
+
+Support Valid Until: February 13, 2026
+
+© Indium | ADOC Chrome Extension v1.1.0
+
+================================================================================
+END OF PRESENTATION
+================================================================================
+
+DESIGN NOTES:
+- Use Indium template with orange (#FF6A13) and blue (#0EA5E9) colors
+- Keep orange accent bar on left side of content slides
+- Indium logo in top right corner of all content slides
+- City lights background image on title slide only
+- Font sizes: Titles 32-44pt, Body 18-24pt
+- Use fade transitions between slides
+- Add subtle drop shadows to screenshots
+- Embed images for portability
+- Export as 16:9 widescreen format
+
+SCREENSHOT FILES NEEDED:
+1. screenshot_01_login_screen.png (Slide 5)
+2. screenshot_02_healthy_scenario.png (Slide 6)
+3. screenshot_03_no_assets_error.png (Slide 9)
+4. screenshot_04_adoc_platform_alerts.png (Slide 8)
+5. screenshot_05_risky_scenario_cards.png (Slide 7)
+
+SUPPORT INFORMATION:
+- Support End Date: February 13, 2026
+- Contact 1: subhashini.ravichandran@indium.tech
+- Contact 2: srivathsan.rangaprasad@indium.tech

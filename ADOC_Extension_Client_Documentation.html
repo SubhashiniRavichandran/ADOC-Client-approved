@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>ADOC Chrome Extension - Client Documentation</title>
+<style>
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+    color: #333;
+    max-width: 8.5in;
+    margin: 0 auto;
+    padding: 1in;
+    background: white;
+}
+h1 {
+    color: #1e3a8a;
+    border-bottom: 3px solid #1e3a8a;
+    padding-bottom: 10px;
+    font-size: 28pt;
+}
+h2 {
+    color: #0ea5e9;
+    margin-top: 30px;
+    font-size: 20pt;
+    page-break-before: always;
+}
+h3 {
+    color: #374151;
+    margin-top: 20px;
+    font-size: 16pt;
+}
+h4 {
+    color: #6b7280;
+    font-size: 14pt;
+}
+.header-info {
+    color: #6b7280;
+    font-size: 11pt;
+    margin-bottom: 30px;
+}
+.summary-box {
+    background: #f0f9ff;
+    border-left: 4px solid #0ea5e9;
+    padding: 15px;
+    margin: 20px 0;
+}
+.scenario-box {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 0;
+}
+.healthy-box {
+    border-left: 4px solid #10b981;
+    background: #f0fdf4;
+}
+.risky-box {
+    border-left: 4px solid #f59e0b;
+    background: #fffbeb;
+}
+.error-box {
+    border-left: 4px solid #ef4444;
+    background: #fef2f2;
+}
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 20px 0;
+}
+th {
+    background: #1e3a8a;
+    color: white;
+    padding: 12px;
+    text-align: left;
+    font-weight: 600;
+}
+td {
+    border: 1px solid #e5e7eb;
+    padding: 10px;
+}
+tr:nth-child(even) {
+    background: #f9fafb;
+}
+.screenshot-placeholder {
+    background: #f3f4f6;
+    border: 2px dashed #9ca3af;
+    padding: 40px;
+    text-align: center;
+    margin: 20px 0;
+    color: #6b7280;
+    font-style: italic;
+}
+.badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 10pt;
+    font-weight: 600;
+}
+.badge-healthy {
+    background: #d1fae5;
+    color: #065f46;
+}
+.badge-risky {
+    background: #fef3c7;
+    color: #d97706;
+}
+.badge-info {
+    background: #dbeafe;
+    color: #1e40af;
+}
+.icon-check {
+    color: #10b981;
+    font-weight: bold;
+}
+.icon-warning {
+    color: #f59e0b;
+    font-weight: bold;
+}
+.icon-info {
+    color: #0ea5e9;
+    font-weight: bold;
+}
+ul, ol {
+    margin: 10px 0;
+    padding-left: 30px;
+}
+li {
+    margin: 8px 0;
+}
+.benefit-list li::marker {
+    color: #10b981;
+}
+code {
+    background: #f3f4f6;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+    font-size: 10pt;
+}
+.workflow {
+    background: #eff6ff;
+    border-left: 4px solid #3b82f6;
+    padding: 15px;
+    margin: 20px 0;
+    font-family: monospace;
+    white-space: pre-line;
+}
+.footer {
+    margin-top: 50px;
+    padding-top: 20px;
+    border-top: 2px solid #e5e7eb;
+    color: #6b7280;
+    font-size: 10pt;
+    text-align: center;
+}
+.page-break {
+    page-break-after: always;
+}
+</style>
+</head>
+<body>
+
+<h1>ADOC Chrome Extension</h1>
+<h2 style="page-break-before: avoid; color: #6b7280; font-size: 18pt; margin-top: 0;">Data Reliability Insights for Power BI Reports</h2>
+
+<div class="header-info">
+<strong>Version:</strong> 1.1.0 (Demo)<br>
+<strong>Date:</strong> January 2026<br>
+<strong>Prepared for:</strong> Client Presentation
+</div>
+
+<div class="page-break"></div>
+
+<h2>Executive Summary</h2>
+
+<div class="summary-box">
+The ADOC Chrome Extension seamlessly integrates Acceldata's Data Observability Cloud with Power BI, providing real-time data reliability insights directly within your browser. This powerful tool empowers business users to make confident, data-driven decisions by instantly surfacing data quality metrics, alerts, and upstream dependencies.
+</div>
+
+<h3>Key Benefits</h3>
+<ul class="benefit-list">
+<li><strong>Instant Visibility:</strong> See data reliability scores without leaving Power BI</li>
+<li><strong>Proactive Alerts:</strong> Get notified of data quality issues before they impact decisions</li>
+<li><strong>Root Cause Analysis:</strong> Identify upstream data dependencies and issues</li>
+<li><strong>Seamless Integration:</strong> Works directly in your browser - no IT setup required</li>
+<li><strong>Secure Access:</strong> Enterprise-grade AES-256 encryption for credentials</li>
+</ul>
+
+<h2>How It Works</h2>
+
+<h3>Simple 3-Step Process</h3>
+<ol>
+<li><strong>Login</strong> - Authenticate once with your Acceldata account</li>
+<li><strong>Auto-Fetch</strong> - Extension automatically retrieves reliability data</li>
+<li><strong>View Insights</strong> - See health status, alerts, and asset details instantly</li>
+</ol>
+
+<p><strong>Time to Insights:</strong> Less than 5 seconds from opening a Power BI report</p>
+
+<div class="page-break"></div>
+
+<h2>Scenario 1: Healthy Report (No Issues Detected)</h2>
+
+<div class="scenario-box healthy-box">
+<h3 style="margin-top: 0; color: #10b981;">When to Expect This View</h3>
+<p>You'll see this <span class="badge badge-healthy">Healthy</span> status when:</p>
+<ul>
+<li>All datasets powering the report are functioning normally</li>
+<li>No data quality issues detected</li>
+<li>No open alerts in Acceldata platform</li>
+<li>Data freshness and reliability scores are within acceptable ranges</li>
+</ul>
+</div>
+
+<div class="screenshot-placeholder">
+<strong>[INSERT SCREENSHOT HERE]</strong><br>
+Healthy scenario view showing green status
+</div>
+
+<h3>Report Summary</h3>
+
+<table>
+<tr>
+<th>Metric</th>
+<th>Value</th>
+<th>Meaning</th>
+</tr>
+<tr>
+<td><strong>Report Status</strong></td>
+<td><span class="badge badge-healthy">Healthy ✓</span></td>
+<td>All systems operational</td>
+</tr>
+<tr>
+<td><strong>Total Assets Fetched</strong></td>
+<td>175</td>
+<td>Number of datasets analyzed</td>
+</tr>
+<tr>
+<td><strong>Assets with Alerts</strong></td>
+<td>0</td>
+<td>No issues requiring attention</td>
+</tr>
+</table>
+
+<h3>Reliability Details</h3>
+<p><strong>Visual Display:</strong></p>
+<ul>
+<li>Large green checkmark icon</li>
+<li>Clear message: "There are no assets with open alerts powering this report"</li>
+<li>Clean, minimal interface</li>
+</ul>
+
+<h3>Business Impact</h3>
+<p class="icon-check">
+✅ <strong>Safe to Use:</strong> Data is reliable for decision-making<br>
+✅ <strong>No Action Needed:</strong> All metrics within normal ranges<br>
+✅ <strong>Confident Reporting:</strong> Share insights with stakeholders without concerns
+</p>
+
+<h3>User Actions</h3>
+<ul>
+<li><strong>Continue Working:</strong> Proceed with report analysis</li>
+<li><strong>Refresh Data:</strong> Click refresh icon to re-check status</li>
+<li><strong>View in ADOC:</strong> Click link to see detailed metrics in Acceldata platform</li>
+</ul>
+
+<div class="page-break"></div>
+
+<h2>Scenario 2: Risky Report (Issues Detected)</h2>
+
+<div class="scenario-box risky-box">
+<h3 style="margin-top: 0; color: #f59e0b;">When to Expect This View</h3>
+<p>You'll see this <span class="badge badge-risky">Risky</span> status when:</p>
+<ul>
+<li>One or more datasets have data quality issues</li>
+<li>Open alerts exist in Acceldata platform</li>
+<li>Data reliability scores are below thresholds</li>
+<li>Upstream dependencies have problems affecting this report</li>
+</ul>
+</div>
+
+<div class="screenshot-placeholder">
+<strong>[INSERT SCREENSHOT HERE]</strong><br>
+Risky scenario view showing orange status and asset cards
+</div>
+
+<h3>Report Summary</h3>
+
+<table>
+<tr>
+<th>Metric</th>
+<th>Value</th>
+<th>Meaning</th>
+</tr>
+<tr>
+<td><strong>Report Status</strong></td>
+<td><span class="badge badge-risky">Risky ⚠️</span></td>
+<td>Issues detected requiring review</td>
+</tr>
+<tr>
+<td><strong>Total Assets Fetched</strong></td>
+<td>175</td>
+<td>Number of datasets analyzed</td>
+</tr>
+<tr>
+<td><strong>Assets with Alerts</strong></td>
+<td>25</td>
+<td>Datasets with active quality issues</td>
+</tr>
+</table>
+
+<h3>Reliability Details</h3>
+<p>The extension displays detailed cards for each asset with issues. Here's what each asset card shows:</p>
+
+<div class="screenshot-placeholder">
+<strong>[INSERT SCREENSHOT HERE]</strong><br>
+Close-up of individual asset card showing all components
+</div>
+
+<h4>Asset Card Components</h4>
+<ol>
+<li><strong>Colored Badge Icon</strong> (Left side) - Visual identifier for quick scanning</li>
+<li><strong>Table Icon</strong> (Next to name) - Indicates asset type (table/dataset)</li>
+<li><strong>Asset Name</strong> - Full dataset name with copy button</li>
+<li><strong>Data Reliability Score</strong> - Color-coded badge:
+<ul>
+<li><span class="badge badge-healthy">90%+</span> Green - Excellent</li>
+<li><span class="badge badge-risky">70-89%</span> Amber - Moderate</li>
+<li><span style="background: #fee2e2; color: #991b1b;" class="badge">&lt;70%</span> Red - Poor</li>
+</ul>
+</li>
+<li><strong>Data Freshness</strong> - Percentage indicating data currency</li>
+<li><strong>Last Profiled</strong> - Timestamp of last quality check</li>
+<li><strong>Open Alerts</strong> - Number of active alerts with link to ADOC</li>
+<li><strong>Upstream Issues</strong> - Number of problems in source datasets with link</li>
+</ol>
+
+<div class="page-break"></div>
+
+<h3>Sample Assets with Issues</h3>
+
+<div class="screenshot-placeholder">
+<strong>[INSERT SCREENSHOT HERE]</strong><br>
+Multiple asset cards visible in scrollable list
+</div>
+
+<table>
+<tr>
+<th>Asset Name</th>
+<th>Badge</th>
+<th>Reliability</th>
+<th>Freshness</th>
+<th>Alerts</th>
+<th>Upstream</th>
+</tr>
+<tr>
+<td><strong>TRANSACTIONS_DATA</strong></td>
+<td>🔷 Cyan</td>
+<td><span class="badge badge-healthy">92.12%</span></td>
+<td>100%</td>
+<td>2</td>
+<td>5</td>
+</tr>
+<tr>
+<td><strong>PharmaSalesbyDistributor</strong></td>
+<td>🔴 Red</td>
+<td><span class="badge badge-healthy">92.12%</span></td>
+<td>100%</td>
+<td>1</td>
+<td>0</td>
+</tr>
+<tr>
+<td><strong>Customer_details</strong></td>
+<td>🔵 Blue</td>
+<td><span class="badge badge-risky">76.3%</span></td>
+<td>98%</td>
+<td>3</td>
+<td>2</td>
+</tr>
+<tr>
+<td><strong>Sales_Summary</strong></td>
+<td>🔷 Cyan</td>
+<td><span class="badge badge-healthy">88.5%</span></td>
+<td>100%</td>
+<td>1</td>
+<td>1</td>
+</tr>
+<tr>
+<td><strong>Inventory_Master</strong></td>
+<td>🔴 Red</td>
+<td><span class="badge badge-healthy">94.7%</span></td>
+<td>100%</td>
+<td>2</td>
+<td>3</td>
+</tr>
+</table>
+
+<h4>Interpretation: Customer_details</h4>
+<div class="scenario-box risky-box">
+<p><strong>Status:</strong> This dataset requires immediate attention.</p>
+<p>The <span class="badge badge-risky">76.3%</span> reliability score combined with <strong>3 active alerts</strong> and <strong>2 upstream issues</strong> suggests data quality problems that could affect report accuracy.</p>
+<p><strong>Recommended Action:</strong> Click the alert link to investigate root cause in ADOC platform before using this data for decision-making.</p>
+</div>
+
+<h3>Business Impact</h3>
+<p class="icon-warning">
+⚠️ <strong>Review Required:</strong> Data quality issues detected<br>
+⚠️ <strong>Investigate Alerts:</strong> Click through to understand root causes<br>
+⚠️ <strong>Validate Reports:</strong> Cross-check insights before sharing<br>
+⚠️ <strong>Notify Data Teams:</strong> Alert data engineers to critical issues
+</p>
+
+<h3>Recommended Workflow</h3>
+<div class="workflow">
+1. Review Report Summary → Identify "Risky" status
+2. Scroll through Asset Cards → Find low reliability scores
+3. Click Alert Links → Understand issue details
+4. Contact Data Team → Share asset names (use copy button)
+5. Wait for Resolution → Monitor in ADOC platform
+6. Refresh Extension → Verify issues resolved
+7. Proceed with Analysis → Once status returns to "Healthy"
+</div>
+
+<div class="page-break"></div>
+
+<h2>Scenario 3: No Assets Found</h2>
+
+<div class="scenario-box error-box">
+<h3 style="margin-top: 0; color: #ef4444;">When to Expect This View</h3>
+<p>You'll see this error when:</p>
+<ul>
+<li>Power BI report datasets are not tracked in Acceldata platform</li>
+<li>Dataset names don't match between Power BI and ADOC</li>
+<li>User doesn't have permissions to view these assets in ADOC</li>
+<li>Network connectivity issues prevent data retrieval</li>
+</ul>
+</div>
+
+<div class="screenshot-placeholder">
+<strong>[INSERT SCREENSHOT HERE]</strong><br>
+Error view with orange warning icon and action buttons
+</div>
+
+<h3>Error Display</h3>
+<p><strong>Visual Elements:</strong></p>
+<ul>
+<li>Large orange warning triangle icon</li>
+<li>Clear error message</li>
+<li>Two action buttons</li>
+</ul>
+
+<p><strong>Message:</strong><br>
+<em>"We couldn't find the datasets powering this report in Acceldata"</em></p>
+
+<h3>What This Means</h3>
+<p>This scenario doesn't necessarily indicate a problem with your data. It simply means:</p>
+<ul>
+<li>These specific datasets may not be onboarded to Acceldata yet</li>
+<li>The report uses data sources outside of ADOC monitoring</li>
+<li>There's a mismatch in naming conventions</li>
+</ul>
+
+<h3>User Actions</h3>
+
+<table>
+<tr>
+<th>Button</th>
+<th>Purpose</th>
+<th>When to Use</th>
+</tr>
+<tr>
+<td><strong>Fetch Again</strong></td>
+<td>Retries data retrieval</td>
+<td>Network issues or temporary failures</td>
+</tr>
+<tr>
+<td><strong>Logout</strong></td>
+<td>Returns to login screen</td>
+<td>Switch accounts or clear cache</td>
+</tr>
+</table>
+
+<h3>Business Impact</h3>
+<p class="icon-info">
+ℹ️ <strong>No Data Available:</strong> Can't assess reliability for this report<br>
+ℹ️ <strong>Manual Verification:</strong> Use traditional data quality checks<br>
+ℹ️ <strong>Onboarding Needed:</strong> Consider adding these datasets to ADOC
+</p>
+
+<h3>Recommended Next Steps</h3>
+<ol>
+<li><strong>Verify in ADOC</strong> - Check if datasets exist in Acceldata platform</li>
+<li><strong>Contact Admin</strong> - Request dataset onboarding if needed</li>
+<li><strong>Check Permissions</strong> - Ensure you have access to view these assets</li>
+<li><strong>Try Different Report</strong> - Test with a report using ADOC-tracked datasets</li>
+<li><strong>Contact Support</strong> - If issue persists, reach out to Acceldata support</li>
+</ol>
+
+<div class="page-break"></div>
+
+<h2>Installation Guide</h2>
+
+<h3>System Requirements</h3>
+<ul>
+<li><strong>Browser:</strong> Google Chrome (version 90 or later)</li>
+<li><strong>Access:</strong> Acceldata account with valid credentials</li>
+<li><strong>Connection:</strong> Internet access to indiumtech.acceldata.app</li>
+</ul>
+
+<h3>Installation Steps</h3>
+
+<div class="screenshot-placeholder">
+<strong>[INSERT SCREENSHOT HERE]</strong><br>
+Chrome extensions page with "Load unpacked" highlighted
+</div>
+
+<ol>
+<li><strong>Download Extension</strong>
+<ul>
+<li>Extract <code>ADOC-Extension-DEMO-v1.1.0.zip</code></li>
+<li>Save to a permanent location on your computer</li>
+</ul>
+</li>
+
+<li><strong>Open Chrome Extensions</strong>
+<ul>
+<li>Navigate to <code>chrome://extensions/</code></li>
+<li>Or click Menu → More Tools → Extensions</li>
+</ul>
+</li>
+
+<li><strong>Enable Developer Mode</strong>
+<ul>
+<li>Toggle "Developer mode" switch (top right)</li>
+</ul>
+</li>
+
+<li><strong>Load Extension</strong>
+<ul>
+<li>Click "Load unpacked" button</li>
+<li>Select the extracted <code>chrome-extension</code> folder</li>
+<li>Extension icon appears in Chrome toolbar</li>
+</ul>
+</li>
+
+<li><strong>Verify Installation</strong>
+<ul>
+<li>Look for ADOC icon (dark blue "a" logo)</li>
+<li>Pin to toolbar for easy access</li>
+</ul>
+</li>
+</ol>
+
+<p><strong>Installation Time:</strong> Less than 2 minutes</p>
+
+<div class="page-break"></div>
+
+<h2>User Guide</h2>
+
+<h3>First Time Setup</h3>
+
+<div class="screenshot-placeholder">
+<strong>[INSERT SCREENSHOT HERE]</strong><br>
+Login screen with "Login to Acceldata" button
+</div>
+
+<h4>Step 1: Login</h4>
+<ol>
+<li>Click the ADOC extension icon in your Chrome toolbar</li>
+<li>Click "Login to Acceldata" button</li>
+<li>Complete login at indiumtech.acceldata.app</li>
+<li>You'll see a success notification</li>
+<li>Extension automatically fetches data</li>
+</ol>
+
+<p><strong>Note:</strong> Login is required only once. Your credentials are securely stored with AES-256 encryption.</p>
+
+<h3>Daily Usage</h3>
+
+<div class="screenshot-placeholder">
+<strong>[INSERT SCREENSHOT HERE]</strong><br>
+Power BI report open with extension icon showing green checkmark badge
+</div>
+
+<h4>Opening Power BI Reports</h4>
+<ol>
+<li>Navigate to any Power BI report</li>
+<li>Notice the green checkmark badge on extension icon</li>
+<li>Click extension icon to view reliability insights</li>
+<li>Review report summary and asset details</li>
+</ol>
+
+<h4>Interpreting Results</h4>
+
+<table>
+<tr>
+<th>Status</th>
+<th>Visual</th>
+<th>Action</th>
+</tr>
+<tr>
+<td><strong>Healthy</strong></td>
+<td><span class="badge badge-healthy">Green Badge</span></td>
+<td>✅ Proceed with confidence</td>
+</tr>
+<tr>
+<td><strong>Risky</strong></td>
+<td><span class="badge badge-risky">Amber Badge</span></td>
+<td>⚠️ Review asset cards for details</td>
+</tr>
+<tr>
+<td><strong>No Assets</strong></td>
+<td>Orange Warning Icon</td>
+<td>ℹ️ Contact admin for onboarding</td>
+</tr>
+</table>
+
+<h4>Key Actions</h4>
+
+<table>
+<tr>
+<th>Action</th>
+<th>How To</th>
+<th>Purpose</th>
+</tr>
+<tr>
+<td><strong>Refresh Data</strong></td>
+<td>Click circular arrow icon (top right)</td>
+<td>Get latest reliability metrics</td>
+</tr>
+<tr>
+<td><strong>View in ADOC</strong></td>
+<td>Click blue link icon on asset card</td>
+<td>See detailed alerts or lineage</td>
+</tr>
+<tr>
+<td><strong>Copy Asset Name</strong></td>
+<td>Click copy icon next to name</td>
+<td>Share with data teams</td>
+</tr>
+<tr>
+<td><strong>Logout</strong></td>
+<td>Click logout icon (top right)</td>
+<td>Switch accounts or clear cache</td>
+</tr>
+</table>
+
+<div class="page-break"></div>
+
+<h2>Benefits Summary</h2>
+
+<h3>For Business Users</h3>
+
+<table>
+<tr>
+<th>Benefit</th>
+<th>Description</th>
+<th>Time Saved</th>
+</tr>
+<tr>
+<td><strong>Instant Insights</strong></td>
+<td>No need to switch between Power BI and ADOC</td>
+<td>5-10 min per report</td>
+</tr>
+<tr>
+<td><strong>Proactive Alerts</strong></td>
+<td>Know about issues before sharing reports</td>
+<td>Prevents errors</td>
+</tr>
+<tr>
+<td><strong>Easy Navigation</strong></td>
+<td>One-click access to detailed ADOC views</td>
+<td>2-3 min per asset</td>
+</tr>
+<tr>
+<td><strong>Confidence Boost</strong></td>
+<td>Make decisions with verified data quality</td>
+<td>Priceless</td>
+</tr>
+</table>
+
+<h3>For Data Teams</h3>
+
+<table>
+<tr>
+<th>Benefit</th>
+<th>Impact</th>
+</tr>
+<tr>
+<td><strong>Early Detection</strong></td>
+<td>Business users catch issues immediately → Faster resolution</td>
+</tr>
+<tr>
+<td><strong>Clear Communication</strong></td>
+<td>Asset names easily copied and shared → Fewer miscommunications</td>
+</tr>
+<tr>
+<td><strong>Reduced Support</strong></td>
+<td>Users self-serve reliability checks → 30% fewer tickets</td>
+</tr>
+<tr>
+<td><strong>Visibility</strong></td>
+<td>Data quality surfaced where reports are used → Increased awareness</td>
+</tr>
+</table>
+
+<h3>For Organizations</h3>
+
+<table>
+<tr>
+<th>Benefit</th>
+<th>Value</th>
+</tr>
+<tr>
+<td><strong>Data Trust</strong></td>
+<td>Confidence in analytics increases adoption → Higher ROI</td>
+</tr>
+<tr>
+<td><strong>Risk Reduction</strong></td>
+<td>Fewer decisions based on bad data → Avoid costly mistakes</td>
+</tr>
+<tr>
+<td><strong>Efficiency</strong></td>
+<td>Streamlined workflow between BI and observability → 20% time savings</td>
+</tr>
+<tr>
+<td><strong>Integration</strong></td>
+<td>Connects existing tools seamlessly → No IT overhead</td>
+</tr>
+</table>
+
+<div class="page-break"></div>
+
+<h2>Security & Privacy</h2>
+
+<h3>Data Protection</h3>
+
+<div class="scenario-box healthy-box">
+<h4 style="margin-top: 0;">AES-256 Encryption</h4>
+<ul>
+<li>All credentials encrypted at rest</li>
+<li>Industry-standard encryption algorithm</li>
+<li>PBKDF2 key derivation (100,000 iterations)</li>
+</ul>
+</div>
+
+<div class="scenario-box healthy-box">
+<h4 style="margin-top: 0;">Secure Storage</h4>
+<ul>
+<li>Credentials stored only in local browser</li>
+<li>Never transmitted to third parties</li>
+<li>Cleared completely on logout</li>
+</ul>
+</div>
+
+<div class="scenario-box healthy-box">
+<h4 style="margin-top: 0;">Minimal Permissions</h4>
+<ul>
+<li>Extension only accesses Acceldata and Power BI domains</li>
+<li>No access to other websites or browser data</li>
+<li>Transparent permission requests</li>
+</ul>
+</div>
+
+<h3>Compliance</h3>
+<p class="icon-check">
+✅ <strong>Enterprise Security:</strong> Meets corporate security standards<br>
+✅ <strong>No Data Collection:</strong> Extension doesn't collect user analytics<br>
+✅ <strong>HTTPS Only:</strong> All API calls use encrypted connections<br>
+✅ <strong>Audit Trail:</strong> Actions logged in ADOC platform
+</p>
+
+<div class="page-break"></div>
+
+<h2>Frequently Asked Questions</h2>
+
+<h3>General Questions</h3>
+
+<h4>Q: Does this extension modify my Power BI reports?</h4>
+<p><strong>A:</strong> No. The extension is read-only and only displays information. It never modifies report data, visualizations, or settings.</p>
+
+<h4>Q: Do I need IT approval to install this?</h4>
+<p><strong>A:</strong> Check with your IT department. The extension requires standard browser extension permissions but doesn't access corporate networks beyond ADOC and Power BI.</p>
+
+<h4>Q: Will this slow down my browser?</h4>
+<p><strong>A:</strong> No. The extension is lightweight (<50MB RAM) and only runs when you click the icon.</p>
+
+<h3>Usage & Data</h3>
+
+<h4>Q: How current is the data shown?</h4>
+<p><strong>A:</strong> Production version shows real-time data from ADOC. Demo version uses sample data for illustration.</p>
+
+<h4>Q: Why don't I see some of my datasets?</h4>
+<p><strong>A:</strong> Only datasets tracked in your ADOC instance appear. Contact your admin to onboard additional datasets.</p>
+
+<h3>Troubleshooting</h3>
+
+<h4>Q: The extension shows "No Assets Found" for all reports. Why?</h4>
+<p><strong>A:</strong> Possible causes: datasets not onboarded to ADOC, permission issues, or naming mismatches. Contact your ADOC administrator.</p>
+
+<h4>Q: Data seems stale. How do I refresh?</h4>
+<p><strong>A:</strong> Click the circular refresh icon in the top-right of the extension popup.</p>
+
+<div class="page-break"></div>
+
+<h2>Appendix: Scenario Comparison</h2>
+
+<h3>Side-by-Side Comparison</h3>
+
+<table>
+<tr>
+<th>Aspect</th>
+<th>Healthy</th>
+<th>Risky</th>
+<th>No Assets Found</th>
+</tr>
+<tr>
+<td><strong>Status Badge</strong></td>
+<td><span class="badge badge-healthy">Healthy</span></td>
+<td><span class="badge badge-risky">Risky</span></td>
+<td>N/A</td>
+</tr>
+<tr>
+<td><strong>Icon</strong></td>
+<td>Green checkmark</td>
+<td>Asset cards</td>
+<td>Orange warning</td>
+</tr>
+<tr>
+<td><strong>Total Assets</strong></td>
+<td>175</td>
+<td>175</td>
+<td>Unknown</td>
+</tr>
+<tr>
+<td><strong>Assets with Alerts</strong></td>
+<td>0</td>
+<td>25</td>
+<td>Unknown</td>
+</tr>
+<tr>
+<td><strong>Asset Cards Shown</strong></td>
+<td>None</td>
+<td>8 detailed cards</td>
+<td>None</td>
+</tr>
+<tr>
+<td><strong>Action Required</strong></td>
+<td>None</td>
+<td>Review & investigate</td>
+<td>Retry or logout</td>
+</tr>
+<tr>
+<td><strong>Business Impact</strong></td>
+<td>Safe to proceed</td>
+<td>Validate before sharing</td>
+<td>Can't assess</td>
+</tr>
+<tr>
+<td><strong>User Confidence</strong></td>
+<td>High</td>
+<td>Medium</td>
+<td>Low</td>
+</tr>
+<tr>
+<td><strong>Next Step</strong></td>
+<td>Continue work</td>
+<td>Click alert links</td>
+<td>Fetch again</td>
+</tr>
+</table>
+
+<div class="screenshot-placeholder">
+<strong>[INSERT SCREENSHOT HERE]</strong><br>
+All three scenarios displayed side by side for easy comparison
+</div>
+
+<div class="page-break"></div>
+
+<h2>Conclusion</h2>
+
+<div class="summary-box">
+<p>The ADOC Chrome Extension bridges the gap between business intelligence and data observability, empowering users to make confident, data-driven decisions. With instant visibility into data quality, proactive alerts, and seamless navigation to root cause analysis, this tool transforms how organizations trust and use their data.</p>
+</div>
+
+<h3>Key Takeaways</h3>
+<p class="icon-check">
+✅ <strong>Simple:</strong> 3-click setup, automatic data fetching<br>
+✅ <strong>Fast:</strong> Results in under 5 seconds<br>
+✅ <strong>Secure:</strong> AES-256 encryption, enterprise-grade security<br>
+✅ <strong>Actionable:</strong> One-click access to detailed insights<br>
+✅ <strong>Comprehensive:</strong> Covers all scenarios (healthy, risky, not found)
+</p>
+
+<h3>Next Steps</h3>
+<ol>
+<li><strong>Try the Demo:</strong> Extract and load the extension to see all scenarios</li>
+<li><strong>Schedule Training:</strong> Contact us for team onboarding sessions</li>
+<li><strong>Plan Rollout:</strong> Discuss production deployment with your ADOC admin</li>
+<li><strong>Provide Feedback:</strong> Share your thoughts to shape future versions</li>
+</ol>
+
+<div class="page-break"></div>
+
+<h2>Contact Information</h2>
+
+<table style="border: none;">
+<tr>
+<td style="border: none; vertical-align: top;">
+<h3>Acceldata</h3>
+<strong>Website:</strong> <a href="https://acceldata.io">https://acceldata.io</a><br>
+<strong>Email:</strong> info@acceldata.io<br>
+<strong>Support:</strong> support@acceldata.io
+</td>
+<td style="border: none; vertical-align: top;">
+<h3>ADOC Platform</h3>
+<strong>URL:</strong> <a href="https://indiumtech.acceldata.app">https://indiumtech.acceldata.app</a><br>
+<strong>Login:</strong> Use your corporate credentials<br>
+<strong>Support:</strong> help@acceldata.io
+</td>
+</tr>
+</table>
+
+<div class="footer">
+<hr style="border: 1px solid #e5e7eb; margin: 30px 0;">
+<p><strong>Document Version:</strong> 1.0 | <strong>Last Updated:</strong> January 30, 2026 | <strong>Prepared by:</strong> Acceldata Product Team</p>
+<p style="font-size: 9pt; color: #9ca3af; margin-top: 20px;">
+This document contains confidential information intended for authorized recipients only.<br>
+Please do not distribute without permission from Acceldata.
+</p>
+</div>
+
+</body>
+</html>

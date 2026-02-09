@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>ADOC Chrome Extension - Deployment Guide</title>
+<style>
+body {
+    font-family: 'Calibri', 'Arial', sans-serif;
+    line-height: 1.6;
+    color: #000000;
+    max-width: 8.5in;
+    margin: 0 auto;
+    padding: 1in;
+    background: white;
+}
+
+/* Headers - Blue */
+h1 {
+    color: #1e3a8a;
+    font-size: 24pt;
+    font-weight: bold;
+    border-bottom: 3px solid #1e3a8a;
+    padding-bottom: 10px;
+    margin-top: 30px;
+}
+
+h2 {
+    color: #2563eb;
+    font-size: 18pt;
+    font-weight: bold;
+    margin-top: 25px;
+    page-break-before: always;
+}
+
+h3 {
+    color: #3b82f6;
+    font-size: 14pt;
+    font-weight: bold;
+    margin-top: 20px;
+}
+
+/* Text - Black */
+p, li, td {
+    color: #000000;
+    font-size: 11pt;
+}
+
+/* Code - Red and Italic */
+code, .code {
+    color: #dc2626;
+    font-style: italic;
+    font-family: 'Courier New', monospace;
+    font-size: 10pt;
+    background: #fee;
+    padding: 2px 6px;
+    border-radius: 3px;
+}
+
+pre {
+    background: #fee;
+    border: 1px solid #fca;
+    padding: 12px;
+    border-radius: 5px;
+    overflow-x: auto;
+}
+
+pre code {
+    background: transparent;
+    padding: 0;
+}
+
+/* Comments - Green */
+.comment {
+    color: #16a34a;
+    font-style: italic;
+    font-size: 10pt;
+}
+
+/* Step boxes */
+.step {
+    background: #f0f9ff;
+    border-left: 4px solid #2563eb;
+    padding: 15px;
+    margin: 15px 0;
+}
+
+.step-number {
+    color: #1e3a8a;
+    font-weight: bold;
+    font-size: 14pt;
+}
+
+/* Screenshots */
+.screenshot {
+    background: #f3f4f6;
+    border: 2px dashed #9ca3af;
+    padding: 40px;
+    text-align: center;
+    margin: 20px 0;
+    color: #6b7280;
+    font-style: italic;
+}
+
+/* Tables */
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 15px 0;
+}
+
+th {
+    background: #2563eb;
+    color: white;
+    padding: 10px;
+    text-align: left;
+    font-weight: bold;
+}
+
+td {
+    border: 1px solid #e5e7eb;
+    padding: 8px;
+}
+
+tr:nth-child(even) {
+    background: #f9fafb;
+}
+
+/* Important boxes */
+.important {
+    background: #fef3c7;
+    border-left: 4px solid #f59e0b;
+    padding: 12px;
+    margin: 15px 0;
+}
+
+.success {
+    background: #d1fae5;
+    border-left: 4px solid #10b981;
+    padding: 12px;
+    margin: 15px 0;
+}
+
+/* Footer */
+.footer {
+    margin-top: 50px;
+    padding-top: 20px;
+    border-top: 2px solid #2563eb;
+    text-align: center;
+    color: #6b7280;
+    font-size: 10pt;
+}
+
+.page-break {
+    page-break-after: always;
+}
+</style>
+</head>
+<body>
+
+<h1>ADOC Chrome Extension</h1>
+<h2 style="page-break-before: avoid; color: #2563eb; margin-top: 0;">Deployment Guide</h2>
+
+<p style="text-align: center; color: #6b7280; margin-bottom: 30px;">
+<strong>Version:</strong> 1.1.0 | <strong>Date:</strong> January 30, 2026<br>
+<strong>Document Type:</strong> Deployment Instructions
+</p>
+
+<div class="page-break"></div>
+
+<h2>Overview</h2>
+
+<p>This guide provides step-by-step instructions to deploy the ADOC Chrome Extension in your organization. The extension integrates Acceldata's Data Observability Cloud with Power BI, providing real-time data reliability insights.</p>
+
+<div class="important">
+<strong>Important:</strong> Choose one deployment method based on your organization's requirements:
+<ul>
+<li><strong>Internal Distribution</strong> - For enterprise/corporate environments (Recommended)</li>
+<li><strong>Manual Installation</strong> - For testing and small teams</li>
+</ul>
+</div>
+
+<h3>Prerequisites</h3>
+
+<table>
+<tr>
+<th>Requirement</th>
+<th>Details</th>
+</tr>
+<tr>
+<td>Browser</td>
+<td>Google Chrome version 90 or later</td>
+</tr>
+<tr>
+<td>Access</td>
+<td>Google Workspace Admin Console (for internal distribution)</td>
+</tr>
+<tr>
+<td>Extension File</td>
+<td><code>ADOC-Extension-DEMO-v1.1.0.zip</code></td>
+</tr>
+<tr>
+<td>User Credentials</td>
+<td>Valid Acceldata account at indiumtech.acceldata.app</td>
+</tr>
+</table>
+
+<div class="page-break"></div>
+
+<h2>Method 1: Internal Distribution (Google Workspace)</h2>
+
+<p class="comment">// This method is recommended for enterprise deployments with centralized management</p>
+
+<div class="step">
+<p class="step-number">Step 1: Prepare Extension Package</p>
+
+<p><strong>1.1</strong> Locate the extension file:</p>
+<pre><code>ADOC-Extension-DEMO-v1.1.0.zip</code></pre>
+
+<p class="comment">// Ensure the zip file is downloaded and accessible on your computer</p>
+
+<p><strong>1.2</strong> Verify file integrity:</p>
+<ul>
+<li>File size should be approximately 41 KB</li>
+<li>Extract and verify contents include: manifest.json, html/, css/, js/, icons/</li>
+</ul>
+
+<div class="screenshot">
+<strong>[INSERT SCREENSHOT]</strong><br>
+Screenshot showing the extracted folder structure
+</div>
+</div>
+
+<div class="step">
+<p class="step-number">Step 2: Access Google Workspace Admin Console</p>
+
+<p><strong>2.1</strong> Open your browser and navigate to:</p>
+<pre><code>https://admin.google.com</code></pre>
+
+<p><strong>2.2</strong> Login with your Google Workspace administrator credentials</p>
+
+<p class="comment">// You must have admin privileges to manage Chrome extensions</p>
+
+<div class="screenshot">
+<strong>[INSERT SCREENSHOT]</strong><br>
+Google Workspace Admin Console login page
+</div>
+</div>
+
+<div class="step">
+<p class="step-number">Step 3: Navigate to Chrome Management</p>
+
+<p><strong>3.1</strong> From the Admin Console home page, click:</p>
+<pre><code>Devices → Chrome → Apps & Extensions</code></pre>
+
+<p><strong>3.2</strong> Click on <strong>"Settings"</strong> in the left sidebar</p>
+
+<p><strong>3.3</strong> Ensure the following options are enabled:</p>
+<ul>
+<li>☑ Allow users to install other apps & extensions</li>
+<li>☑ Allow installation of specific extensions</li>
+</ul>
+
+<div class="screenshot">
+<strong>[INSERT SCREENSHOT]</strong><br>
+Chrome Apps & Extensions settings page
+</div>
+</div>
+
+<div class="step">
+<p class="step-number">Step 4: Upload Extension</p>
+
+<p><strong>4.1</strong> In the Apps & Extensions page, click:</p>
+<pre><code>Add → Upload private extension</code></pre>
+
+<p><strong>4.2</strong> Click <strong>"Select file"</strong> and choose:</p>
+<pre><code>ADOC-Extension-DEMO-v1.1.0.zip</code></pre>
+
+<p><strong>4.3</strong> Wait for upload to complete (10-30 seconds)</p>
+
+<p class="comment">// Do not close the browser during upload</p>
+
+<div class="screenshot">
+<strong>[INSERT SCREENSHOT]</strong><br>
+Upload private extension dialog box
+</div>
+</div>
+
+<div class="step">
+<p class="step-number">Step 5: Configure Extension Settings</p>
+
+<p><strong>5.1</strong> After upload, configure the following:</p>
+
+<table>
+<tr>
+<th>Setting</th>
+<th>Value</th>
+</tr>
+<tr>
+<td>Extension Name</td>
+<td>ADOC Reliability Metrics</td>
+</tr>
+<tr>
+<td>Installation Policy</td>
+<td>Force install (automatic deployment)</td>
+</tr>
+<tr>
+<td>User/Browser</td>
+<td>Select organizational units or groups</td>
+</tr>
+<tr>
+<td>Allow/Block</td>
+<td>Allow</td>
+</tr>
+</table>
+
+<p><strong>5.2</strong> Click <strong>"Save"</strong></p>
+
+<p class="comment">// Force install ensures automatic deployment to all selected users</p>
+
+<div class="screenshot">
+<strong>[INSERT SCREENSHOT]</strong><br>
+Extension configuration settings
+</div>
+</div>
+
+<div class="step">
+<p class="step-number">Step 6: Select Target Users</p>
+
+<p><strong>6.1</strong> In the "Applied to" section, choose:</p>
+<ul>
+<li><strong>All users</strong> - Deploy to entire organization</li>
+<li><strong>Specific organizational units</strong> - Deploy to selected departments</li>
+<li><strong>Specific groups</strong> - Deploy to user groups</li>
+</ul>
+
+<p><strong>6.2</strong> For pilot rollout, start with a test group:</p>
+<pre><code>IT Team → Data Analytics Team → All Users</code></pre>
+
+<p class="comment">// Recommended: Test with 10-20 users before full deployment</p>
+</div>
+
+<div class="step">
+<p class="step-number">Step 7: Verify Deployment</p>
+
+<p><strong>7.1</strong> Extension status should show:</p>
+<pre><code>Status: Active
+Applied to: [Selected users/OUs]
+Installation: Force install</code></pre>
+
+<p><strong>7.2</strong> Note the Extension ID (you'll need this for tracking)</p>
+
+<div class="success">
+<strong>Success!</strong> Extension is now configured for deployment
+</div>
+</div>
+
+<div class="step">
+<p class="step-number">Step 8: User Deployment Timeline</p>
+
+<p>Users will receive the extension automatically:</p>
+
+<table>
+<tr>
+<th>Timeframe</th>
+<th>Action</th>
+</tr>
+<tr>
+<td>0-2 hours</td>
+<td>Extension deploys to user browsers</td>
+</tr>
+<tr>
+<td>Next Chrome restart</td>
+<td>Extension becomes active</td>
+</tr>
+<tr>
+<td>First use</td>
+<td>User sees notification: "ADOC Reliability Metrics installed"</td>
+</tr>
+</table>
+
+<p class="comment">// Users may need to restart Chrome to see the extension</p>
+</div>
+
+<div class="page-break"></div>
+
+<h2>Method 2: Manual Installation (Testing/Small Teams)</h2>
+
+<p class="comment">// Use this method for development, testing, or small team deployments</p>
+
+<div class="step">
+<p class="step-number">Step 1: Extract Extension Files</p>
+
+<p><strong>1.1</strong> Locate the extension file:</p>
+<pre><code>ADOC-Extension-DEMO-v1.1.0.zip</code></pre>
+
+<p><strong>1.2</strong> Extract the zip file:</p>
+<ul>
+<li><strong>Windows:</strong> Right-click → Extract All</li>
+<li><strong>Mac:</strong> Double-click the zip file</li>
+<li><strong>Linux:</strong> <code>unzip ADOC-Extension-DEMO-v1.1.0.zip</code></li>
+</ul>
+
+<p><strong>1.3</strong> You should see a folder named <code>chrome-extension</code></p>
+
+<div class="screenshot">
+<strong>[INSERT SCREENSHOT]</strong><br>
+Extracted folder showing chrome-extension directory
+</div>
+</div>
+
+<div class="step">
+<p class="step-number">Step 2: Open Chrome Extensions Page</p>
+
+<p><strong>2.1</strong> Open Google Chrome browser</p>
+
+<p><strong>2.2</strong> Navigate to extensions page (choose one method):</p>
+
+<p><strong>Method A:</strong> Type in address bar:</p>
+<pre><code>chrome://extensions/</code></pre>
+
+<p><strong>Method B:</strong> Click menu:</p>
+<pre><code>⋮ Menu → More Tools → Extensions</code></pre>
+
+<div class="screenshot">
+<strong>[INSERT SCREENSHOT]</strong><br>
+Chrome extensions page
+</div>
+</div>
+
+<div class="step">
+<p class="step-number">Step 3: Enable Developer Mode</p>
+
+<p><strong>3.1</strong> On the extensions page, find the toggle switch in the <strong>top right corner</strong></p>
+
+<p><strong>3.2</strong> Enable <strong>"Developer mode"</strong></p>
+
+<p class="comment">// Developer mode allows loading unpacked extensions</p>
+
+<p><strong>3.3</strong> You'll see new buttons appear: "Load unpacked", "Pack extension", "Update"</p>
+
+<div class="screenshot">
+<strong>[INSERT SCREENSHOT]</strong><br>
+Developer mode toggle enabled with new buttons visible
+</div>
+</div>
+
+<div class="step">
+<p class="step-number">Step 4: Load Extension</p>
+
+<p><strong>4.1</strong> Click the <strong>"Load unpacked"</strong> button</p>
+
+<p><strong>4.2</strong> In the file browser dialog:</p>
+<ul>
+<li>Navigate to the extracted folder</li>
+<li>Select the <code>chrome-extension</code> folder</li>
+<li>Click <strong>"Select Folder"</strong> (Windows) or <strong>"Open"</strong> (Mac)</li>
+</ul>
+
+<p class="comment">// Make sure you select the chrome-extension folder, not the parent folder</p>
+
+<div class="screenshot">
+<strong>[INSERT SCREENSHOT]</strong><br>
+File browser showing chrome-extension folder selected
+</div>
+</div>
+
+<div class="step">
+<p class="step-number">Step 5: Verify Installation</p>
+
+<p><strong>5.1</strong> The extension should now appear in your extensions list:</p>
+
+<table>
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+<tr>
+<td>Name</td>
+<td>ADOC Reliability Metrics</td>
+</tr>
+<tr>
+<td>Version</td>
+<td>1.1.0</td>
+</tr>
+<tr>
+<td>Status</td>
+<td>On (blue toggle)</td>
+</tr>
+<tr>
+<td>Icon</td>
+<td>Dark blue "a" logo</td>
+</tr>
+</table>
+
+<p><strong>5.2</strong> Check for the extension icon in your Chrome toolbar (top right)</p>
+
+<div class="success">
+<strong>Success!</strong> Extension is installed and ready to use
+</div>
+
+<div class="screenshot">
+<strong>[INSERT SCREENSHOT]</strong><br>
+Extension card showing ADOC Reliability Metrics installed
+</div>
+</div>
+
+<div class="step">
+<p class="step-number">Step 6: Pin Extension to Toolbar (Recommended)</p>
+
+<p><strong>6.1</strong> Click the <strong>puzzle piece icon</strong> (Extensions) in Chrome toolbar</p>
+
+<p><strong>6.2</strong> Find "ADOC Reliability Metrics" in the dropdown</p>
+
+<p><strong>6.3</strong> Click the <strong>pin icon</strong> next to it</p>
+
+<p><strong>6.4</strong> The ADOC icon now appears permanently in toolbar</p>
+
+<p class="comment">// Pinning makes the extension easily accessible</p>
+
+<div class="screenshot">
+<strong>[INSERT SCREENSHOT]</strong><br>
+Extensions dropdown showing pin icon and ADOC extension
+</div>
+</div>
+
+<div class="page-break"></div>
+
+<h2>Post-Deployment Verification</h2>
+
+<div class="step">
+<p class="step-number">Step 1: Test Extension Launch</p>
+
+<p><strong>1.1</strong> Click the ADOC icon in Chrome toolbar</p>
+
+<p><strong>1.2</strong> Extension popup should open showing:</p>
+<ul>
+<li>ADOC logo (dark blue "a")</li>
+<li>Login screen with chart icon</li>
+<li>"Login to Acceldata" button</li>
+</ul>
+
+<div class="screenshot">
+<strong>[INSERT SCREENSHOT]</strong><br>
+Extension popup showing login screen
+</div>
+</div>
+
+<div class="step">
+<p class="step-number">Step 2: Test Login Flow</p>
+
+<p><strong>2.1</strong> Click <strong>"Login to Acceldata"</strong></p>
+
+<p><strong>2.2</strong> New tab opens with:</p>
+<pre><code>https://indiumtech.acceldata.app/</code></pre>
+
+<p><strong>2.3</strong> Complete login with valid credentials</p>
+
+<p><strong>2.4</strong> After successful login, you should see:</p>
+<ul>
+<li>Success notification: "ADOC Login Successful"</li>
+<li>Auth tab closes automatically</li>
+<li>Green checkmark badge on extension icon (temporary)</li>
+</ul>
+
+<p class="comment">// If popup doesn't reopen automatically, click extension icon again</p>
+
+<div class="screenshot">
+<strong>[INSERT SCREENSHOT]</strong><br>
+Success notification after login
+</div>
+</div>
+
+<div class="step">
+<p class="step-number">Step 3: Test Data Fetching</p>
+
+<p><strong>3.1</strong> Click extension icon after login</p>
+
+<p><strong>3.2</strong> Extension automatically starts fetching (no manual click needed)</p>
+
+<p><strong>3.3</strong> You'll see "Fetching..." screen with:</p>
+<ul>
+<li>Database icon</li>
+<li>Animated spinner</li>
+<li>Status indicators (green, orange, red dots)</li>
+</ul>
+
+<p><strong>3.4</strong> After 1-2 seconds, results appear (one of three scenarios)</p>
+
+<div class="screenshot">
+<strong>[INSERT SCREENSHOT]</strong><br>
+Fetching screen with spinner animation
+</div>
+</div>
+
+<div class="step">
+<p class="step-number">Step 4: Verify All Scenarios Work</p>
+
+<p><strong>4.1</strong> Test scenario display by clicking refresh multiple times</p>
+
+<p class="comment">// Demo mode randomly shows one of three scenarios</p>
+
+<p><strong>4.2</strong> Verify you can see:</p>
+
+<table>
+<tr>
+<th>Scenario</th>
+<th>What to Check</th>
+</tr>
+<tr>
+<td><strong>Healthy</strong></td>
+<td>Green badge, 175 assets, 0 alerts, checkmark icon</td>
+</tr>
+<tr>
+<td><strong>Risky</strong></td>
+<td>Amber badge, 175 assets, 25 alerts, asset cards visible</td>
+</tr>
+<tr>
+<td><strong>No Assets</strong></td>
+<td>Orange warning, error message, Fetch Again button</td>
+</tr>
+</table>
+</div>
+
+<div class="success">
+<p><strong>Deployment Complete!</strong></p>
+<p>Extension is successfully deployed and functional. Users can now access ADOC reliability data directly from Power BI reports.</p>
+</div>
+
+<div class="page-break"></div>
+
+<h2>User Communication</h2>
+
+<h3>Announcement Email Template</h3>
+
+<div style="background: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; margin: 20px 0;">
+<p><strong>Subject:</strong> New Tool: ADOC Chrome Extension for Power BI</p>
+
+<p>Hi Team,</p>
+
+<p>We're excited to announce the ADOC Chrome Extension is now available! This tool brings real-time data quality insights directly into your Power BI workflow.</p>
+
+<p><strong>What It Does:</strong></p>
+<ul>
+<li>Instantly checks data reliability for Power BI reports</li>
+<li>Shows data quality alerts and issues</li>
+<li>Identifies upstream dependency problems</li>
+<li>One-click access to detailed analysis in ADOC</li>
+</ul>
+
+<p><strong>How to Use:</strong></p>
+<ol>
+<li>Look for the ADOC icon (blue "a") in your Chrome toolbar</li>
+<li>Open any Power BI report</li>
+<li>Click the ADOC icon</li>
+<li>Login once with your Acceldata credentials</li>
+<li>View instant reliability insights!</li>
+</ol>
+
+<p><strong>Need Help?</strong></p>
+<ul>
+<li>User Guide: [Link to USER_GUIDE.md]</li>
+<li>Training Video: [Link if available]</li>
+<li>Support: support@acceldata.io</li>
+</ul>
+
+<p>Questions? Reply to this email or contact the Data Team.</p>
+
+<p>Thanks,<br>[Your Name]</p>
+</div>
+
+<div class="page-break"></div>
+
+<h2>Troubleshooting</h2>
+
+<h3>Common Issues and Solutions</h3>
+
+<table>
+<tr>
+<th>Issue</th>
+<th>Solution</th>
+</tr>
+<tr>
+<td>Extension not appearing in toolbar</td>
+<td>
+<ul>
+<li>Refresh <code>chrome://extensions/</code> page</li>
+<li>Click puzzle icon and pin extension</li>
+<li>Restart Chrome browser</li>
+</ul>
+</td>
+</tr>
+<tr>
+<td>Installation failed</td>
+<td>
+<ul>
+<li>Verify you selected the correct folder</li>
+<li>Check <code>manifest.json</code> exists in selected folder</li>
+<li>Ensure Developer mode is enabled</li>
+</ul>
+</td>
+</tr>
+<tr>
+<td>Login doesn't redirect back</td>
+<td>
+<ul>
+<li>Manually close the auth tab after login</li>
+<li>Click extension icon again</li>
+<li>Check for success notification</li>
+</ul>
+</td>
+</tr>
+<tr>
+<td>"No Assets Found" for all reports</td>
+<td>
+<ul>
+<li>Verify datasets are onboarded to ADOC</li>
+<li>Check user has permissions in ADOC</li>
+<li>Contact ADOC administrator</li>
+</ul>
+</td>
+</tr>
+<tr>
+<td>Extension crashes or freezes</td>
+<td>
+<ul>
+<li>Clear browser cache: <code>chrome://settings/clearBrowserData</code></li>
+<li>Remove and reinstall extension</li>
+<li>Contact support with error details</li>
+</ul>
+</td>
+</tr>
+</table>
+
+<h3>Getting Detailed Error Information</h3>
+
+<div class="step">
+<p><strong>For Users:</strong></p>
+<pre><code>1. Right-click extension icon
+2. Select "Inspect popup"
+3. Click Console tab
+4. Screenshot any error messages
+5. Send to support@acceldata.io</code></pre>
+
+<p class="comment">// Error messages help support team diagnose issues quickly</p>
+</div>
+
+<div class="page-break"></div>
+
+<h2>Updates and Maintenance</h2>
+
+<h3>Updating the Extension</h3>
+
+<div class="step">
+<p class="step-number">For Google Workspace Deployment:</p>
+
+<p><strong>1.</strong> Download new version (e.g., <code>ADOC-Extension-v1.2.0.zip</code>)</p>
+
+<p><strong>2.</strong> Go to Admin Console → Chrome → Apps & Extensions</p>
+
+<p><strong>3.</strong> Find "ADOC Reliability Metrics"</p>
+
+<p><strong>4.</strong> Click <strong>"Update"</strong> button</p>
+
+<p><strong>5.</strong> Upload new zip file</p>
+
+<p><strong>6.</strong> Click <strong>"Save"</strong></p>
+
+<p><strong>7.</strong> Update deploys automatically within 24 hours</p>
+
+<p class="comment">// Users don't need to take any action for updates</p>
+</div>
+
+<div class="step">
+<p class="step-number">For Manual Installation:</p>
+
+<p><strong>1.</strong> Go to <code>chrome://extensions/</code></p>
+
+<p><strong>2.</strong> Find ADOC extension</p>
+
+<p><strong>3.</strong> Click <strong>"Remove"</strong></p>
+
+<p><strong>4.</strong> Follow installation steps with new version</p>
+
+<p class="comment">// Users may need to login again after update</p>
+</div>
+
+<h3>Rollback Procedure</h3>
+
+<p>If issues occur with new version:</p>
+
+<ol>
+<li>Admin Console → Apps & Extensions</li>
+<li>Find ADOC extension</li>
+<li>Click "Version history"</li>
+<li>Select previous stable version</li>
+<li>Click "Rollback"</li>
+<li>Confirm rollback</li>
+</ol>
+
+<p class="comment">// Rollback takes effect within 1-2 hours</p>
+
+<div class="page-break"></div>
+
+<h2>Security and Compliance</h2>
+
+<h3>Security Features</h3>
+
+<ul>
+<li><strong>Encryption:</strong> AES-256-GCM for credential storage</li>
+<li><strong>Storage:</strong> Local browser only (no third-party transmission)</li>
+<li><strong>Permissions:</strong> Minimal required permissions only</li>
+<li><strong>HTTPS:</strong> All API calls use encrypted connections</li>
+<li><strong>Authentication:</strong> Leverages ADOC platform security</li>
+</ul>
+
+<h3>Data Privacy</h3>
+
+<div class="important">
+<strong>Important Information:</strong>
+<ul>
+<li>Extension does NOT collect user analytics</li>
+<li>Extension does NOT share data with third parties</li>
+<li>Extension does NOT track user behavior</li>
+<li>All data stored locally in encrypted format</li>
+<li>Data cleared completely on logout</li>
+</ul>
+</div>
+
+<h3>Compliance Checklist</h3>
+
+<table>
+<tr>
+<th>Requirement</th>
+<th>Status</th>
+</tr>
+<tr>
+<td>GDPR Compliant</td>
+<td>✓ Yes (no personal data collected)</td>
+</tr>
+<tr>
+<td>Data Encryption</td>
+<td>✓ Yes (AES-256)</td>
+</tr>
+<tr>
+<td>Privacy Policy</td>
+<td>✓ Available</td>
+</tr>
+<tr>
+<td>User Consent</td>
+<td>✓ Obtained via login</td>
+</tr>
+<tr>
+<td>Audit Trail</td>
+<td>✓ Available in ADOC platform</td>
+</tr>
+</table>
+
+<div class="page-break"></div>
+
+<h2>Monitoring and Usage</h2>
+
+<h3>Tracking Deployment Success</h3>
+
+<p><strong>Google Workspace Admins can monitor:</strong></p>
+
+<ol>
+<li>Admin Console → Reports → Chrome</li>
+<li>View extension install statistics</li>
+<li>Check active users count</li>
+<li>Review any crash reports</li>
+</ol>
+
+<h3>Success Metrics</h3>
+
+<table>
+<tr>
+<th>Metric</th>
+<th>Target</th>
+</tr>
+<tr>
+<td>Installation Success Rate</td>
+<td>> 95%</td>
+</tr>
+<tr>
+<td>Active Users (Weekly)</td>
+<td>> 80% of target audience</td>
+</tr>
+<tr>
+<td>Login Success Rate</td>
+<td>> 90%</td>
+</tr>
+<tr>
+<td>Support Tickets</td>
+<td>< 5% of users</td>
+</tr>
+</table>
+
+<div class="page-break"></div>
+
+<h2>Support and Contact Information</h2>
+
+<div style="background: #dbeafe; padding: 20px; border-left: 4px solid #2563eb; margin: 20px 0;">
+<h3 style="margin-top: 0; color: #1e40af;">Acceldata Support</h3>
+
+<table style="border: none;">
+<tr>
+<td style="border: none;"><strong>Email Support:</strong></td>
+<td style="border: none;"><code>support@acceldata.io</code></td>
+</tr>
+<tr>
+<td style="border: none;"><strong>Technical Issues:</strong></td>
+<td style="border: none;"><code>tech-support@acceldata.io</code></td>
+</tr>
+<tr>
+<td style="border: none;"><strong>Deployment Help:</strong></td>
+<td style="border: none;"><code>deployments@acceldata.io</code></td>
+</tr>
+<tr>
+<td style="border: none;"><strong>Product Feedback:</strong></td>
+<td style="border: none;"><code>product@acceldata.io</code></td>
+</tr>
+</table>
+
+<p><strong>Response Time:</strong> 24-48 hours (business days)</p>
+<p><strong>Emergency Support:</strong> Contact your account manager</p>
+</div>
+
+<div style="background: #d1fae5; padding: 20px; border-left: 4px solid #10b981; margin: 20px 0;">
+<h3 style="margin-top: 0; color: #065f46;">Additional Resources</h3>
+
+<ul>
+<li><strong>User Guide:</strong> USER_GUIDE.md</li>
+<li><strong>Development Guide:</strong> DEVELOPMENT_GUIDE.md</li>
+<li><strong>Client Documentation:</strong> ADOC_Extension_Client_Documentation.html</li>
+<li><strong>ADOC Platform:</strong> <code>https://indiumtech.acceldata.app</code></li>
+<li><strong>Company Website:</strong> <code>https://acceldata.io</code></li>
+</ul>
+</div>
+
+<div style="background: #fef3c7; padding: 20px; border-left: 4px solid #f59e0b; margin: 20px 0;">
+<h3 style="margin-top: 0; color: #92400e;">Important Dates</h3>
+
+<table style="border: none;">
+<tr>
+<td style="border: none;"><strong>Release Date:</strong></td>
+<td style="border: none;">January 28, 2026</td>
+</tr>
+<tr>
+<td style="border: none;"><strong>Document Updated:</strong></td>
+<td style="border: none;">January 30, 2026</td>
+</tr>
+<tr>
+<td style="border: none;"><strong>Next Review:</strong></td>
+<td style="border: none;">April 30, 2026</td>
+</tr>
+<tr>
+<td style="border: none;"><strong>Support Valid Until:</strong></td>
+<td style="border: none;">December 31, 2026</td>
+</tr>
+</table>
+</div>
+
+<div class="page-break"></div>
+
+<h2>Appendix: Quick Reference</h2>
+
+<h3>Installation Commands (Manual Method)</h3>
+
+<pre><code>// Windows
+Right-click zip → Extract All
+
+// Mac
+Double-click zip file
+
+// Linux
+unzip ADOC-Extension-DEMO-v1.1.0.zip</code></pre>
+
+<h3>Important URLs</h3>
+
+<table>
+<tr>
+<th>Resource</th>
+<th>URL</th>
+</tr>
+<tr>
+<td>Chrome Extensions</td>
+<td><code>chrome://extensions/</code></td>
+</tr>
+<tr>
+<td>Google Workspace Admin</td>
+<td><code>https://admin.google.com</code></td>
+</tr>
+<tr>
+<td>ADOC Platform</td>
+<td><code>https://indiumtech.acceldata.app</code></td>
+</tr>
+<tr>
+<td>Acceldata Website</td>
+<td><code>https://acceldata.io</code></td>
+</tr>
+</table>
+
+<h3>Extension Details</h3>
+
+<table>
+<tr>
+<th>Property</th>
+<th>Value</th>
+</tr>
+<tr>
+<td>Name</td>
+<td>ADOC Reliability Metrics</td>
+</tr>
+<tr>
+<td>Version</td>
+<td>1.1.0 (Demo)</td>
+</tr>
+<tr>
+<td>File Size</td>
+<td>~41 KB</td>
+</tr>
+<tr>
+<td>Manifest</td>
+<td>Version 3</td>
+</tr>
+<tr>
+<td>Permissions</td>
+<td>storage, tabs, notifications</td>
+</tr>
+</table>
+
+<div class="footer">
+<p><strong>Document Information</strong></p>
+<p>Version: 1.0 | Last Updated: January 30, 2026<br>
+Prepared by: Acceldata Product Team<br>
+Support: support@acceldata.io</p>
+<hr style="border: 1px solid #e5e7eb; margin: 20px 0;">
+<p style="font-size: 9pt; color: #9ca3af;">
+This document contains confidential information intended for authorized recipients only.<br>
+© 2026 Acceldata. All rights reserved.
+</p>
+</div>
+
+</body>
+</html>
