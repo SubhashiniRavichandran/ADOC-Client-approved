@@ -267,7 +267,7 @@ class PopupController {
     const alertsLink = document.getElementById('alerts-link');
     if (results.assetsWithAlerts > 0) {
       alertsLink.classList.remove('hidden');
-      alertsLink.href = 'https://indiumtech.acceldata.app/alerts';
+      alertsLink.href = 'https://cso-enablement.poc.acceldatasolutions.net/ui/torch/namespace/Default/data-reliability/catalog/list?sort=-1:dataQualityPolicyCount';
     } else {
       alertsLink.classList.add('hidden');
     }

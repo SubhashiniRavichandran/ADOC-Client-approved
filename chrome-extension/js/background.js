@@ -112,7 +112,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   if (request.action === 'openAdocPlatform') {
-    chrome.tabs.create({ url: 'https://indiumtech.acceldata.app/' });
+    chrome.tabs.create({ url: 'https://cso-enablement.poc.acceldatasolutions.net/ui/torch/namespace/Default/data-reliability/catalog/list?sort=-1:dataQualityPolicyCount' });
     sendResponse({ success: true });
     return true;
   }
@@ -183,7 +183,7 @@ async function handleFetchReliabilityData(assets) {
           lastProfiled: 'Not profiled',
           openAlerts: 0,
           upstreamIssues: 0,
-          adocLink: 'https://indiumtech.acceldata.app/'
+          adocLink: 'https://cso-enablement.poc.acceldatasolutions.net/ui/torch/namespace/Default/data-reliability/catalog/list?sort=-1:dataQualityPolicyCount'
         });
       }
     } catch (error) {
@@ -245,7 +245,7 @@ chrome.runtime.onInstalled.addListener((details) => {
 
     // Open welcome page or options page
     chrome.tabs.create({
-      url: 'https://indiumtech.acceldata.app/'
+      url: 'https://cso-enablement.poc.acceldatasolutions.net/ui/torch/namespace/Default/data-reliability/catalog/list?sort=-1:dataQualityPolicyCount'
     });
   } else if (details.reason === 'update') {
     console.log('ADOC Reliability Metrics extension updated');
