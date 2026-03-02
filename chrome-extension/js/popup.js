@@ -174,8 +174,10 @@ class PopupController {
         }
 
         if (response && response.assets) {
-          // Fetch reliability data from ADOC
-          const results = await this.fetchReliabilityData(response.assets);
+          // Fetch reliability data from ADOC, passing PowerBI context so the
+          // background can use the dedicated bi-tools endpoint instead of DOM
+          // name-based search.
+          const results = await this.fetchReliabilityData(response.assets, response.context);
 
           // Cache results
           chrome.storage.local.set({ cached_results: results });
@@ -204,11 +206,13 @@ class PopupController {
     refreshBtn.classList.remove('spinning');
   }
 
-  async fetchReliabilityData(assets) {
-    // Send request to background script to fetch data from ADOC API
+  async fetchReliabilityData(assets, context = null) {
+    // Send request to background script to fetch data from ADOC API.
+    // context carries workspaceId + reportId so background can call the
+    // PowerBI-specific ADOC endpoint directly instead of searching by name.
     return new Promise((resolve) => {
       chrome.runtime.sendMessage(
-        { action: 'fetchReliabilityData', assets: assets },
+        { action: 'fetchReliabilityData', assets: assets, context: context },
         (response) => {
           if (response && response.results) {
             resolve(response.results);
