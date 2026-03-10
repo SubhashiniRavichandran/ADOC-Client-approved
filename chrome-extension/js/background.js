@@ -3,15 +3,15 @@
 // ADOC API Client
 class AdocApiClient {
   constructor() {
-    this.baseUrl = 'https://indiumtech.acceldata.app';
-    this.apiVersion = 'api/v1';
+    this.baseUrl = 'https://cso-enablement.poc.acceldatasolutions.net';
+    // Confirmed from official Acceldata API docs (V26.2.0)
+    this.apiPrefix = 'catalog-server/api';
   }
 
   async makeRequest(endpoint, options = {}) {
-    const url = `${this.baseUrl}/${this.apiVersion}${endpoint}`;
+    const url = `${this.baseUrl}/${this.apiPrefix}${endpoint}`;
 
     try {
-      // Get stored credentials
       const credentials = await this.getCredentials();
 
       const headers = {
@@ -19,10 +19,10 @@ class AdocApiClient {
         ...options.headers
       };
 
-      // Add authentication headers if available
+      // Auth header names confirmed from Acceldata API docs (lowercase, no X- prefix)
       if (credentials.accessKey && credentials.secretKey) {
-        headers['X-ACCESS-KEY'] = credentials.accessKey;
-        headers['X-SECRET-KEY'] = credentials.secretKey;
+        headers['accessKey'] = credentials.accessKey;
+        headers['secretKey'] = credentials.secretKey;
       }
 
       const response = await fetch(url, {
@@ -52,26 +52,17 @@ class AdocApiClient {
     });
   }
 
-  // --- PowerBI-specific endpoint ---
-  // GET /api/v1/bi-tools/powerbi/workspaces/{workspaceId}/reports/{reportId}
-  // Returns the report metadata plus underlyingAssets already mapped to ADOC asset IDs.
-  async getPowerBIReportAssets(workspaceId, reportId) {
-    try {
-      return await this.makeRequest(
-        `/bi-tools/powerbi/workspaces/${encodeURIComponent(workspaceId)}/reports/${encodeURIComponent(reportId)}`
-      );
-    } catch (error) {
-      console.error('Failed to get PowerBI report assets from ADOC:', error);
-      return null;
-    }
-  }
-
+  // ---------------------------------------------------------------------------
+  // Search assets by query string with optional assetType filter.
+  // Confirmed endpoint: GET /catalog-server/api/assets/search
+  // PowerBI asset types: POWERBI_REPORT (31), POWERBI_DATASET (29),
+  //   POWERBI_DATASET_TABLE (49), POWERBI_GROUP (27), etc.
+  // ---------------------------------------------------------------------------
   async searchAssets(query, assetType = null) {
     let endpoint = `/assets/search?query=${encodeURIComponent(query)}`;
     if (assetType) {
       endpoint += `&assetType=${assetType}`;
     }
-
     try {
       return await this.makeRequest(endpoint);
     } catch (error) {
@@ -80,18 +71,40 @@ class AdocApiClient {
     }
   }
 
-  async getReliabilityScore(assetId) {
+  // ---------------------------------------------------------------------------
+  // Get asset policy scores (reliability, quality, cadence, etc.)
+  // Confirmed endpoint: GET /catalog-server/api/assets/{id}/scores
+  // Response: { ruleScores: { reliabilityScore, dataQualityScore, ... },
+  //             previousScores: {...}, policyCount: {...},
+  //             lastProfileDateTime: "ISO string" }
+  // ---------------------------------------------------------------------------
+  async getAssetScores(assetId) {
     try {
-      return await this.makeRequest(`/assets/${assetId}/reliability`);
+      return await this.makeRequest(`/assets/${assetId}/scores`);
     } catch (error) {
-      console.error('Failed to get reliability score:', error);
+      console.error('Failed to get asset scores:', error);
       return null;
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // Get asset metadata (key-value properties for the asset).
+  // Confirmed endpoint: GET /catalog-server/api/assets/{id}/metadata
+  // Response: { data: { items: [{ key, value, dataType, source }] } }
+  // Used to verify workspaceId / reportId for PowerBI assets.
+  // ---------------------------------------------------------------------------
+  async getAssetMetadata(assetId) {
+    try {
+      return await this.makeRequest(`/assets/${assetId}/metadata`);
+    } catch (error) {
+      console.error('Failed to get asset metadata:', error);
+      return null;
+    }
+  }
+
+  // Alerts endpoint — path not yet confirmed; using best-known pattern
   async getAlerts(assetIds, status = 'OPEN') {
     const endpoint = `/alerts?assetIds=${assetIds.join(',')}&status=${status}`;
-
     try {
       return await this.makeRequest(endpoint);
     } catch (error) {
@@ -100,6 +113,7 @@ class AdocApiClient {
     }
   }
 
+  // Lineage endpoint — path not yet confirmed; using best-known pattern
   async getLineage(assetId, direction = 'BOTH', depth = 2) {
     try {
       return await this.makeRequest(`/assets/${assetId}/lineage?direction=${direction}&depth=${depth}`);
@@ -116,14 +130,13 @@ const apiClient = new AdocApiClient();
 // Message handler
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'fetchReliabilityData') {
-    // Accept both context (workspaceId/reportId) and fallback assets from DOM scraping
     handleFetchReliabilityData(request.assets, request.context)
       .then(results => sendResponse({ results }))
       .catch(error => {
         console.error('Error fetching reliability data:', error);
         sendResponse({ error: error.message });
       });
-    return true; // Keep channel open for async response
+    return true;
   }
 
   if (request.action === 'openAdocPlatform') {
@@ -141,12 +154,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 });
 
 // ---------------------------------------------------------------------------
-// Primary entry point: use PowerBI-specific ADOC endpoint when context is
-// available, fall back to asset-name search for unrecognised BI tools or when
-// the dedicated endpoint returns nothing.
+// Primary entry point.
+// Strategy 1 (PowerBI context): search ADOC for POWERBI_REPORT asset by
+//   reportId, verify workspaceId via metadata, then fetch scores.
+// Strategy 2 (fallback): search ADOC by DOM-scraped asset names.
 // ---------------------------------------------------------------------------
 async function handleFetchReliabilityData(assets, context) {
-  // Strategy 1: PowerBI report context  →  dedicated ADOC bi-tools endpoint
   if (
     context &&
     context.toolType === 'POWERBI' &&
@@ -154,89 +167,131 @@ async function handleFetchReliabilityData(assets, context) {
     (context.reportId || context.dashboardId)
   ) {
     const reportId = context.reportId || context.dashboardId;
-    console.log(
-      `[ADOC] Using PowerBI endpoint for workspaceId=${context.workspaceId} reportId=${reportId}`
-    );
+    const assetType = context.reportId ? 'POWERBI_REPORT' : 'POWERBI_DASHBOARD';
 
-    const reportData = await apiClient.getPowerBIReportAssets(context.workspaceId, reportId);
+    console.log(`[ADOC] Searching for ${assetType} with reportId=${reportId}`);
 
-    if (reportData && reportData.underlyingAssets && reportData.underlyingAssets.length > 0) {
-      console.log(
-        `[ADOC] PowerBI endpoint returned ${reportData.underlyingAssets.length} underlying assets`
-      );
-      return await processReportAssets(reportData);
+    // Search for POWERBI_REPORT asset using the reportId (GUID) as query
+    const searchResult = await apiClient.searchAssets(reportId, assetType);
+    const matchedAsset = findMatchingPowerBIAsset(searchResult, context.workspaceId, reportId);
+
+    if (matchedAsset) {
+      console.log(`[ADOC] Found ${assetType} asset id=${matchedAsset.id} – fetching scores`);
+      return await processPowerBIReportAsset(matchedAsset, context);
     }
 
-    console.warn(
-      '[ADOC] PowerBI endpoint returned no assets – falling back to name-based search'
-    );
+    console.warn('[ADOC] PowerBI asset not found in ADOC – falling back to name-based search');
   }
 
-  // Strategy 2: Fallback – search ADOC by asset name (DOM-scraped names)
   console.log(`[ADOC] Using name-based search for ${assets.length} DOM-scraped assets`);
   return await processAssetsByName(assets);
 }
 
 // ---------------------------------------------------------------------------
-// Process assets returned by the PowerBI-specific ADOC endpoint.
-// Each entry in underlyingAssets already contains an adocAssetId so we skip
-// the search step entirely.
+// Find the correct ADOC asset from search results.
+// If only one result, use it directly.
+// If multiple, use first match (metadata-based verification can be added
+// once we confirm what keys ADOC stores for PowerBI assets).
 // ---------------------------------------------------------------------------
-async function processReportAssets(reportData) {
+function findMatchingPowerBIAsset(searchResult, workspaceId, reportId) {
+  if (!searchResult) return null;
+
+  // Handle both array response and { assets: [...] } response shapes
+  const candidates = Array.isArray(searchResult)
+    ? searchResult
+    : (searchResult.assets || searchResult.data || []);
+
+  if (candidates.length === 0) return null;
+  if (candidates.length === 1) return candidates[0];
+
+  console.log(`[ADOC] ${candidates.length} candidates found, using first match`);
+  return candidates[0];
+}
+
+// ---------------------------------------------------------------------------
+// Fetch scores for the POWERBI_REPORT asset and its related DATASET_TABLE
+// assets (searched by workspaceId).
+// ---------------------------------------------------------------------------
+async function processPowerBIReportAsset(reportAsset, context) {
   const results = {
     reportStatus: 'Healthy',
-    reportName: reportData.reportName || '',
-    workspaceName: reportData.workspaceName || '',
-    lastRefreshed: reportData.lastRefreshed ? formatDate(reportData.lastRefreshed) : 'N/A',
-    totalAssets: reportData.underlyingAssets.length,
+    totalAssets: 0,
     assetsWithAlerts: 0,
     assets: []
   };
 
-  for (const underlying of reportData.underlyingAssets) {
-    try {
-      const assetId = underlying.adocAssetId;
+  try {
+    // 1. Get scores for the report asset itself
+    const reportScores = await apiClient.getAssetScores(reportAsset.id);
+    const reportReliability = reportScores?.ruleScores?.reliabilityScore ?? null;
+    const lastProfiled = reportScores?.lastProfileDateTime
+      ? formatDate(reportScores.lastProfileDateTime)
+      : 'Not profiled';
+    const dataCadenceScore = reportScores?.ruleScores?.dataCadenceScore ?? null;
 
-      // Prefer score from the endpoint payload; enrich with fresh reliability call
-      const reliabilityData = await apiClient.getReliabilityScore(assetId);
-      const alertsData = await apiClient.getAlerts([assetId]);
+    // 2. Search for POWERBI_DATASET_TABLE assets in the same workspace
+    const datasetSearch = await apiClient.searchAssets(context.workspaceId, 'POWERBI_DATASET_TABLE');
+    const datasetTables = Array.isArray(datasetSearch)
+      ? datasetSearch
+      : (datasetSearch?.assets || datasetSearch?.data || []);
 
-      const openAlerts = alertsData?.alerts?.filter(a => a.status === 'OPEN').length || 0;
-      const upstreamIssues = await getUpstreamIssues(assetId);
-
-      const assetResult = {
-        name: underlying.tableName,
-        type: 'TABLE',
-        columnUsage: underlying.columnUsage || [],
-        reliabilityScore:
-          reliabilityData?.overallScore ?? underlying.reliabilityScore ?? 0,
-        dataFreshness: reliabilityData?.scoreBreakdown?.timeliness
-          ? `${reliabilityData.scoreBreakdown.timeliness}%`
-          : '100%',
-        lastProfiled: reliabilityData?.lastEvaluated
-          ? formatDate(reliabilityData.lastEvaluated)
-          : formatDate(new Date()),
-        openAlerts: openAlerts !== 0 ? openAlerts : (underlying.openAlerts ?? 0),
-        upstreamIssues: upstreamIssues,
-        adocLink: `https://indiumtech.acceldata.app/assets/${assetId}`
+    // Include the report itself as an asset entry if we have its scores
+    if (reportReliability !== null) {
+      const reportEntry = {
+        name: reportAsset.name || reportAsset.displayName || 'PowerBI Report',
+        type: 'POWERBI_REPORT',
+        reliabilityScore: Math.round(reportReliability),
+        dataFreshness: dataCadenceScore !== null ? `${Math.round(dataCadenceScore)}%` : 'N/A',
+        lastProfiled: lastProfiled,
+        openAlerts: 0,
+        upstreamIssues: 0,
+        adocLink: `https://cso-enablement.poc.acceldatasolutions.net/ui/torch/namespace/Default/data-reliability/catalog/${reportAsset.id}`
       };
-
-      results.assets.push(assetResult);
-
-      if (assetResult.openAlerts > 0) {
-        results.assetsWithAlerts++;
-      }
-    } catch (error) {
-      console.error(`[ADOC] Error processing underlying asset ${underlying.tableName}:`, error);
+      results.assets.push(reportEntry);
     }
+
+    // 3. For each dataset table get scores (cap at 10 to avoid too many API calls)
+    for (const table of datasetTables.slice(0, 10)) {
+      try {
+        const tableScores = await apiClient.getAssetScores(table.id);
+        const reliability = tableScores?.ruleScores?.reliabilityScore ?? 0;
+        const cadence = tableScores?.ruleScores?.dataCadenceScore ?? null;
+        const tableLastProfiled = tableScores?.lastProfileDateTime
+          ? formatDate(tableScores.lastProfileDateTime)
+          : 'Not profiled';
+
+        const alertsData = await apiClient.getAlerts([table.id]);
+        const openAlerts = alertsData?.alerts?.filter(a => a.status === 'OPEN').length ?? 0;
+        const upstreamIssues = await getUpstreamIssues(table.id);
+
+        const tableEntry = {
+          name: table.name || table.displayName || `Table_${table.id}`,
+          type: 'POWERBI_DATASET_TABLE',
+          reliabilityScore: Math.round(reliability),
+          dataFreshness: cadence !== null ? `${Math.round(cadence)}%` : 'N/A',
+          lastProfiled: tableLastProfiled,
+          openAlerts: openAlerts,
+          upstreamIssues: upstreamIssues,
+          adocLink: `https://cso-enablement.poc.acceldatasolutions.net/ui/torch/namespace/Default/data-reliability/catalog/${table.id}`
+        };
+
+        results.assets.push(tableEntry);
+        if (openAlerts > 0) results.assetsWithAlerts++;
+      } catch (err) {
+        console.error(`[ADOC] Error processing dataset table ${table.id}:`, err);
+      }
+    }
+  } catch (error) {
+    console.error('[ADOC] Error processing PowerBI report asset:', error);
   }
 
+  results.totalAssets = results.assets.length;
   results.reportStatus = results.assetsWithAlerts > 0 ? 'Risky' : 'Healthy';
   return results;
 }
 
 // ---------------------------------------------------------------------------
-// Fallback: search ADOC by the asset name that was scraped from the DOM.
+// Fallback: search ADOC by the asset name scraped from the PowerBI DOM.
 // ---------------------------------------------------------------------------
 async function processAssetsByName(assets) {
   const results = {
@@ -248,46 +303,45 @@ async function processAssetsByName(assets) {
 
   for (const asset of assets) {
     try {
-      // Search for asset in ADOC by name
       const searchResult = await apiClient.searchAssets(asset.name, asset.type);
+      const candidates = Array.isArray(searchResult)
+        ? searchResult
+        : (searchResult?.assets || searchResult?.data || []);
 
-      if (searchResult && searchResult.assets && searchResult.assets.length > 0) {
-        const adocAsset = searchResult.assets[0];
+      if (candidates.length > 0) {
+        const adocAsset = candidates[0];
 
-        const reliabilityData = await apiClient.getReliabilityScore(adocAsset.id);
+        const scoresData = await apiClient.getAssetScores(adocAsset.id);
+        const reliability = scoresData?.ruleScores?.reliabilityScore ?? 0;
+        const cadence = scoresData?.ruleScores?.dataCadenceScore ?? null;
+        const lastProfiled = scoresData?.lastProfileDateTime
+          ? formatDate(scoresData.lastProfileDateTime)
+          : 'Not profiled';
+
         const alertsData = await apiClient.getAlerts([adocAsset.id]);
-
-        const openAlerts = alertsData?.alerts?.filter(a => a.status === 'OPEN').length || 0;
+        const openAlerts = alertsData?.alerts?.filter(a => a.status === 'OPEN').length ?? 0;
         const upstreamIssues = await getUpstreamIssues(adocAsset.id);
 
         const assetResult = {
           name: asset.name,
           type: asset.type || 'TABLE',
-          reliabilityScore: reliabilityData?.overallScore || 0,
-          dataFreshness: reliabilityData?.scoreBreakdown?.timeliness
-            ? `${reliabilityData.scoreBreakdown.timeliness}%`
-            : '100%',
-          lastProfiled: reliabilityData?.lastEvaluated
-            ? formatDate(reliabilityData.lastEvaluated)
-            : formatDate(new Date()),
+          reliabilityScore: Math.round(reliability),
+          dataFreshness: cadence !== null ? `${Math.round(cadence)}%` : 'N/A',
+          lastProfiled: lastProfiled,
           openAlerts: openAlerts,
           upstreamIssues: upstreamIssues,
-          adocLink: `https://indiumtech.acceldata.app/assets/${adocAsset.id}`
+          adocLink: `https://cso-enablement.poc.acceldatasolutions.net/ui/torch/namespace/Default/data-reliability/catalog/${adocAsset.id}`
         };
 
         results.assets.push(assetResult);
-
-        if (openAlerts > 0) {
-          results.assetsWithAlerts++;
-        }
+        if (openAlerts > 0) results.assetsWithAlerts++;
       } else {
-        // Asset not found in ADOC
         results.assets.push({
           name: asset.name,
           type: asset.type || 'TABLE',
           reliabilityScore: 0,
           dataFreshness: 'N/A',
-          lastProfiled: 'Not profiled',
+          lastProfiled: 'Not in ADOC',
           openAlerts: 0,
           upstreamIssues: 0,
           adocLink: 'https://cso-enablement.poc.acceldatasolutions.net/ui/torch/namespace/Default/data-reliability/catalog/list?sort=-1:dataQualityPolicyCount'
@@ -302,15 +356,11 @@ async function processAssetsByName(assets) {
   return results;
 }
 
-// Get upstream issues count
+// Get upstream issues count via lineage
 async function getUpstreamIssues(assetId) {
   try {
     const lineageData = await apiClient.getLineage(assetId, 'UPSTREAM', 1);
-
-    if (!lineageData || !lineageData.lineage || !lineageData.lineage.upstream) {
-      return 0;
-    }
-
+    if (!lineageData || !lineageData.lineage || !lineageData.lineage.upstream) return 0;
     return lineageData.lineage.upstream.filter(u => u.hasAlerts).length;
   } catch (error) {
     console.error('Error getting upstream issues:', error);
@@ -318,7 +368,6 @@ async function getUpstreamIssues(assetId) {
   }
 }
 
-// Format date for display
 function formatDate(dateString) {
   const date = new Date(dateString);
   return date.toLocaleDateString('en-US', {
@@ -330,7 +379,6 @@ function formatDate(dateString) {
   });
 }
 
-// Test ADOC connection
 async function testAdocConnection() {
   try {
     await apiClient.searchAssets('test', 'TABLE');
@@ -340,11 +388,9 @@ async function testAdocConnection() {
   }
 }
 
-// Installation handler
 chrome.runtime.onInstalled.addListener((details) => {
   if (details.reason === 'install') {
     console.log('ADOC Reliability Metrics extension installed');
-
     chrome.tabs.create({
       url: 'https://cso-enablement.poc.acceldatasolutions.net/ui/torch/namespace/Default/data-reliability/catalog/list?sort=-1:dataQualityPolicyCount'
     });
@@ -353,7 +399,6 @@ chrome.runtime.onInstalled.addListener((details) => {
   }
 });
 
-// Handle tab updates to detect Power BI pages
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.status === 'complete' && tab.url) {
     if (tab.url.includes('app.powerbi.com') || tab.url.includes('msit.powerbi.com')) {
