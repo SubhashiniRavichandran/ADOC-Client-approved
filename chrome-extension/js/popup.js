@@ -84,7 +84,7 @@ class PopupController {
 
   async handleLogin() {
     // Open ADOC login page
-    const loginUrl = 'https://indiumtech.acceldata.app/';
+    const loginUrl = 'https://cso-enablement.poc.acceldatasolutions.net/';
 
     // Close current popup
     window.close();
@@ -101,11 +101,16 @@ class PopupController {
           if (changeInfo.url || changeInfo.status === 'complete') {
             const url = updatedTab.url || '';
 
-            // Check if user navigated past login page (to dashboard/home)
-            if (url.includes('acceldata.app') &&
-                !url.includes('/login') &&
-                !url.includes('/signin') &&
-                changeInfo.status === 'complete') {
+            // Detect successful login: user is on the ADOC domain and has
+            // passed the login/signin page (landed on /ui/ or similar).
+            const isAdocDomain = url.includes('acceldatasolutions.net') ||
+                                  url.includes('acceldata.app');
+            const isPastLoginPage = !url.includes('/login') &&
+                                    !url.includes('/signin') &&
+                                    (url.includes('/ui/') || url.includes('/torch/') ||
+                                     url.includes('/dashboard') || url.includes('/namespace'));
+
+            if (isAdocDomain && isPastLoginPage && changeInfo.status === 'complete') {
 
               // Wait a moment to ensure session is established
               setTimeout(() => {
