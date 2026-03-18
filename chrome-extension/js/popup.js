@@ -33,6 +33,19 @@ class PopupController {
       this.handleLogin();
     });
 
+    // Toggle secret key visibility
+    document.getElementById('toggle-secret')?.addEventListener('click', () => {
+      const input = document.getElementById('login-secret-key');
+      input.type = input.type === 'password' ? 'text' : 'password';
+    });
+
+    // Allow Enter key to submit login form
+    ['login-access-key', 'login-secret-key'].forEach(id => {
+      document.getElementById(id)?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') this.handleLogin();
+      });
+    });
+
     // Fetch button
     document.getElementById('fetch-btn')?.addEventListener('click', () => {
       this.handleFetch();
@@ -54,11 +67,9 @@ class PopupController {
 
   async checkAuthStatus() {
     return new Promise((resolve) => {
-      chrome.storage.local.get(['adoc_authenticated', 'adoc_token'], (result) => {
-        resolve({
-          authenticated: result.adoc_authenticated || false,
-          token: result.adoc_token || null
-        });
+      chrome.storage.local.get(['adoc_access_key', 'adoc_secret_key'], (result) => {
+        const hasKeys = !!(result.adoc_access_key && result.adoc_secret_key);
+        resolve({ authenticated: hasKeys });
       });
     });
   }
@@ -83,75 +94,46 @@ class PopupController {
   }
 
   async handleLogin() {
-    // Open ADOC login page
-    const loginUrl = 'https://cso-enablement.poc.acceldatasolutions.net/';
+    const accessKey = document.getElementById('login-access-key')?.value.trim();
+    const secretKey = document.getElementById('login-secret-key')?.value.trim();
+    const errorEl = document.getElementById('login-error');
 
-    // Close current popup
-    window.close();
+    errorEl.textContent = '';
+    errorEl.classList.add('hidden');
 
-    // Create a new tab for authentication
-    chrome.tabs.create({ url: loginUrl }, (tab) => {
-      const authTabId = tab.id;
+    if (!accessKey || !secretKey) {
+      errorEl.textContent = 'Both Access Key and Secret Key are required.';
+      errorEl.classList.remove('hidden');
+      return;
+    }
 
-      // Listen for tab updates to detect successful login
-      const listener = (tabId, changeInfo, updatedTab) => {
-        if (tabId === authTabId) {
-          // Check if URL has changed and user is logged in
-          // Look for dashboard or main page after login
-          if (changeInfo.url || changeInfo.status === 'complete') {
-            const url = updatedTab.url || '';
+    const loginBtn = document.getElementById('login-btn');
+    loginBtn.textContent = 'Connecting...';
+    loginBtn.disabled = true;
 
-            // Detect successful login: user is on the ADOC domain and has
-            // passed the login/signin page (landed on /ui/ or similar).
-            const isAdocDomain = url.includes('acceldatasolutions.net') ||
-                                  url.includes('acceldata.app');
-            const isPastLoginPage = !url.includes('/login') &&
-                                    !url.includes('/signin') &&
-                                    (url.includes('/ui/') || url.includes('/torch/') ||
-                                     url.includes('/dashboard') || url.includes('/namespace'));
+    // Save keys first so background.js can use them in the test call
+    await new Promise((resolve) => {
+      chrome.storage.local.set({
+        adoc_access_key: accessKey,
+        adoc_secret_key: secretKey,
+        adoc_server_url: 'https://cso-enablement.poc.acceldatasolutions.net'
+      }, resolve);
+    });
 
-            if (isAdocDomain && isPastLoginPage && changeInfo.status === 'complete') {
+    // Verify the keys work by calling the test connection
+    chrome.runtime.sendMessage({ action: 'testConnection' }, (response) => {
+      loginBtn.textContent = 'Connect to Acceldata';
+      loginBtn.disabled = false;
 
-              // Wait a moment to ensure session is established
-              setTimeout(() => {
-                // Authentication successful
-                chrome.storage.local.set({
-                  adoc_authenticated: true,
-                  adoc_token: 'authenticated',
-                  adoc_login_time: Date.now()
-                }, () => {
-                  // Remove listeners
-                  chrome.tabs.onUpdated.removeListener(listener);
-                  chrome.tabs.onRemoved.removeListener(removeListener);
-
-                  // Close the auth tab
-                  chrome.tabs.remove(authTabId);
-
-                  // Open the extension popup again
-                  chrome.action.openPopup();
-                });
-              }, 1000);
-            }
-          }
-        }
-      };
-
-      // Also listen for tab removal (user closed tab)
-      const removeListener = (removedTabId) => {
-        if (removedTabId === authTabId) {
-          chrome.tabs.onUpdated.removeListener(listener);
-          chrome.tabs.onRemoved.removeListener(removeListener);
-        }
-      };
-
-      chrome.tabs.onUpdated.addListener(listener);
-      chrome.tabs.onRemoved.addListener(removeListener);
-
-      // Timeout after 5 minutes
-      setTimeout(() => {
-        chrome.tabs.onUpdated.removeListener(listener);
-        chrome.tabs.onRemoved.removeListener(removeListener);
-      }, 300000);
+      if (response && response.success) {
+        this.showView('fetch');
+      } else {
+        // Clear saved keys on failure
+        chrome.storage.local.remove(['adoc_access_key', 'adoc_secret_key']);
+        const msg = response?.message || 'Connection failed. Please check your keys.';
+        errorEl.textContent = msg;
+        errorEl.classList.remove('hidden');
+      }
     });
   }
 

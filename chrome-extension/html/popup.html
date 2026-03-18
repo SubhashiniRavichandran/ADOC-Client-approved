@@ -21,8 +21,28 @@
             <path d="M7 14L11 10L15 14L21 8" stroke="#3B82F6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </div>
-        <p class="tagline">Check data quality instantly and make decisions you can trust</p>
-        <button id="login-btn" class="btn-primary">Login to Acceldata</button>
+        <p class="tagline">Enter your Acceldata API keys to get started</p>
+        <div class="login-form">
+          <div class="form-group">
+            <label class="form-label" for="login-access-key">Access Key</label>
+            <input type="text" id="login-access-key" class="form-input" placeholder="Enter access key" autocomplete="off" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="login-secret-key">Secret Key</label>
+            <div class="input-wrapper">
+              <input type="password" id="login-secret-key" class="form-input" placeholder="Enter secret key" autocomplete="off" />
+              <button type="button" id="toggle-secret" class="toggle-btn" title="Show/hide secret key">
+                <svg id="eye-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="2"/>
+                  <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div id="login-error" class="login-error hidden"></div>
+          <button id="login-btn" class="btn-primary">Connect to Acceldata</button>
+          <a href="https://cso-enablement.poc.acceldatasolutions.net" target="_blank" class="help-link">Open Acceldata Platform to get API keys</a>
+        </div>
       </div>
     </div>
 

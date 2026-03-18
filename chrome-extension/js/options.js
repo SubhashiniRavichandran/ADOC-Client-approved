@@ -21,7 +21,7 @@ class OptionsController {
         'adoc_secret_key'
       ], (result) => {
         document.getElementById('server-url').value =
-          result.adoc_server_url || 'https://indiumtech.acceldata.app';
+          result.adoc_server_url || 'https://cso-enablement.poc.acceldatasolutions.net';
 
         document.getElementById('access-key').value =
           result.adoc_access_key || '';
@@ -124,7 +124,7 @@ class OptionsController {
 
   clearSettings() {
     if (confirm('Are you sure you want to clear all settings?')) {
-      document.getElementById('server-url').value = 'https://indiumtech.acceldata.app';
+      document.getElementById('server-url').value = 'https://cso-enablement.poc.acceldatasolutions.net';
       document.getElementById('access-key').value = '';
       document.getElementById('secret-key').value = '';
 
