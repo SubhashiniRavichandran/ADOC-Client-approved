@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; connect-src https://*.acceldatasolutions.net https://*.acceldata.app https://*.acceldata.io;">
   <title>ADOC Reliability Metrics</title>
   <link rel="stylesheet" href="../css/popup.css">
 </head>
@@ -41,7 +42,7 @@
           </div>
           <div id="login-error" class="login-error hidden"></div>
           <button id="login-btn" class="btn-primary">Connect to Acceldata</button>
-          <a href="https://cso-enablement.poc.acceldatasolutions.net" target="_blank" class="help-link">Open Acceldata Platform to get API keys</a>
+          <a href="https://cso-enablement.poc.acceldatasolutions.net" target="_blank" rel="noopener noreferrer" class="help-link">Open Acceldata Platform to get API keys</a>
         </div>
       </div>
     </div>
@@ -102,6 +103,8 @@
 
     <!-- Results View (withalert_display.png / noalerts_display.png) -->
     <div id="results-view" class="view hidden">
+      <!-- Shown only when API fails and mock/demo data is displayed instead -->
+      <div id="mock-warning" class="mock-warning hidden">Demo data — ADOC API connection failed</div>
       <div class="header">
         <div class="logo">a</div>
         <button id="refresh-btn" class="refresh-btn">

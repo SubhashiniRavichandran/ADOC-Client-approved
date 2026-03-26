@@ -1,201 +1,121 @@
 // ADOC Reliability Metrics - Content Script for Power BI
 
-console.log('ADOC Reliability Metrics: Content script loaded');
-
-// Power BI Context Detector
 class PowerBIContextDetector {
   constructor() {
     this.currentContext = null;
     this.observer = null;
+    this.intervalId = null;   // stored so we can clear it
+    this.debounceTimer = null; // MutationObserver debounce
   }
 
   // Detect current Power BI context from URL
   detectContext() {
-    const url = window.location.href;
+    try {
+      const url = window.location.href;
+      const reportPattern = /\/groups\/([^/]+)\/reports\/([^/]+)/;
+      const dashboardPattern = /\/groups\/([^/]+)\/dashboards\/([^/]+)/;
 
-    // Match Power BI URL patterns
-    const reportPattern = /\/groups\/([^\/]+)\/reports\/([^\/]+)/;
-    const dashboardPattern = /\/groups\/([^\/]+)\/dashboards\/([^\/]+)/;
+      let match = url.match(reportPattern);
+      if (match) {
+        return { type: 'REPORT', workspaceId: match[1], reportId: match[2], toolType: 'POWERBI' };
+      }
 
-    let match = url.match(reportPattern);
-    if (match) {
-      return {
-        type: 'REPORT',
-        workspaceId: match[1],
-        reportId: match[2],
-        toolType: 'POWERBI'
-      };
+      match = url.match(dashboardPattern);
+      if (match) {
+        return { type: 'DASHBOARD', workspaceId: match[1], dashboardId: match[2], toolType: 'POWERBI' };
+      }
+    } catch (e) {
+      console.error('[ADOC] detectContext error:', e);
     }
-
-    match = url.match(dashboardPattern);
-    if (match) {
-      return {
-        type: 'DASHBOARD',
-        workspaceId: match[1],
-        dashboardId: match[2],
-        toolType: 'POWERBI'
-      };
-    }
-
     return null;
   }
 
-  // Extract assets from Power BI page
+  // Extract data asset names from the Power BI DOM.
+  // Returns an empty array when nothing is found — never returns fake data.
   extractAssets() {
     const assets = [];
-    const extractedNames = new Set();
+    const seenNorm = new Set(); // lowercase-normalised names for deduplication
+
+    const addAsset = (name, type, columns = []) => {
+      if (!name) return;
+      const norm = name.toLowerCase().trim();
+      if (!norm || seenNorm.has(norm)) return;
+      if (this.isUIElement(name)) return;
+      if (name.length <= 2 || name.length >= 100) return;
+      seenNorm.add(norm);
+      assets.push({ name: name.trim(), type, columns });
+    };
 
     try {
-      // Method 1: Extract from visual titles and data fields
-      const visualContainers = document.querySelectorAll('[class*="visual"]');
-
-      visualContainers.forEach(container => {
-        // Look for data field elements
-        const fieldElements = container.querySelectorAll('[title], [aria-label]');
-
-        fieldElements.forEach(element => {
+      // Method 1: Visual titles / aria-labels — look for "Table.Column" patterns
+      document.querySelectorAll('[class*="visual"]').forEach(container => {
+        container.querySelectorAll('[title], [aria-label]').forEach(element => {
           const title = element.getAttribute('title') || element.getAttribute('aria-label');
+          if (!title) return;
 
-          if (title && title.length > 0 && !extractedNames.has(title)) {
-            // Filter out common UI elements
-            if (!this.isUIElement(title)) {
-              // Try to parse table.column format
-              const parts = title.split('.');
+          const parts = title.split('.');
+          if (parts.length >= 2) {
+            const tableName = parts[0].trim();
+            const columnName = parts[1].trim();
+            const normTable = tableName.toLowerCase();
 
-              if (parts.length >= 2) {
-                const tableName = parts[0].trim();
-                const columnName = parts[1].trim();
-
-                if (!extractedNames.has(tableName)) {
-                  assets.push({
-                    name: tableName,
-                    type: 'TABLE',
-                    columns: [columnName]
-                  });
-                  extractedNames.add(tableName);
-                } else {
-                  // Add column to existing table
-                  const existingAsset = assets.find(a => a.name === tableName);
-                  if (existingAsset && !existingAsset.columns.includes(columnName)) {
-                    existingAsset.columns.push(columnName);
-                  }
-                }
-              } else if (title.length > 2 && title.length < 100) {
-                // Treat as table name
-                if (!extractedNames.has(title)) {
-                  assets.push({
-                    name: title,
-                    type: 'TABLE',
-                    columns: []
-                  });
-                  extractedNames.add(title);
-                }
+            if (tableName && !seenNorm.has(normTable) && !this.isUIElement(tableName)) {
+              seenNorm.add(normTable);
+              assets.push({ name: tableName, type: 'TABLE', columns: [columnName].filter(Boolean) });
+            } else {
+              // Append column to existing table entry
+              const existing = assets.find(a => a.name.toLowerCase() === normTable);
+              if (existing && columnName && !existing.columns.includes(columnName)) {
+                existing.columns.push(columnName);
               }
             }
+          } else {
+            addAsset(title, 'TABLE');
           }
         });
       });
 
-      // Method 2: Extract from field list panel (if visible)
-      const fieldListItems = document.querySelectorAll('[class*="fieldList"] [class*="item"]');
-
-      fieldListItems.forEach(item => {
-        const text = item.textContent?.trim();
-
-        if (text && text.length > 0 && !extractedNames.has(text)) {
-          if (!this.isUIElement(text)) {
-            assets.push({
-              name: text,
-              type: 'TABLE',
-              columns: []
-            });
-            extractedNames.add(text);
-          }
-        }
+      // Method 2: Field list panel (when visible)
+      document.querySelectorAll('[class*="fieldList"] [class*="item"]').forEach(item => {
+        addAsset(item.textContent?.trim(), 'TABLE');
       });
 
-      // Method 3: Look for semantic model/dataset references in the page
-      const datasetElements = document.querySelectorAll('[class*="dataset"], [class*="model"]');
-
-      datasetElements.forEach(element => {
-        const text = element.textContent?.trim();
-
-        if (text && text.length > 0 && !extractedNames.has(text)) {
-          if (!this.isUIElement(text) && text.length < 100) {
-            assets.push({
-              name: text,
-              type: 'SEMANTIC_MODEL',
-              columns: []
-            });
-            extractedNames.add(text);
-          }
-        }
+      // Method 3: Semantic model / dataset references
+      document.querySelectorAll('[class*="dataset"], [class*="model"]').forEach(element => {
+        addAsset(element.textContent?.trim(), 'SEMANTIC_MODEL');
       });
-
-      // If no assets found, generate some sample assets for testing
-      if (assets.length === 0) {
-        console.log('No assets detected, generating sample data');
-        return this.generateSampleAssets();
-      }
-
-      console.log(`Extracted ${assets.length} assets from Power BI`, assets);
-      return assets;
 
     } catch (error) {
-      console.error('Error extracting assets:', error);
-      return this.generateSampleAssets();
+      console.error('[ADOC] Error extracting assets:', error);
     }
+
+    console.log(`[ADOC] Extracted ${assets.length} assets from Power BI`);
+    return assets; // Empty array means "nothing found" — caller decides how to handle
   }
 
-  // Check if text is a UI element (not a data asset)
+  // Returns true if the text looks like a UI control label, not a data asset name
   isUIElement(text) {
-    const uiKeywords = [
+    const UI_KEYWORDS = new Set([
       'search', 'filter', 'sort', 'expand', 'collapse', 'menu', 'close', 'open',
       'edit', 'delete', 'add', 'remove', 'save', 'cancel', 'ok', 'yes', 'no',
       'settings', 'options', 'help', 'about', 'export', 'import', 'refresh',
       'show', 'hide', 'view', 'select', 'clear', 'reset', 'apply'
-    ];
-
-    const lowerText = text.toLowerCase();
-    return uiKeywords.some(keyword => lowerText === keyword || lowerText.includes(`${keyword} `));
+    ]);
+    const lower = text.toLowerCase().trim();
+    return UI_KEYWORDS.has(lower) ||
+      [...UI_KEYWORDS].some(k => lower.startsWith(k + ' ') || lower.startsWith(k + ','));
   }
 
-  // Generate sample assets for demonstration
-  generateSampleAssets() {
-    return [
-      {
-        name: 'TRANSACTIONS_DATA',
-        type: 'TABLE',
-        columns: ['transaction_id', 'amount', 'date', 'customer_id']
-      },
-      {
-        name: 'PharmaSalesbyDistributor',
-        type: 'TABLE',
-        columns: ['distributor_name', 'sales_amount', 'region']
-      },
-      {
-        name: 'Customer_details',
-        type: 'TABLE',
-        columns: ['customer_id', 'name', 'email', 'phone']
-      },
-      {
-        name: 'Sales_Summary',
-        type: 'TABLE',
-        columns: ['date', 'total_sales', 'region']
-      }
-    ];
-  }
-
-  // Monitor for page changes
+  // Monitor for SPA navigation changes and DOM mutations
   startMonitoring(callback) {
     let lastUrl = window.location.href;
 
-    // URL change detection
-    setInterval(() => {
-      if (lastUrl !== window.location.href) {
-        lastUrl = window.location.href;
+    // Poll for URL changes (SPA navigation doesn't fire load events)
+    this.intervalId = setInterval(() => {
+      const current = window.location.href;
+      if (lastUrl !== current) {
+        lastUrl = current;
         const newContext = this.detectContext();
-
         if (JSON.stringify(newContext) !== JSON.stringify(this.currentContext)) {
           this.currentContext = newContext;
           callback(newContext);
@@ -203,76 +123,66 @@ class PowerBIContextDetector {
       }
     }, 1000);
 
-    // DOM mutation observation
+    // Debounced MutationObserver — prevents hundreds of calls/sec on large DOMs
     this.observer = new MutationObserver(() => {
-      // Check if context changed
-      const newContext = this.detectContext();
-      if (JSON.stringify(newContext) !== JSON.stringify(this.currentContext)) {
-        this.currentContext = newContext;
-        callback(newContext);
-      }
+      clearTimeout(this.debounceTimer);
+      this.debounceTimer = setTimeout(() => {
+        const newContext = this.detectContext();
+        if (JSON.stringify(newContext) !== JSON.stringify(this.currentContext)) {
+          this.currentContext = newContext;
+          callback(newContext);
+        }
+      }, 300);
     });
 
-    this.observer.observe(document.body, {
-      childList: true,
-      subtree: true
-    });
+    this.observer.observe(document.body, { childList: true, subtree: true });
   }
 
+  // Clean up all timers and observers to prevent memory leaks
   stopMonitoring() {
+    if (this.intervalId !== null) {
+      clearInterval(this.intervalId);
+      this.intervalId = null;
+    }
     if (this.observer) {
       this.observer.disconnect();
+      this.observer = null;
     }
+    clearTimeout(this.debounceTimer);
+    this.debounceTimer = null;
   }
 }
 
-// Initialize detector
 const detector = new PowerBIContextDetector();
 
-// Listen for messages from popup
+// Listen for messages from popup / background
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === 'extractAssets') {
-    console.log('Extracting assets from Power BI...');
+  if (!request || typeof request.action !== 'string') return;
 
+  if (request.action === 'extractAssets') {
     const context = detector.detectContext();
     const assets = detector.extractAssets();
-
-    sendResponse({
-      context: context,
-      assets: assets
-    });
-
+    sendResponse({ context, assets });
     return true;
   }
 
   if (request.action === 'getContext') {
-    const context = detector.detectContext();
-    sendResponse({ context });
+    sendResponse({ context: detector.detectContext() });
     return true;
   }
 });
 
-// Start monitoring for context changes
+// Start monitoring for context changes (SPA navigation)
 detector.startMonitoring((newContext) => {
-  console.log('Power BI context changed:', newContext);
-
-  // Update extension badge
   if (newContext) {
-    chrome.runtime.sendMessage({
-      action: 'contextChanged',
-      context: newContext
-    });
+    chrome.runtime.sendMessage({ action: 'contextChanged', context: newContext }).catch(() => {});
   }
 });
 
-// Initial context detection
+// Report initial context to background
 const initialContext = detector.detectContext();
 if (initialContext) {
-  console.log('Power BI context detected:', initialContext);
+  console.log('[ADOC] Power BI context detected:', initialContext);
 }
 
-// Notify background that content script is ready
-chrome.runtime.sendMessage({
-  action: 'contentScriptReady',
-  context: initialContext
-});
+chrome.runtime.sendMessage({ action: 'contentScriptReady', context: initialContext }).catch(() => {});
