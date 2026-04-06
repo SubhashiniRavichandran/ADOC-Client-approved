@@ -9,11 +9,11 @@
 </head>
 <body>
   <div id="app">
-    <!-- Login View (1st_view.png) -->
+    <!-- Login View -->
     <div id="login-view" class="view">
       <div class="header">
         <div class="logo">a</div>
-        <button id="close-btn" class="close-btn">×</button>
+        <button class="close-btn">×</button>
       </div>
       <div class="content">
         <div class="icon-container">
@@ -22,36 +22,17 @@
             <path d="M7 14L11 10L15 14L21 8" stroke="#3B82F6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </div>
-        <p class="tagline">Enter your Acceldata API keys to get started</p>
-        <div class="login-form">
-          <div class="form-group">
-            <label class="form-label" for="login-access-key">Access Key</label>
-            <input type="text" id="login-access-key" class="form-input" placeholder="Enter access key" autocomplete="off" />
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="login-secret-key">Secret Key</label>
-            <div class="input-wrapper">
-              <input type="password" id="login-secret-key" class="form-input" placeholder="Enter secret key" autocomplete="off" />
-              <button type="button" id="toggle-secret" class="toggle-btn" title="Show/hide secret key">
-                <svg id="eye-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="2"/>
-                  <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
-                </svg>
-              </button>
-            </div>
-          </div>
-          <div id="login-error" class="login-error hidden"></div>
-          <button id="login-btn" class="btn-primary">Connect to Acceldata</button>
-          <a href="https://cso-enablement.poc.acceldatasolutions.net" target="_blank" rel="noopener noreferrer" class="help-link">Open Acceldata Platform to get API keys</a>
-        </div>
+        <p class="tagline">Connect to Acceldata to view data reliability metrics for your Power BI reports</p>
+        <button id="login-btn" class="btn-primary">Login to Acceldata</button>
+        <p class="help-text">Your API keys are managed in the extension settings</p>
       </div>
     </div>
 
-    <!-- Fetch Data View (afterlogin_2view.png) -->
+    <!-- Fetch Data View -->
     <div id="fetch-view" class="view hidden">
       <div class="header">
         <div class="logo">a</div>
-        <button id="close-btn-2" class="close-btn">×</button>
+        <button class="close-btn">×</button>
       </div>
       <div class="content">
         <div class="icon-container">
@@ -71,11 +52,11 @@
       </div>
     </div>
 
-    <!-- Fetching View (try2fetch_3view.png) -->
+    <!-- Fetching View -->
     <div id="fetching-view" class="view hidden">
       <div class="header">
         <div class="logo">a</div>
-        <button id="close-btn-3" class="close-btn">×</button>
+        <button class="close-btn">×</button>
       </div>
       <div class="content">
         <div class="icon-container">
@@ -101,7 +82,7 @@
       </div>
     </div>
 
-    <!-- Results View (withalert_display.png / noalerts_display.png) -->
+    <!-- Results View -->
     <div id="results-view" class="view hidden">
       <!-- Shown only when API fails and mock/demo data is displayed instead -->
       <div id="mock-warning" class="mock-warning hidden">Demo data — ADOC API connection failed</div>
@@ -113,7 +94,7 @@
             <path d="M21 3V7H17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </button>
-        <button id="close-btn-4" class="close-btn">×</button>
+        <button class="close-btn">×</button>
       </div>
       <div class="results-content">
         <h2>Report Summary</h2>
@@ -130,7 +111,7 @@
             <span class="label">Assets with Alerts:</span>
             <span id="assets-with-alerts" class="value">
               <span id="alert-count">0</span>
-              <a href="#" id="alerts-link" class="link-icon hidden">
+              <a href="#" id="alerts-link" class="link-icon hidden" target="_blank" rel="noopener noreferrer">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>

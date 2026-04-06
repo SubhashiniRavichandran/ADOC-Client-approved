@@ -30,67 +30,26 @@ class PowerBIContextDetector {
     return null;
   }
 
-  // Extract data asset names from the Power BI DOM.
-  // Returns an empty array when nothing is found — never returns fake data.
-  extractAssets() {
-    const assets = [];
-    const seenNorm = new Set(); // lowercase-normalised names for deduplication
-
-    const addAsset = (name, type, columns = []) => {
-      if (!name) return;
-      const norm = name.toLowerCase().trim();
-      if (!norm || seenNorm.has(norm)) return;
-      if (this.isUIElement(name)) return;
-      if (name.length <= 2 || name.length >= 100) return;
-      seenNorm.add(norm);
-      assets.push({ name: name.trim(), type, columns });
-    };
-
-    try {
-      // Method 1: Visual titles / aria-labels — look for "Table.Column" patterns
-      document.querySelectorAll('[class*="visual"]').forEach(container => {
-        container.querySelectorAll('[title], [aria-label]').forEach(element => {
-          const title = element.getAttribute('title') || element.getAttribute('aria-label');
-          if (!title) return;
-
-          const parts = title.split('.');
-          if (parts.length >= 2) {
-            const tableName = parts[0].trim();
-            const columnName = parts[1].trim();
-            const normTable = tableName.toLowerCase();
-
-            if (tableName && !seenNorm.has(normTable) && !this.isUIElement(tableName)) {
-              seenNorm.add(normTable);
-              assets.push({ name: tableName, type: 'TABLE', columns: [columnName].filter(Boolean) });
-            } else {
-              // Append column to existing table entry
-              const existing = assets.find(a => a.name.toLowerCase() === normTable);
-              if (existing && columnName && !existing.columns.includes(columnName)) {
-                existing.columns.push(columnName);
-              }
-            }
-          } else {
-            addAsset(title, 'TABLE');
-          }
-        });
-      });
-
-      // Method 2: Field list panel (when visible)
-      document.querySelectorAll('[class*="fieldList"] [class*="item"]').forEach(item => {
-        addAsset(item.textContent?.trim(), 'TABLE');
-      });
-
-      // Method 3: Semantic model / dataset references
-      document.querySelectorAll('[class*="dataset"], [class*="model"]').forEach(element => {
-        addAsset(element.textContent?.trim(), 'SEMANTIC_MODEL');
-      });
-
-    } catch (error) {
-      console.error('[ADOC] Error extracting assets:', error);
+  // Extract the Power BI report name from the DOM.
+  // Tries document.title first, then falls back to CSS selectors.
+  getPowerBIReportName() {
+    if (document.title && document.title.includes('Power BI')) {
+      return document.title.replace(' - Power BI', '').trim();
     }
-
-    console.log(`[ADOC] Extracted ${assets.length} assets from Power BI`);
-    return assets; // Empty array means "nothing found" — caller decides how to handle
+    const selectors = [
+      '[data-testid="report-name"]',
+      '.logoBarContent h1',
+      '.headerText',
+      '.logoBarContent .textWithEllipsis',
+      '.reportHeader .title'
+    ];
+    for (const s of selectors) {
+      const el = document.querySelector(s);
+      if (el && el.innerText && el.innerText.trim()) {
+        return el.innerText.trim();
+      }
+    }
+    return null;
   }
 
   // Returns true if the text looks like a UI control label, not a data asset name
@@ -161,8 +120,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   if (request.action === 'extractAssets') {
     const context = detector.detectContext();
-    const assets = detector.extractAssets();
-    sendResponse({ context, assets });
+    const reportName = detector.getPowerBIReportName();
+    console.log(`[ADOC] Report name extracted: "${reportName}"`);
+    sendResponse({ context, reportName });
     return true;
   }
 

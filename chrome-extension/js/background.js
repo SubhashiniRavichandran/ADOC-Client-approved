@@ -5,7 +5,6 @@ const API_PREFIX = 'catalog-server/api';
 const CATALOG_LIST_PATH = '/ui/torch/namespace/Default/data-reliability/catalog/list?sort=-1:dataQualityPolicyCount';
 const ASSET_DETAIL_PATH = '/ui/torch/namespace/Default/data-reliability/catalog/';
 const FETCH_TIMEOUT_MS = 30000;
-const MAX_DATASET_TABLES = 10;
 
 class AdocApiClient {
   constructor() {
@@ -78,10 +77,10 @@ class AdocApiClient {
     }
   }
 
-  // Search assets by query string with optional assetType filter.
-  // Confirmed endpoint: GET /catalog-server/api/assets/search
-  async searchAssets(query, assetType = null) {
-    let endpoint = `/assets/search?query=${encodeURIComponent(query)}`;
+  // Search assets by name using the ?name= parameter.
+  // Endpoint: GET /catalog-server/api/assets/search?name=<name>
+  async searchAssets(name, assetType = null) {
+    let endpoint = `/assets/search?name=${encodeURIComponent(name)}`;
     if (assetType) endpoint += `&assetType=${encodeURIComponent(assetType)}`;
     try {
       return await this.makeRequest(endpoint);
@@ -92,7 +91,7 @@ class AdocApiClient {
   }
 
   // Get asset policy scores (reliability, quality, cadence, etc.)
-  // Confirmed endpoint: GET /catalog-server/api/assets/{id}/scores
+  // Endpoint: GET /catalog-server/api/assets/{id}/scores
   async getAssetScores(assetId) {
     try {
       return await this.makeRequest(`/assets/${encodeURIComponent(assetId)}/scores`);
@@ -102,35 +101,13 @@ class AdocApiClient {
     }
   }
 
-  // Get asset metadata key-value properties.
-  // Confirmed endpoint: GET /catalog-server/api/assets/{id}/metadata
-  async getAssetMetadata(assetId) {
+  // Get child assets of a given asset.
+  // Endpoint: GET /catalog-server/api/assets/{id}/childAssets
+  async getChildAssets(assetId) {
     try {
-      return await this.makeRequest(`/assets/${encodeURIComponent(assetId)}/metadata`);
+      return await this.makeRequest(`/assets/${encodeURIComponent(assetId)}/childAssets`);
     } catch (error) {
-      console.error('[ADOC] Failed to get asset metadata:', error.message);
-      return null;
-    }
-  }
-
-  async getAlerts(assetIds, status = 'OPEN') {
-    if (!assetIds || assetIds.length === 0) return null;
-    const ids = assetIds.map(id => encodeURIComponent(id)).join(',');
-    try {
-      return await this.makeRequest(`/alerts?assetIds=${ids}&status=${encodeURIComponent(status)}`);
-    } catch (error) {
-      console.error('[ADOC] Failed to get alerts:', error.message);
-      return null;
-    }
-  }
-
-  async getLineage(assetId, direction = 'BOTH', depth = 2) {
-    try {
-      return await this.makeRequest(
-        `/assets/${encodeURIComponent(assetId)}/lineage?direction=${encodeURIComponent(direction)}&depth=${depth}`
-      );
-    } catch (error) {
-      console.error('[ADOC] Failed to get lineage:', error.message);
+      console.error('[ADOC] Failed to get child assets:', error.message);
       return null;
     }
   }
@@ -138,10 +115,24 @@ class AdocApiClient {
 
 const apiClient = new AdocApiClient();
 
+// Normalise search results – handles array, { assets: [] }, or { data: [] } shapes
+function normalizeAssets(searchResult) {
+  if (!searchResult) return [];
+  if (Array.isArray(searchResult)) return searchResult;
+  return searchResult.assets || searchResult.data || [];
+}
+
+// Normalise child assets response – handles array or { childAssets: [] } or { data: [] }
+function normalizeChildAssets(childResult) {
+  if (!childResult) return [];
+  if (Array.isArray(childResult)) return childResult;
+  return childResult.childAssets || childResult.assets || childResult.data || [];
+}
+
 // Message handler
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'fetchReliabilityData') {
-    handleFetchReliabilityData(request.assets, request.context)
+    handleFetchReliabilityData(request.reportName, request.context)
       .then(results => sendResponse({ results }))
       .catch(error => {
         console.error('[ADOC] Error fetching reliability data:', error);
@@ -166,53 +157,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 });
 
-// Normalise search results – handles array, { assets: [] }, or { data: [] } shapes
-function normalizeAssets(searchResult) {
-  if (!searchResult) return [];
-  if (Array.isArray(searchResult)) return searchResult;
-  return searchResult.assets || searchResult.data || [];
-}
-
 // ---------------------------------------------------------------------------
 // Primary entry point.
-// Strategy 1 (PowerBI context): search ADOC for POWERBI_REPORT by reportId.
-// Strategy 2 (fallback): search ADOC by DOM-scraped asset names.
+// Step 1: Search ADOC for the report by name extracted from the PowerBI DOM.
+// Step 2: Get the assetId from search results.
+// Step 3: Fetch child assets via /childAssets endpoint.
+// Step 4: For each child asset, get scores and populate results.
 // ---------------------------------------------------------------------------
-async function handleFetchReliabilityData(assets, context) {
-  if (
-    context &&
-    context.toolType === 'POWERBI' &&
-    context.workspaceId &&
-    (context.reportId || context.dashboardId)
-  ) {
-    const reportId = context.reportId || context.dashboardId;
-    const assetType = context.reportId ? 'POWERBI_REPORT' : 'POWERBI_DASHBOARD';
-
-    console.log(`[ADOC] Searching for ${assetType} with reportId=${reportId}`);
-
-    const searchResult = await apiClient.searchAssets(reportId, assetType);
-    const candidates = normalizeAssets(searchResult);
-    const matchedAsset = candidates.length > 0 ? candidates[0] : null;
-
-    if (matchedAsset && matchedAsset.id) {
-      console.log(`[ADOC] Found ${assetType} asset id=${matchedAsset.id} – fetching scores`);
-      const serverUrl = await apiClient.getServerUrl();
-      return await processPowerBIReportAsset(matchedAsset, context, serverUrl);
-    }
-
-    console.warn('[ADOC] PowerBI asset not found in ADOC – falling back to name-based search');
-  }
-
-  console.log(`[ADOC] Using name-based search for ${assets.length} DOM-scraped assets`);
+async function handleFetchReliabilityData(reportName, context) {
   const serverUrl = await apiClient.getServerUrl();
-  return await processAssetsByName(assets, serverUrl);
-}
 
-// ---------------------------------------------------------------------------
-// Fetch scores for the POWERBI_REPORT asset and its related DATASET_TABLE
-// assets (searched by workspaceId). Caps at MAX_DATASET_TABLES API calls.
-// ---------------------------------------------------------------------------
-async function processPowerBIReportAsset(reportAsset, context, serverUrl) {
   const results = {
     reportStatus: 'Healthy',
     totalAssets: 0,
@@ -220,146 +174,95 @@ async function processPowerBIReportAsset(reportAsset, context, serverUrl) {
     assets: []
   };
 
-  if (!reportAsset || !reportAsset.id) {
-    console.error('[ADOC] Invalid reportAsset – missing id');
+  if (!reportName) {
+    console.warn('[ADOC] No report name provided — cannot search ADOC');
     return results;
   }
 
-  try {
-    const reportScores = await apiClient.getAssetScores(reportAsset.id);
-    const reportReliability = reportScores?.ruleScores?.reliabilityScore ?? null;
-    const dataCadenceScore = reportScores?.ruleScores?.dataCadenceScore ?? null;
-    const lastProfiled = reportScores?.lastProfileDateTime
-      ? formatDate(reportScores.lastProfileDateTime)
-      : 'Not profiled';
+  console.log(`[ADOC] Step 1: Searching for report by name="${reportName}"`);
 
-    if (reportReliability !== null) {
-      results.assets.push({
-        name: reportAsset.name || reportAsset.displayName || 'PowerBI Report',
-        type: 'POWERBI_REPORT',
-        reliabilityScore: Math.round(reportReliability),
-        dataFreshness: dataCadenceScore !== null ? `${Math.round(dataCadenceScore)}%` : 'N/A',
-        lastProfiled,
-        openAlerts: 0,
-        upstreamIssues: 0,
-        adocLink: `${serverUrl}${ASSET_DETAIL_PATH}${reportAsset.id}`
-      });
-    }
+  // Step 1: Search by report name
+  const searchResult = await apiClient.searchAssets(reportName);
+  const candidates = normalizeAssets(searchResult);
 
-    const datasetSearch = await apiClient.searchAssets(context.workspaceId, 'POWERBI_DATASET_TABLE');
-    const datasetTables = normalizeAssets(datasetSearch);
+  if (candidates.length === 0) {
+    console.warn(`[ADOC] No assets found matching report name "${reportName}"`);
+    return results;
+  }
 
-    for (const table of datasetTables.slice(0, MAX_DATASET_TABLES)) {
-      if (!table || !table.id) continue;
-      try {
-        const tableScores = await apiClient.getAssetScores(table.id);
-        const reliability = tableScores?.ruleScores?.reliabilityScore ?? 0;
-        const cadence = tableScores?.ruleScores?.dataCadenceScore ?? null;
-        const tableLastProfiled = tableScores?.lastProfileDateTime
-          ? formatDate(tableScores.lastProfileDateTime)
-          : 'Not profiled';
+  const reportAsset = candidates[0];
+  const assetId = reportAsset.id;
 
-        const alertsData = await apiClient.getAlerts([table.id]);
-        const openAlerts = (alertsData?.alerts || []).filter(a => a.status === 'OPEN').length;
-        const upstreamIssues = await getUpstreamIssues(table.id);
+  console.log(`[ADOC] Step 2: Found asset id=${assetId}, name="${reportAsset.name || reportAsset.displayName}"`);
 
-        results.assets.push({
-          name: table.name || table.displayName || `Table_${table.id}`,
-          type: 'POWERBI_DATASET_TABLE',
-          reliabilityScore: Math.round(reliability),
-          dataFreshness: cadence !== null ? `${Math.round(cadence)}%` : 'N/A',
-          lastProfiled: tableLastProfiled,
-          openAlerts,
-          upstreamIssues,
-          adocLink: `${serverUrl}${ASSET_DETAIL_PATH}${table.id}`
-        });
+  // Step 3: Fetch child assets
+  console.log(`[ADOC] Step 3: Fetching child assets for id=${assetId}`);
+  const childResult = await apiClient.getChildAssets(assetId);
+  const childAssets = normalizeChildAssets(childResult);
 
-        if (openAlerts > 0) results.assetsWithAlerts++;
-      } catch (err) {
-        console.error(`[ADOC] Error processing dataset table ${table.id}:`, err.message);
+  console.log(`[ADOC] Step 4: Processing ${childAssets.length} child assets`);
+
+  // Step 4: For each child asset, get the name and reliability score from the childAssets response
+  for (const child of childAssets) {
+    if (!child || !child.id) continue;
+
+    try {
+      // Use name and score from child asset directly if available,
+      // otherwise fetch scores separately
+      const childName = child.name || child.displayName || `Asset_${child.id}`;
+      const childType = child.assetType || child.type || 'TABLE';
+
+      let reliabilityScore = 0;
+      let dataFreshness = 'N/A';
+      let lastProfiled = 'Not profiled';
+
+      // Use scores embedded in the child asset response if available
+      if (child.ruleScores && child.ruleScores.reliabilityScore !== undefined) {
+        reliabilityScore = Math.round(child.ruleScores.reliabilityScore);
+        if (child.ruleScores.dataCadenceScore !== undefined) {
+          dataFreshness = `${Math.round(child.ruleScores.dataCadenceScore)}%`;
+        }
+      } else {
+        // Fallback: fetch scores from the scores endpoint
+        const scoresData = await apiClient.getAssetScores(child.id);
+        if (scoresData) {
+          reliabilityScore = Math.round(scoresData?.ruleScores?.reliabilityScore ?? 0);
+          const cadence = scoresData?.ruleScores?.dataCadenceScore ?? null;
+          dataFreshness = cadence !== null ? `${Math.round(cadence)}%` : 'N/A';
+          lastProfiled = scoresData?.lastProfileDateTime
+            ? formatDate(scoresData.lastProfileDateTime)
+            : 'Not profiled';
+        }
       }
+
+      if (child.lastProfileDateTime) {
+        lastProfiled = formatDate(child.lastProfileDateTime);
+      }
+
+      // Open alerts count from child asset response if provided
+      const openAlerts = child.openAlerts ?? child.alertCount ?? 0;
+      const upstreamIssues = child.upstreamIssues ?? 0;
+
+      results.assets.push({
+        name: childName,
+        type: childType,
+        reliabilityScore,
+        dataFreshness,
+        lastProfiled,
+        openAlerts,
+        upstreamIssues,
+        adocLink: `${serverUrl}${ASSET_DETAIL_PATH}${child.id}`
+      });
+
+      if (openAlerts > 0) results.assetsWithAlerts++;
+    } catch (err) {
+      console.error(`[ADOC] Error processing child asset ${child.id}:`, err.message);
     }
-  } catch (error) {
-    console.error('[ADOC] Error processing PowerBI report asset:', error.message);
   }
 
   results.totalAssets = results.assets.length;
   results.reportStatus = results.assetsWithAlerts > 0 ? 'Risky' : 'Healthy';
   return results;
-}
-
-// ---------------------------------------------------------------------------
-// Fallback: search ADOC by the asset name scraped from the PowerBI DOM.
-// ---------------------------------------------------------------------------
-async function processAssetsByName(assets, serverUrl) {
-  const results = {
-    reportStatus: 'Healthy',
-    totalAssets: assets.length,
-    assetsWithAlerts: 0,
-    assets: []
-  };
-
-  for (const asset of assets) {
-    try {
-      const searchResult = await apiClient.searchAssets(asset.name, asset.type);
-      const candidates = normalizeAssets(searchResult);
-
-      if (candidates.length > 0 && candidates[0].id) {
-        const adocAsset = candidates[0];
-        const scoresData = await apiClient.getAssetScores(adocAsset.id);
-        const reliability = scoresData?.ruleScores?.reliabilityScore ?? 0;
-        const cadence = scoresData?.ruleScores?.dataCadenceScore ?? null;
-        const lastProfiled = scoresData?.lastProfileDateTime
-          ? formatDate(scoresData.lastProfileDateTime)
-          : 'Not profiled';
-
-        const alertsData = await apiClient.getAlerts([adocAsset.id]);
-        const openAlerts = (alertsData?.alerts || []).filter(a => a.status === 'OPEN').length;
-        const upstreamIssues = await getUpstreamIssues(adocAsset.id);
-
-        results.assets.push({
-          name: asset.name,
-          type: asset.type || 'TABLE',
-          reliabilityScore: Math.round(reliability),
-          dataFreshness: cadence !== null ? `${Math.round(cadence)}%` : 'N/A',
-          lastProfiled,
-          openAlerts,
-          upstreamIssues,
-          adocLink: `${serverUrl}${ASSET_DETAIL_PATH}${adocAsset.id}`
-        });
-
-        if (openAlerts > 0) results.assetsWithAlerts++;
-      } else {
-        results.assets.push({
-          name: asset.name,
-          type: asset.type || 'TABLE',
-          reliabilityScore: 0,
-          dataFreshness: 'N/A',
-          lastProfiled: 'Not in ADOC',
-          openAlerts: 0,
-          upstreamIssues: 0,
-          adocLink: `${serverUrl}${CATALOG_LIST_PATH}`
-        });
-      }
-    } catch (error) {
-      console.error(`[ADOC] Error processing asset ${asset.name}:`, error.message);
-    }
-  }
-
-  results.reportStatus = results.assetsWithAlerts > 0 ? 'Risky' : 'Healthy';
-  return results;
-}
-
-// Count upstream assets with open alerts via lineage
-async function getUpstreamIssues(assetId) {
-  try {
-    const lineageData = await apiClient.getLineage(assetId, 'UPSTREAM', 1);
-    if (!lineageData?.lineage?.upstream) return 0;
-    return lineageData.lineage.upstream.filter(u => u.hasAlerts).length;
-  } catch (error) {
-    console.error('[ADOC] Error getting upstream issues:', error.message);
-    return 0;
-  }
 }
 
 function formatDate(dateString) {
@@ -373,7 +276,7 @@ function formatDate(dateString) {
 
 async function testAdocConnection() {
   try {
-    await apiClient.searchAssets('test', 'TABLE');
+    await apiClient.searchAssets('test');
     return { success: true, message: 'Connection successful' };
   } catch (error) {
     return { success: false, message: error.message };

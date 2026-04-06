@@ -68,18 +68,8 @@ class PopupController {
   }
 
   setupEventListeners() {
+    // Single login button — opens options page to enter API keys
     document.getElementById('login-btn')?.addEventListener('click', () => this.handleLogin());
-
-    document.getElementById('toggle-secret')?.addEventListener('click', () => {
-      const input = document.getElementById('login-secret-key');
-      if (input) input.type = input.type === 'password' ? 'text' : 'password';
-    });
-
-    ['login-access-key', 'login-secret-key'].forEach(id => {
-      document.getElementById(id)?.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') this.handleLogin();
-      });
-    });
 
     document.getElementById('fetch-btn')?.addEventListener('click', () => this.handleFetch());
     document.getElementById('refresh-btn')?.addEventListener('click', () => this.handleRefresh());
@@ -117,45 +107,27 @@ class PopupController {
   }
 
   async handleLogin() {
-    const accessKey = document.getElementById('login-access-key')?.value.trim();
-    const secretKey = document.getElementById('login-secret-key')?.value.trim();
-    const errorEl = document.getElementById('login-error');
-    if (!errorEl) return;
-
-    errorEl.textContent = '';
-    errorEl.classList.add('hidden');
-
-    if (!accessKey || !secretKey) {
-      errorEl.textContent = 'Both Access Key and Secret Key are required.';
-      errorEl.classList.remove('hidden');
+    // Check if keys are already saved; if not, open options page
+    const authStatus = await this.checkAuthStatus();
+    if (!authStatus.authenticated) {
+      chrome.runtime.openOptionsPage();
       return;
     }
 
+    // Keys are present — test connection then advance
     const loginBtn = document.getElementById('login-btn');
     if (loginBtn) { loginBtn.textContent = 'Connecting...'; loginBtn.disabled = true; }
 
-    // Save keys so background can use them for the connection test
-    await new Promise((resolve) => {
-      chrome.storage.local.set({
-        adoc_access_key: accessKey,
-        adoc_secret_key: secretKey,
-        adoc_server_url: ADOC_DEFAULT_URL
-      }, () => {
-        if (chrome.runtime.lastError) console.error('[ADOC] Storage error:', chrome.runtime.lastError.message);
-        resolve();
-      });
-    });
-
     const response = await sendMessageWithTimeout({ action: 'testConnection' });
 
-    if (loginBtn) { loginBtn.textContent = 'Connect to Acceldata'; loginBtn.disabled = false; }
+    if (loginBtn) { loginBtn.textContent = 'Login to Acceldata'; loginBtn.disabled = false; }
 
     if (response && response.success) {
       this.showView('fetch');
     } else {
+      // Keys didn't work — clear them and open options page
       chrome.storage.local.remove(['adoc_access_key', 'adoc_secret_key']);
-      errorEl.textContent = response?.message || 'Connection failed. Please check your keys.';
-      errorEl.classList.remove('hidden');
+      chrome.runtime.openOptionsPage();
     }
   }
 
@@ -198,17 +170,23 @@ class PopupController {
         return;
       }
 
-      if (response.assets && response.assets.length > 0) {
-        const results = await this.fetchReliabilityData(response.assets, response.context);
-        chrome.storage.local.set({ cached_results: results }, () => {
-          if (chrome.runtime.lastError) console.error('[ADOC] Cache error:', chrome.runtime.lastError.message);
-        });
-        this.displayResults(results);
-        this.showView('results');
-      } else {
-        this.showError('No data assets were detected in this Power BI report.');
+      const reportName = response.reportName;
+      const context = response.context;
+
+      if (!reportName) {
+        this.showError('Could not detect the Power BI report name. Please ensure a report is open.');
         this.showView('fetch');
+        return;
       }
+
+      console.log(`[ADOC] Report name: "${reportName}"`);
+
+      const results = await this.fetchReliabilityData(reportName, context);
+      chrome.storage.local.set({ cached_results: results }, () => {
+        if (chrome.runtime.lastError) console.error('[ADOC] Cache error:', chrome.runtime.lastError.message);
+      });
+      this.displayResults(results);
+      this.showView('results');
     } catch (error) {
       console.error('[ADOC] Error fetching data:', error);
       this.showError('Failed to fetch reliability data. Please try again.');
@@ -223,9 +201,9 @@ class PopupController {
     if (refreshBtn) refreshBtn.classList.remove('spinning');
   }
 
-  async fetchReliabilityData(assets, context = null) {
+  async fetchReliabilityData(reportName, context = null) {
     const response = await sendMessageWithTimeout(
-      { action: 'fetchReliabilityData', assets, context }
+      { action: 'fetchReliabilityData', reportName, context }
     );
 
     if (response && response.results) {
@@ -235,18 +213,18 @@ class PopupController {
     // API failed — show warning and fall back to demo data
     const warning = document.getElementById('mock-warning');
     if (warning) warning.classList.remove('hidden');
-    return this.generateMockResults(assets);
+    return this.generateMockResults(reportName);
   }
 
-  generateMockResults(assets) {
-    const mockAssets = assets.map((asset, index) => {
+  generateMockResults(reportName) {
+    const mockAssets = [1, 2, 3].map((_, index) => {
       const hasAlerts = Math.random() > 0.7;
       const score = hasAlerts
         ? Math.floor(Math.random() * 30) + 70
         : Math.floor(Math.random() * 10) + 90;
       return {
-        name: asset.name || `Asset_${index + 1}`,
-        type: asset.type || 'TABLE',
+        name: `${reportName || 'Report'}_Table_${index + 1}`,
+        type: 'TABLE',
         reliabilityScore: score,
         dataFreshness: '100%',
         lastProfiled: new Date().toLocaleDateString('en-US', {
