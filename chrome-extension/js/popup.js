@@ -1,272 +1,227 @@
 // ADOC Reliability Metrics - Popup Script
 
-const ADOC_DEFAULT_URL = 'https://cso-enablement.poc.acceldatasolutions.net';
-const CATALOG_LIST_URL = `${ADOC_DEFAULT_URL}/ui/torch/namespace/Default/data-reliability/catalog/list?sort=-1:dataQualityPolicyCount`;
-const MSG_TIMEOUT_MS = 30000;
+const SERVER_URL = 'https://cso-enablement.poc.acceldatasolutions.net';
+const CATALOG_URL = `${SERVER_URL}/ui/torch/namespace/Default/data-reliability/catalog/list`;
+const MSG_TIMEOUT = 30000;
 
-// Escape HTML special characters to prevent XSS when setting innerHTML
-function escapeHtml(str) {
-  const div = document.createElement('div');
-  div.textContent = String(str ?? '');
-  return div.innerHTML;
-}
-
-// Validate a URL is safe (https/http) before using in href
+// ─────────────────────────────────────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────────────────────────────────────
 function safeUrl(url, fallback = '#') {
   try {
     const p = new URL(url);
     return (p.protocol === 'https:' || p.protocol === 'http:') ? url : fallback;
-  } catch {
-    return fallback;
-  }
+  } catch { return fallback; }
 }
 
-// Send a message to background with a timeout; resolves null on timeout or error
-function sendMessageWithTimeout(msg, timeoutMs = MSG_TIMEOUT_MS) {
+function sendMsg(msg, timeoutMs = MSG_TIMEOUT) {
   return new Promise((resolve) => {
-    const timer = setTimeout(() => resolve(null), timeoutMs);
+    const t = setTimeout(() => resolve(null), timeoutMs);
     try {
-      chrome.runtime.sendMessage(msg, (response) => {
-        clearTimeout(timer);
-        if (chrome.runtime.lastError) {
-          console.warn('[ADOC] sendMessage error:', chrome.runtime.lastError.message);
-          resolve(null);
-          return;
-        }
-        resolve(response);
+      chrome.runtime.sendMessage(msg, (res) => {
+        clearTimeout(t);
+        if (chrome.runtime.lastError) { resolve(null); return; }
+        resolve(res);
       });
-    } catch (e) {
-      clearTimeout(timer);
-      resolve(null);
-    }
+    } catch { clearTimeout(t); resolve(null); }
   });
 }
 
+function sendToTab(tabId, msg, timeoutMs = MSG_TIMEOUT) {
+  return new Promise((resolve) => {
+    const t = setTimeout(() => resolve(null), timeoutMs);
+    try {
+      chrome.tabs.sendMessage(tabId, msg, (res) => {
+        clearTimeout(t);
+        if (chrome.runtime.lastError) { resolve(null); return; }
+        resolve(res);
+      });
+    } catch { clearTimeout(t); resolve(null); }
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POPUP CONTROLLER
+// ─────────────────────────────────────────────────────────────────────────────
 class PopupController {
   constructor() {
-    this.currentView = 'login';
+    this.sidebarPinned = false;
     this.init();
   }
 
   async init() {
-    // Fetch auth status and cached results in parallel to avoid race condition
-    const [authStatus, cachedResults] = await Promise.all([
-      this.checkAuthStatus(),
-      this.getCachedResults()
+    const [authStatus, cached] = await Promise.all([
+      this.checkAuth(),
+      this.getCached()
     ]);
 
-    if (cachedResults) {
-      this.displayResults(cachedResults);
+    if (cached) {
+      this.renderResults(cached);
       this.showView('results');
-    } else if (authStatus.authenticated) {
+    } else if (authStatus) {
       this.showView('fetch');
     } else {
       this.showView('login');
     }
 
-    this.setupEventListeners();
-  }
+    this.bindEvents();
 
-  setupEventListeners() {
-    // Single login button — opens options page to enter API keys
-    document.getElementById('login-btn')?.addEventListener('click', () => this.handleLogin());
-
-    document.getElementById('fetch-btn')?.addEventListener('click', () => this.handleFetch());
-    document.getElementById('refresh-btn')?.addEventListener('click', () => this.handleRefresh());
-
-    // Query all close buttons by class instead of fragile numbered IDs
-    document.querySelectorAll('.close-btn').forEach(btn => {
-      btn.addEventListener('click', () => window.close());
+    // Listen for background → popup auth state change (SSO login complete)
+    chrome.runtime.onMessage.addListener((msg) => {
+      if (msg.action === 'authStateChanged') {
+        if (msg.authenticated) this.showView('fetch');
+        else this.showView('login');
+      }
     });
   }
 
-  async checkAuthStatus() {
+  async checkAuth() {
     return new Promise((resolve) => {
-      chrome.storage.local.get(['adoc_access_key', 'adoc_secret_key'], (result) => {
-        if (chrome.runtime.lastError) { resolve({ authenticated: false }); return; }
-        resolve({ authenticated: !!(result.adoc_access_key && result.adoc_secret_key) });
+      chrome.storage.local.get(['adoc_authenticated'], (r) => {
+        if (chrome.runtime.lastError) { resolve(false); return; }
+        resolve(!!r.adoc_authenticated);
       });
     });
   }
 
-  async getCachedResults() {
+  async getCached() {
     return new Promise((resolve) => {
-      chrome.storage.local.get(['cached_results'], (result) => {
+      chrome.storage.local.get(['cached_results'], (r) => {
         if (chrome.runtime.lastError) { resolve(null); return; }
-        resolve(result.cached_results || null);
+        resolve(r.cached_results || null);
       });
     });
   }
 
-  showView(viewName) {
-    ['login', 'fetch', 'fetching', 'results'].forEach(view => {
-      const el = document.getElementById(`${view}-view`);
-      if (el) el.classList.toggle('hidden', view !== viewName);
+  showView(name) {
+    ['login', 'fetch', 'fetching', 'results'].forEach(v => {
+      const el = document.getElementById(`${v}-view`);
+      if (el) el.classList.toggle('hidden', v !== name);
     });
-    this.currentView = viewName;
   }
 
+  bindEvents() {
+    document.getElementById('login-btn')?.addEventListener('click', () => this.handleLogin());
+    document.getElementById('fetch-btn')?.addEventListener('click', () => this.handleFetch());
+    document.getElementById('refresh-btn')?.addEventListener('click', () => this.handleFetch());
+    document.getElementById('pin-btn')?.addEventListener('click', () => this.handlePin());
+    document.getElementById('logout-btn')?.addEventListener('click', () => this.handleLogout());
+    document.querySelectorAll('.close-btn').forEach(b => b.addEventListener('click', () => window.close()));
+  }
+
+  // ── Login ──────────────────────────────────────────────────────────────────
   async handleLogin() {
-    // Check if keys are already saved; if not, open options page
-    const authStatus = await this.checkAuthStatus();
-    if (!authStatus.authenticated) {
-      chrome.runtime.openOptionsPage();
-      return;
+    const btn = document.getElementById('login-btn');
+    if (btn) { btn.textContent = 'Opening login…'; btn.disabled = true; }
+
+    await sendMsg({ action: 'startSsoLogin' });
+
+    // Show waiting message — popup will advance automatically when SSO completes
+    if (btn) {
+      btn.textContent = 'Waiting for login…';
+      btn.disabled = true;
     }
-
-    // Keys are present — test connection then advance
-    const loginBtn = document.getElementById('login-btn');
-    if (loginBtn) { loginBtn.textContent = 'Connecting...'; loginBtn.disabled = true; }
-
-    const response = await sendMessageWithTimeout({ action: 'testConnection' });
-
-    if (loginBtn) { loginBtn.textContent = 'Login to Acceldata'; loginBtn.disabled = false; }
-
-    if (response && response.success) {
-      this.showView('fetch');
-    } else {
-      // Keys didn't work — clear them and open options page
-      chrome.storage.local.remove(['adoc_access_key', 'adoc_secret_key']);
-      chrome.runtime.openOptionsPage();
+    const hint = document.getElementById('login-hint');
+    if (hint) {
+      hint.textContent = 'Complete login in the new tab. This popup will update automatically.';
     }
   }
 
+  // ── Logout ─────────────────────────────────────────────────────────────────
+  async handleLogout() {
+    await sendMsg({ action: 'logout' });
+    chrome.storage.local.remove(['adoc_authenticated', 'cached_results']);
+    this.showView('login');
+    const btn = document.getElementById('login-btn');
+    if (btn) { btn.textContent = 'Login to Acceldata'; btn.disabled = false; }
+    const hint = document.getElementById('login-hint');
+    if (hint) hint.textContent = '';
+  }
+
+  // ── Fetch reliability data ─────────────────────────────────────────────────
   async handleFetch() {
     this.showView('fetching');
 
-    try {
-      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-      const currentTab = tabs && tabs[0];
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    const tab = tabs && tabs[0];
 
-      if (!currentTab || !currentTab.url) {
-        this.showError('Unable to detect the current tab.');
-        this.showView('fetch');
-        return;
-      }
-
-      if (!currentTab.url.includes('powerbi.com')) {
-        this.showError('Please open a Power BI report to fetch reliability data.');
-        this.showView('fetch');
-        return;
-      }
-
-      // Send to content script with timeout
-      const response = await new Promise((resolve) => {
-        const timer = setTimeout(() => resolve(null), MSG_TIMEOUT_MS);
-        chrome.tabs.sendMessage(currentTab.id, { action: 'extractAssets' }, (res) => {
-          clearTimeout(timer);
-          if (chrome.runtime.lastError) {
-            console.warn('[ADOC] Content script error:', chrome.runtime.lastError.message);
-            resolve(null);
-            return;
-          }
-          resolve(res);
-        });
-      });
-
-      if (!response) {
-        this.showError('Unable to access Power BI report. Please refresh the page.');
-        this.showView('fetch');
-        return;
-      }
-
-      const reportName = response.reportName;
-      const context = response.context;
-
-      if (!reportName) {
-        this.showError('Could not detect the Power BI report name. Please ensure a report is open.');
-        this.showView('fetch');
-        return;
-      }
-
-      console.log(`[ADOC] Report name: "${reportName}"`);
-
-      const results = await this.fetchReliabilityData(reportName, context);
-      chrome.storage.local.set({ cached_results: results }, () => {
-        if (chrome.runtime.lastError) console.error('[ADOC] Cache error:', chrome.runtime.lastError.message);
-      });
-      this.displayResults(results);
-      this.showView('results');
-    } catch (error) {
-      console.error('[ADOC] Error fetching data:', error);
-      this.showError('Failed to fetch reliability data. Please try again.');
+    if (!tab || !tab.url || !tab.url.includes('powerbi.com')) {
+      alert('Please open a Power BI report first, then click Fetch.');
       this.showView('fetch');
-    }
-  }
-
-  async handleRefresh() {
-    const refreshBtn = document.getElementById('refresh-btn');
-    if (refreshBtn) refreshBtn.classList.add('spinning');
-    await this.handleFetch();
-    if (refreshBtn) refreshBtn.classList.remove('spinning');
-  }
-
-  async fetchReliabilityData(reportName, context = null) {
-    const response = await sendMessageWithTimeout(
-      { action: 'fetchReliabilityData', reportName, context }
-    );
-
-    if (response && response.results) {
-      return response.results;
+      return;
     }
 
-    // API failed — show warning and fall back to demo data
-    const warning = document.getElementById('mock-warning');
-    if (warning) warning.classList.remove('hidden');
-    return this.generateMockResults(reportName);
-  }
+    // Ask content script for the report name from the DOM
+    const csResponse = await sendToTab(tab.id, { action: 'extractAssets' });
 
-  generateMockResults(reportName) {
-    const mockAssets = [1, 2, 3].map((_, index) => {
-      const hasAlerts = Math.random() > 0.7;
-      const score = hasAlerts
-        ? Math.floor(Math.random() * 30) + 70
-        : Math.floor(Math.random() * 10) + 90;
-      return {
-        name: `${reportName || 'Report'}_Table_${index + 1}`,
-        type: 'TABLE',
-        reliabilityScore: score,
-        dataFreshness: '100%',
-        lastProfiled: new Date().toLocaleDateString('en-US', {
-          day: 'numeric', month: 'short', year: 'numeric',
-          hour: '2-digit', minute: '2-digit'
-        }),
-        openAlerts: hasAlerts ? Math.floor(Math.random() * 5) + 1 : 0,
-        upstreamIssues: hasAlerts ? Math.floor(Math.random() * 3) + 1 : 0,
-        adocLink: CATALOG_LIST_URL
-      };
-    });
-
-    const totalAlerts = mockAssets.filter(a => a.openAlerts > 0).length;
-    return {
-      reportStatus: totalAlerts > 0 ? 'Risky' : 'Healthy',
-      totalAssets: mockAssets.length,
-      assetsWithAlerts: totalAlerts,
-      assets: mockAssets
-    };
-  }
-
-  displayResults(results) {
-    const statusBadge = document.getElementById('report-status');
-    if (statusBadge) {
-      statusBadge.textContent = results.reportStatus;
-      statusBadge.className = `badge ${results.reportStatus === 'Healthy' ? 'badge-healthy' : 'badge-risky'}`;
+    if (!csResponse || !csResponse.reportName) {
+      alert('Could not detect the Power BI report name. Please refresh the report page and try again.');
+      this.showView('fetch');
+      return;
     }
 
-    const totalAssetsEl = document.getElementById('total-assets');
-    if (totalAssetsEl) totalAssetsEl.textContent = results.totalAssets;
+    const { reportName } = csResponse;
+    console.log('[ADOC] Report name:', reportName);
 
-    const alertCountEl = document.getElementById('alert-count');
-    if (alertCountEl) alertCountEl.textContent = results.assetsWithAlerts;
+    // Ask background to run the API flow
+    const bgResponse = await sendMsg({ action: 'fetchReliabilityData', reportName });
+
+    if (!bgResponse || !bgResponse.results) {
+      // Show demo/mock data with warning
+      document.getElementById('mock-warning')?.classList.remove('hidden');
+      const mock = this.mockResults(reportName);
+      chrome.storage.local.set({ cached_results: mock });
+      this.renderResults(mock);
+      this.showView('results');
+      return;
+    }
+
+    document.getElementById('mock-warning')?.classList.add('hidden');
+    chrome.storage.local.set({ cached_results: bgResponse.results });
+    this.renderResults(bgResponse.results);
+    this.showView('results');
+  }
+
+  // ── Pin / unpin sidebar on the PowerBI page ────────────────────────────────
+  async handlePin() {
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    const tab = tabs && tabs[0];
+    if (!tab || !tab.url || !tab.url.includes('powerbi.com')) {
+      alert('Please open a Power BI report first.');
+      return;
+    }
+
+    const res = await sendToTab(tab.id, { action: 'togglePin' });
+    this.sidebarPinned = res ? res.pinned : !this.sidebarPinned;
+    this.updatePinBtn();
+  }
+
+  updatePinBtn() {
+    const btn = document.getElementById('pin-btn');
+    if (!btn) return;
+    btn.title = this.sidebarPinned ? 'Unpin sidebar from page' : 'Pin sidebar to page';
+    btn.classList.toggle('active', this.sidebarPinned);
+    btn.querySelector('.pin-label').textContent = this.sidebarPinned ? 'Unpin' : 'Pin to page';
+  }
+
+  // ── Render results ─────────────────────────────────────────────────────────
+  renderResults(results) {
+    const statusEl = document.getElementById('report-status');
+    if (statusEl) {
+      statusEl.textContent = results.reportStatus;
+      statusEl.className = `badge ${results.reportStatus === 'Healthy' ? 'badge-healthy' : 'badge-risky'}`;
+    }
+
+    const totalEl = document.getElementById('total-assets');
+    if (totalEl) totalEl.textContent = results.totalAssets;
+
+    const alertEl = document.getElementById('alert-count');
+    if (alertEl) alertEl.textContent = results.assetsWithAlerts;
 
     const alertsLink = document.getElementById('alerts-link');
     if (alertsLink) {
-      if (results.assetsWithAlerts > 0) {
-        alertsLink.classList.remove('hidden');
-        alertsLink.href = CATALOG_LIST_URL;
-      } else {
-        alertsLink.classList.add('hidden');
-      }
+      alertsLink.classList.toggle('hidden', results.assetsWithAlerts === 0);
+      alertsLink.href = CATALOG_URL;
     }
 
     const noAlertsMsg = document.getElementById('no-alerts-message');
@@ -279,120 +234,82 @@ class PopupController {
       if (noAlertsMsg) noAlertsMsg.style.display = 'none';
       if (assetsList) {
         assetsList.style.display = 'block';
-        this.displayAssets(results.assets.filter(a => a.openAlerts > 0));
+        this.renderAssets(results.assets.filter(a => a.openAlerts > 0), assetsList);
       }
     }
   }
 
-  displayAssets(assets) {
-    const assetsList = document.getElementById('assets-list');
-    if (!assetsList) return;
-    // Use DocumentFragment for efficient batch DOM insertion
-    const fragment = document.createDocumentFragment();
-    assetsList.innerHTML = '';
-    assets.forEach(asset => fragment.appendChild(this.createAssetCard(asset)));
-    assetsList.appendChild(fragment);
+  renderAssets(assets, container) {
+    const frag = document.createDocumentFragment();
+    container.innerHTML = '';
+    assets.forEach(a => frag.appendChild(this.buildCard(a)));
+    container.appendChild(frag);
   }
 
-  createAssetCard(asset) {
+  buildCard(asset) {
     const card = document.createElement('div');
     card.className = 'asset-card has-alerts';
 
     const scoreClass = asset.reliabilityScore >= 90 ? 'score-high' :
                        asset.reliabilityScore >= 70 ? 'score-medium' : 'score-low';
-    const iconClass = asset.type === 'TABLE' ? 'table-icon' : 'file-icon';
-    const alertHref = safeUrl(`${asset.adocLink}/alerts`);
 
-    // Static structure only in innerHTML — all dynamic values set via textContent below
     card.innerHTML = `
       <div class="asset-header">
-        <div class="asset-icon ${iconClass}">
-          ${this.getAssetIcon(asset.type)}
-        </div>
         <div class="asset-title">
-          <div class="asset-name">
-            <span class="js-asset-name"></span>
-            <button class="copy-btn" title="Copy name">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/>
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" stroke="currentColor" stroke-width="2"/>
-              </svg>
-            </button>
-          </div>
-          <div class="js-asset-type asset-type"></div>
+          <div class="asset-name"><span class="js-name"></span></div>
+          <div class="asset-type js-type"></div>
         </div>
+        <div class="score-badge js-score ${scoreClass}"></div>
       </div>
       <div class="asset-metrics">
-        <div class="metric">
-          <div class="metric-label">Data Reliability Score:</div>
-          <div class="metric-value js-score"></div>
-        </div>
-        <div class="metric">
-          <div class="metric-label">Data Freshness:</div>
-          <div class="metric-value js-freshness"></div>
-        </div>
-        <div class="metric">
-          <div class="metric-label">Last Profiled:</div>
-          <div class="metric-value js-profiled"></div>
-        </div>
+        <div class="metric"><span class="metric-label">Reliability:</span> <span class="metric-value js-score-val"></span></div>
+        <div class="metric"><span class="metric-label">Freshness:</span> <span class="metric-value js-fresh"></span></div>
+        <div class="metric"><span class="metric-label">Last Profiled:</span> <span class="metric-value js-prof"></span></div>
       </div>
       <div class="asset-footer">
-        <div>
-          <div class="alert-info">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-            <span class="js-alert-count"></span>
-            <a class="link-icon js-alert-link" target="_blank" rel="noopener noreferrer">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </a>
-          </div>
-          <div class="js-upstream upstream-info"></div>
-        </div>
+        <span class="alert-info">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="#ef4444" stroke-width="2" stroke-linecap="round"/></svg>
+          <span class="js-alerts"></span>
+        </span>
+        <a class="js-link link-icon" target="_blank" rel="noopener noreferrer">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </a>
       </div>
     `;
 
-    // Set all dynamic values using textContent (safe from XSS)
-    card.querySelector('.js-asset-name').textContent = asset.name;
-    card.querySelector('.js-asset-type').textContent = asset.type;
-
-    const scoreEl = card.querySelector('.js-score');
-    scoreEl.textContent = `${asset.reliabilityScore}%`;
-    scoreEl.classList.add(scoreClass);
-
-    card.querySelector('.js-freshness').textContent = asset.dataFreshness;
-    card.querySelector('.js-profiled').textContent = asset.lastProfiled;
-    card.querySelector('.js-alert-count').textContent = `Open Alerts: ${asset.openAlerts}`;
-    card.querySelector('.js-alert-link').href = alertHref;
-    card.querySelector('.js-upstream').textContent = `Upstream Issues: ${asset.upstreamIssues}`;
-
-    card.querySelector('.copy-btn').addEventListener('click', () => {
-      navigator.clipboard.writeText(asset.name).catch(console.error);
-    });
+    card.querySelector('.js-name').textContent = asset.name;
+    card.querySelector('.js-type').textContent = asset.type;
+    card.querySelector('.js-score').textContent = `${asset.reliabilityScore}%`;
+    card.querySelector('.js-score-val').textContent = `${asset.reliabilityScore}%`;
+    card.querySelector('.js-fresh').textContent = asset.dataFreshness;
+    card.querySelector('.js-prof').textContent = asset.lastProfiled;
+    card.querySelector('.js-alerts').textContent = `${asset.openAlerts} open alert${asset.openAlerts !== 1 ? 's' : ''}`;
+    card.querySelector('.js-link').href = safeUrl(asset.adocLink);
 
     return card;
   }
 
-  getAssetIcon(type) {
-    if (type === 'TABLE') {
-      return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/>
-        <path d="M3 9h18M3 15h18M12 3v18" stroke="currentColor" stroke-width="2"/>
-      </svg>`;
-    }
-    return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" stroke-width="2"/>
-      <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke="currentColor" stroke-width="2"/>
-    </svg>`;
-  }
-
-  showError(message) {
-    alert(message);
+  // ── Mock / demo data (shown when API unreachable) ─────────────────────────
+  mockResults(reportName) {
+    const assets = ['Orders_Fact', 'Customer_Dim', 'Product_Dim'].map((n, i) => {
+      const alerts = i === 0 ? 2 : 0;
+      return {
+        name: n, type: 'TABLE',
+        reliabilityScore: alerts ? 72 : 96,
+        dataFreshness: '100%',
+        lastProfiled: new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }),
+        openAlerts: alerts, upstreamIssues: 0,
+        adocLink: CATALOG_URL
+      };
+    });
+    return {
+      reportName,
+      reportStatus: 'Risky',
+      totalAssets: assets.length,
+      assetsWithAlerts: 1,
+      assets
+    };
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  new PopupController();
-});
+document.addEventListener('DOMContentLoaded', () => new PopupController());

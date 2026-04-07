@@ -1,55 +1,383 @@
-/* ADOC Sidebar - Injected into Power BI pages */
+/* ═══════════════════════════════════════════════════════════════════════════
+   ADOC Sidebar & Toggle Button — injected into Power BI pages
+   ═══════════════════════════════════════════════════════════════════════════ */
 
-.adoc-sidebar-container {
+/* ── Floating toggle button (right edge) ─────────────────────────────────── */
+#adoc-toggle-btn {
+  position: fixed;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
+  z-index: 2147483646;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 6px;
+  background: #0ea5e9;
+  color: #fff;
+  border: none;
+  border-radius: 8px 0 0 8px;
+  cursor: pointer;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  box-shadow: -2px 0 12px rgba(0,0,0,0.15);
+  transition: background 0.2s, box-shadow 0.2s;
+  writing-mode: horizontal-tb;
+}
+
+#adoc-toggle-btn:hover,
+#adoc-toggle-btn.active {
+  background: #0284c7;
+  box-shadow: -4px 0 16px rgba(0,0,0,0.2);
+}
+
+#adoc-toggle-btn span {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  transform: rotate(180deg);
+  letter-spacing: 1px;
+}
+
+/* ── Sidebar container ───────────────────────────────────────────────────── */
+#adoc-sidebar {
   position: fixed;
   top: 0;
   right: 0;
-  width: 400px;
+  width: 380px;
   height: 100vh;
   background: #ffffff;
-  box-shadow: -4px 0 16px rgba(0, 0, 0, 0.1);
-  z-index: 999999;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.12);
+  z-index: 2147483645;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
   display: flex;
   flex-direction: column;
-  transition: transform 0.3s ease;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.adoc-sidebar-container.hidden {
+#adoc-sidebar.hidden {
   transform: translateX(100%);
+  pointer-events: none;
 }
 
+/* When sidebar is pinned, push body content left */
+body.adoc-body-pushed {
+  margin-right: 380px !important;
+  transition: margin-right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Sidebar header ──────────────────────────────────────────────────────── */
 .adoc-sidebar-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
+  padding: 14px 16px;
   border-bottom: 1px solid #e5e7eb;
   background: #f9fafb;
+  flex-shrink: 0;
 }
 
 .adoc-sidebar-logo {
   display: flex;
   align-items: center;
-  gap: 12px;
-  font-size: 16px;
+  gap: 10px;
+  font-size: 15px;
   font-weight: 600;
   color: #1f2937;
 }
 
+.adoc-logo-mark {
+  width: 28px;
+  height: 28px;
+  background: linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.adoc-sidebar-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.adoc-icon-btn {
+  width: 30px;
+  height: 30px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  transition: background 0.15s, color 0.15s;
+}
+
+.adoc-icon-btn:hover {
+  background: #e5e7eb;
+  color: #1f2937;
+}
+
+.adoc-icon-btn.active {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+/* ── Sidebar scrollable body ─────────────────────────────────────────────── */
 .adoc-sidebar-content {
   flex: 1;
   overflow-y: auto;
-  padding: 20px;
+  padding: 16px;
 }
 
+.adoc-sidebar-content::-webkit-scrollbar { width: 4px; }
+.adoc-sidebar-content::-webkit-scrollbar-track { background: transparent; }
+.adoc-sidebar-content::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 2px; }
+
+/* ── Footer ──────────────────────────────────────────────────────────────── */
 .adoc-sidebar-footer {
-  padding: 16px 20px;
+  padding: 12px 16px;
   border-top: 1px solid #e5e7eb;
   background: #f9fafb;
+  flex-shrink: 0;
 }
 
-/* Override any Power BI styles */
-.adoc-sidebar-container * {
-  box-sizing: border-box;
+.adoc-sidebar-footer a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #0ea5e9;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.15s;
 }
+
+.adoc-sidebar-footer a:hover { color: #0284c7; text-decoration: underline; }
+
+/* ── Loading state ───────────────────────────────────────────────────────── */
+.adoc-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px 0;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.adoc-loading.hidden { display: none; }
+
+.adoc-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #e5e7eb;
+  border-top-color: #0ea5e9;
+  border-radius: 50%;
+  animation: adoc-spin 0.8s linear infinite;
+}
+
+@keyframes adoc-spin { to { transform: rotate(360deg); } }
+
+/* ── Error state ─────────────────────────────────────────────────────────── */
+.adoc-error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 14px;
+  color: #b91c1c;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.adoc-error.hidden { display: none; }
+
+/* ── Results section ─────────────────────────────────────────────────────── */
+.adoc-results { }
+.adoc-results.hidden { display: none; }
+
+/* ── Report summary ──────────────────────────────────────────────────────── */
+.adoc-summary {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 16px;
+}
+
+.adoc-report-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.adoc-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.adoc-badge-healthy { background: #d1fae5; color: #065f46; }
+.adoc-badge-risky   { background: #fee2e2; color: #991b1b; }
+
+.adoc-stats {
+  display: flex;
+  gap: 16px;
+}
+
+.adoc-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.adoc-stat-val {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.adoc-risky-text { color: #ef4444; }
+
+.adoc-stat-label {
+  font-size: 11px;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+/* ── No-alerts message ───────────────────────────────────────────────────── */
+.adoc-no-alerts {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 24px 0;
+  color: #6b7280;
+  font-size: 13px;
+  text-align: center;
+}
+
+/* ── Asset list ──────────────────────────────────────────────────────────── */
+.adoc-asset-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ── Asset card ──────────────────────────────────────────────────────────── */
+.adoc-asset-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 12px 14px;
+  transition: box-shadow 0.15s;
+}
+
+.adoc-asset-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+.adoc-asset-card.adoc-has-alerts { border-left: 3px solid #ef4444; }
+
+.adoc-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.adoc-card-title { flex: 1; min-width: 0; }
+
+.adoc-card-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1f2937;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+.adoc-card-type {
+  font-size: 11px;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.adoc-score-pill {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.adoc-score-high { background: #d1fae5; color: #065f46; }
+.adoc-score-med  { background: #fef3c7; color: #92400e; }
+.adoc-score-low  { background: #fee2e2; color: #991b1b; }
+
+.adoc-card-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 12px;
+  color: #4b5563;
+  margin-bottom: 8px;
+}
+
+.adoc-meta-item b { color: #6b7280; font-weight: 500; }
+
+.adoc-card-alerts {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #ef4444;
+  font-weight: 500;
+}
+
+.adoc-card-link {
+  margin-left: auto;
+  font-size: 11px;
+  color: #0ea5e9;
+  text-decoration: none;
+  font-weight: 500;
+}
+.adoc-card-link:hover { text-decoration: underline; }
+
+/* ── Refresh button ──────────────────────────────────────────────────────── */
+.adoc-refresh-btn {
+  width: 100%;
+  margin-top: 16px;
+  padding: 9px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.adoc-refresh-btn:hover { background: #e5e7eb; }
+
+/* ── Isolate all sidebar styles from the host page ───────────────────────── */
+#adoc-sidebar * { box-sizing: border-box; }
+#adoc-toggle-btn * { box-sizing: border-box; }

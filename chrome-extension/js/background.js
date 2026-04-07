@@ -1,173 +1,205 @@
 // ADOC Reliability Metrics - Background Service Worker
 
-const DEFAULT_SERVER_URL = 'https://cso-enablement.poc.acceldatasolutions.net';
+const SERVER_URL = 'https://cso-enablement.poc.acceldatasolutions.net';
 const API_PREFIX = 'catalog-server/api';
-const CATALOG_LIST_PATH = '/ui/torch/namespace/Default/data-reliability/catalog/list?sort=-1:dataQualityPolicyCount';
 const ASSET_DETAIL_PATH = '/ui/torch/namespace/Default/data-reliability/catalog/';
 const FETCH_TIMEOUT_MS = 30000;
 
+// Tab ID of the currently open SSO login tab (null if not open)
+let loginTabId = null;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// API CLIENT  (SSO session-based — no API keys)
+// All requests use credentials:'include' so the browser sends the ADOC session
+// cookies that were set when the user logged in via SSO.
+// ─────────────────────────────────────────────────────────────────────────────
 class AdocApiClient {
-  constructor() {
-    this.apiPrefix = API_PREFIX;
-  }
-
-  // Reads credentials AND server URL from storage on every request
-  // so options-page changes take effect immediately without restarting.
-  async getCredentials() {
-    return new Promise((resolve) => {
-      chrome.storage.local.get(['adoc_access_key', 'adoc_secret_key', 'adoc_server_url'], (result) => {
-        if (chrome.runtime.lastError) {
-          console.error('[ADOC] Storage read error:', chrome.runtime.lastError.message);
-          resolve({ accessKey: null, secretKey: null, serverUrl: DEFAULT_SERVER_URL });
-          return;
-        }
-        resolve({
-          accessKey: result.adoc_access_key || null,
-          secretKey: result.adoc_secret_key || null,
-          serverUrl: result.adoc_server_url || DEFAULT_SERVER_URL
-        });
-      });
-    });
-  }
-
-  async getServerUrl() {
-    const creds = await this.getCredentials();
-    return creds.serverUrl;
+  getServerUrl() {
+    return SERVER_URL;
   }
 
   async makeRequest(endpoint, options = {}) {
-    const credentials = await this.getCredentials();
-    const url = `${credentials.serverUrl}/${this.apiPrefix}${endpoint}`;
-
-    // Abort the fetch after FETCH_TIMEOUT_MS to prevent indefinite hangs
+    const url = `${SERVER_URL}/${API_PREFIX}${endpoint}`;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
     try {
-      const headers = {
-        'Content-Type': 'application/json',
-        ...options.headers
-      };
-
-      if (credentials.accessKey && credentials.secretKey) {
-        headers['accessKey'] = credentials.accessKey;
-        headers['secretKey'] = credentials.secretKey;
-      }
-
-      const response = await fetch(url, { ...options, headers, signal: controller.signal });
+      const response = await fetch(url, {
+        ...options,
+        credentials: 'include',   // send SSO session cookies
+        headers: {
+          'Content-Type': 'application/json',
+          ...(options.headers || {})
+        },
+        signal: controller.signal
+      });
 
       if (!response.ok) {
         const msg =
-          response.status === 401 ? 'Authentication failed – check your API keys' :
+          response.status === 401 ? 'Not authenticated – please log in again' :
           response.status === 403 ? 'Access denied – insufficient permissions' :
-          response.status === 404 ? 'Endpoint not found' :
+          response.status === 404 ? 'API endpoint not found' :
           `Server error (${response.status})`;
         throw new Error(msg);
       }
 
       return await response.json();
     } catch (error) {
-      if (error.name === 'AbortError') {
-        throw new Error('Request timed out after 30 seconds');
-      }
-      console.error('[ADOC] API request failed:', url, error.message);
+      if (error.name === 'AbortError') throw new Error('Request timed out after 30 seconds');
+      console.error('[ADOC] Request failed:', url, error.message);
       throw error;
     } finally {
       clearTimeout(timeoutId);
     }
   }
 
-  // Search assets by name using the ?name= parameter.
-  // Endpoint: GET /catalog-server/api/assets/search?name=<name>
-  async searchAssets(name, assetType = null) {
-    let endpoint = `/assets/search?name=${encodeURIComponent(name)}`;
-    if (assetType) endpoint += `&assetType=${encodeURIComponent(assetType)}`;
+  // GET /catalog-server/api/assets/search?name=<name>
+  async searchAssets(name) {
     try {
-      return await this.makeRequest(endpoint);
-    } catch (error) {
-      console.error('[ADOC] Asset search failed:', error.message);
+      return await this.makeRequest(`/assets/search?name=${encodeURIComponent(name)}`);
+    } catch (e) {
+      console.error('[ADOC] searchAssets failed:', e.message);
       return null;
     }
   }
 
-  // Get asset policy scores (reliability, quality, cadence, etc.)
-  // Endpoint: GET /catalog-server/api/assets/{id}/scores
-  async getAssetScores(assetId) {
-    try {
-      return await this.makeRequest(`/assets/${encodeURIComponent(assetId)}/scores`);
-    } catch (error) {
-      console.error('[ADOC] Failed to get asset scores:', error.message);
-      return null;
-    }
-  }
-
-  // Get child assets of a given asset.
-  // Endpoint: GET /catalog-server/api/assets/{id}/childAssets
+  // GET /catalog-server/api/assets/:id/childAssets
   async getChildAssets(assetId) {
     try {
       return await this.makeRequest(`/assets/${encodeURIComponent(assetId)}/childAssets`);
-    } catch (error) {
-      console.error('[ADOC] Failed to get child assets:', error.message);
+    } catch (e) {
+      console.error('[ADOC] getChildAssets failed:', e.message);
+      return null;
+    }
+  }
+
+  // GET /catalog-server/api/assets/:id/scores  (fallback if scores not in childAssets)
+  async getAssetScores(assetId) {
+    try {
+      return await this.makeRequest(`/assets/${encodeURIComponent(assetId)}/scores`);
+    } catch (e) {
+      console.error('[ADOC] getAssetScores failed:', e.message);
       return null;
     }
   }
 }
 
-const apiClient = new AdocApiClient();
+const api = new AdocApiClient();
 
-// Normalise search results – handles array, { assets: [] }, or { data: [] } shapes
-function normalizeAssets(searchResult) {
-  if (!searchResult) return [];
-  if (Array.isArray(searchResult)) return searchResult;
-  return searchResult.assets || searchResult.data || [];
+// ─────────────────────────────────────────────────────────────────────────────
+// AUTH — SSO LOGIN FLOW
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Open the ADOC SSO login page in a new tab.
+// Watches the tab URL until the user lands on the dashboard (post-login),
+// then confirms auth with a test API call.
+function openSsoLoginTab() {
+  if (loginTabId !== null) {
+    // Bring existing login tab to focus instead of opening another
+    chrome.tabs.update(loginTabId, { active: true });
+    return;
+  }
+
+  chrome.tabs.create({ url: SERVER_URL }, (tab) => {
+    loginTabId = tab.id;
+    watchSsoTab(tab.id);
+  });
 }
 
-// Normalise child assets response – handles array or { childAssets: [] } or { data: [] }
-function normalizeChildAssets(childResult) {
-  if (!childResult) return [];
-  if (Array.isArray(childResult)) return childResult;
-  return childResult.childAssets || childResult.assets || childResult.data || [];
+function watchSsoTab(tabId) {
+  const onUpdated = (id, changeInfo, tab) => {
+    if (id !== tabId) return;
+    if (changeInfo.status !== 'complete') return;
+
+    const url = tab.url || '';
+    // Detect successful login: user is on ADOC but past the login/register page
+    const onAdocDomain = url.startsWith(SERVER_URL);
+    const pastLoginScreen = url.includes('/ui/torch') ||
+                            url.includes('/namespace/') ||
+                            url.includes('/home');
+
+    if (onAdocDomain && pastLoginScreen) {
+      chrome.tabs.onUpdated.removeListener(onUpdated);
+      confirmSsoSession(tabId);
+    }
+  };
+
+  const onRemoved = (id) => {
+    if (id === tabId) {
+      chrome.tabs.onUpdated.removeListener(onUpdated);
+      chrome.tabs.onRemoved.removeListener(onRemoved);
+      loginTabId = null;
+    }
+  };
+
+  chrome.tabs.onUpdated.addListener(onUpdated);
+  chrome.tabs.onRemoved.addListener(onRemoved);
 }
 
-// Message handler
+// Confirm session by hitting the search API.
+// If it succeeds, mark authenticated, close login tab, notify popup.
+async function confirmSsoSession(tabId) {
+  try {
+    const result = await api.searchAssets('test');
+    if (result !== null) {
+      await chrome.storage.local.set({ adoc_authenticated: true });
+      // Close the login tab
+      chrome.tabs.remove(tabId, () => { loginTabId = null; });
+      // Broadcast to popup so it can advance to the fetch view
+      chrome.runtime.sendMessage({ action: 'authStateChanged', authenticated: true }).catch(() => {});
+    }
+  } catch (e) {
+    console.warn('[ADOC] SSO session confirm failed – user may still be logging in:', e.message);
+  }
+}
+
+function logout() {
+  chrome.storage.local.remove(['adoc_authenticated', 'cached_results'], () => {
+    chrome.runtime.sendMessage({ action: 'authStateChanged', authenticated: false }).catch(() => {});
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MESSAGE HANDLER
+// ─────────────────────────────────────────────────────────────────────────────
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === 'fetchReliabilityData') {
-    handleFetchReliabilityData(request.reportName, request.context)
-      .then(results => sendResponse({ results }))
-      .catch(error => {
-        console.error('[ADOC] Error fetching reliability data:', error);
-        sendResponse({ error: error.message });
-      });
-    return true;
-  }
+  if (!request || !request.action) return;
 
-  if (request.action === 'openAdocPlatform') {
-    apiClient.getServerUrl().then(serverUrl => {
-      chrome.tabs.create({ url: `${serverUrl}${CATALOG_LIST_PATH}` });
+  switch (request.action) {
+    case 'startSsoLogin':
+      openSsoLoginTab();
       sendResponse({ success: true });
-    });
-    return true;
-  }
+      return false;
 
-  if (request.action === 'testConnection') {
-    testAdocConnection()
-      .then(result => sendResponse(result))
-      .catch(error => sendResponse({ success: false, message: error.message }));
-    return true;
+    case 'logout':
+      logout();
+      sendResponse({ success: true });
+      return false;
+
+    case 'fetchReliabilityData':
+      fetchReliabilityData(request.reportName)
+        .then(results => sendResponse({ results }))
+        .catch(err => sendResponse({ error: err.message }));
+      return true;  // async
+
+    case 'testConnection':
+      api.searchAssets('test')
+        .then(r => sendResponse({ success: r !== null, message: r !== null ? 'Connected' : 'Failed' }))
+        .catch(e => sendResponse({ success: false, message: e.message }));
+      return true;  // async
   }
 });
 
-// ---------------------------------------------------------------------------
-// Primary entry point.
-// Step 1: Search ADOC for the report by name extracted from the PowerBI DOM.
-// Step 2: Get the assetId from search results.
-// Step 3: Fetch child assets via /childAssets endpoint.
-// Step 4: For each child asset, get scores and populate results.
-// ---------------------------------------------------------------------------
-async function handleFetchReliabilityData(reportName, context) {
-  const serverUrl = await apiClient.getServerUrl();
-
+// ─────────────────────────────────────────────────────────────────────────────
+// CORE DATA FLOW
+// Step 1: extract report name from PowerBI DOM (done in content.js)
+// Step 2: GET /assets/search?name=<reportName>  → assetId
+// Step 3: GET /assets/:id/childAssets           → child assets list
+// Step 4: use name + reliabilityScore from each child asset
+// ─────────────────────────────────────────────────────────────────────────────
+async function fetchReliabilityData(reportName) {
   const results = {
+    reportName: reportName || 'Unknown Report',
     reportStatus: 'Healthy',
     totalAssets: 0,
     assetsWithAlerts: 0,
@@ -175,88 +207,80 @@ async function handleFetchReliabilityData(reportName, context) {
   };
 
   if (!reportName) {
-    console.warn('[ADOC] No report name provided — cannot search ADOC');
+    console.warn('[ADOC] No report name provided');
     return results;
   }
 
-  console.log(`[ADOC] Step 1: Searching for report by name="${reportName}"`);
+  // Step 1: search by report name
+  console.log(`[ADOC] Searching for: "${reportName}"`);
+  const searchResult = await api.searchAssets(reportName);
+  const candidates = normalizeList(searchResult, ['assets', 'data']);
 
-  // Step 1: Search by report name
-  const searchResult = await apiClient.searchAssets(reportName);
-  const candidates = normalizeAssets(searchResult);
-
-  if (candidates.length === 0) {
-    console.warn(`[ADOC] No assets found matching report name "${reportName}"`);
+  if (!candidates.length) {
+    console.warn(`[ADOC] No ADOC assets matched "${reportName}"`);
     return results;
   }
 
   const reportAsset = candidates[0];
   const assetId = reportAsset.id;
+  console.log(`[ADOC] Found assetId=${assetId} for "${reportAsset.name || reportAsset.displayName}"`);
 
-  console.log(`[ADOC] Step 2: Found asset id=${assetId}, name="${reportAsset.name || reportAsset.displayName}"`);
+  // Step 2: fetch child assets
+  const childResult = await api.getChildAssets(assetId);
+  const children = normalizeList(childResult, ['childAssets', 'assets', 'data']);
+  console.log(`[ADOC] ${children.length} child assets`);
 
-  // Step 3: Fetch child assets
-  console.log(`[ADOC] Step 3: Fetching child assets for id=${assetId}`);
-  const childResult = await apiClient.getChildAssets(assetId);
-  const childAssets = normalizeChildAssets(childResult);
-
-  console.log(`[ADOC] Step 4: Processing ${childAssets.length} child assets`);
-
-  // Step 4: For each child asset, get the name and reliability score from the childAssets response
-  for (const child of childAssets) {
+  // Step 3: build results from each child
+  for (const child of children) {
     if (!child || !child.id) continue;
-
     try {
-      // Use name and score from child asset directly if available,
-      // otherwise fetch scores separately
-      const childName = child.name || child.displayName || `Asset_${child.id}`;
-      const childType = child.assetType || child.type || 'TABLE';
+      const name = child.name || child.displayName || `Asset_${child.id}`;
+      const type = child.assetType || child.type || 'TABLE';
 
       let reliabilityScore = 0;
       let dataFreshness = 'N/A';
       let lastProfiled = 'Not profiled';
 
-      // Use scores embedded in the child asset response if available
+      // Use scores embedded in the child asset response if present
       if (child.ruleScores && child.ruleScores.reliabilityScore !== undefined) {
         reliabilityScore = Math.round(child.ruleScores.reliabilityScore);
         if (child.ruleScores.dataCadenceScore !== undefined) {
           dataFreshness = `${Math.round(child.ruleScores.dataCadenceScore)}%`;
         }
       } else {
-        // Fallback: fetch scores from the scores endpoint
-        const scoresData = await apiClient.getAssetScores(child.id);
-        if (scoresData) {
-          reliabilityScore = Math.round(scoresData?.ruleScores?.reliabilityScore ?? 0);
-          const cadence = scoresData?.ruleScores?.dataCadenceScore ?? null;
-          dataFreshness = cadence !== null ? `${Math.round(cadence)}%` : 'N/A';
-          lastProfiled = scoresData?.lastProfileDateTime
-            ? formatDate(scoresData.lastProfileDateTime)
-            : 'Not profiled';
+        // Fallback: separate scores call
+        const scores = await api.getAssetScores(child.id);
+        if (scores) {
+          reliabilityScore = Math.round(scores?.ruleScores?.reliabilityScore ?? 0);
+          const cadence = scores?.ruleScores?.dataCadenceScore;
+          if (cadence !== undefined && cadence !== null) {
+            dataFreshness = `${Math.round(cadence)}%`;
+          }
+          if (scores.lastProfileDateTime) {
+            lastProfiled = fmtDate(scores.lastProfileDateTime);
+          }
         }
       }
 
-      if (child.lastProfileDateTime) {
-        lastProfiled = formatDate(child.lastProfileDateTime);
-      }
+      if (child.lastProfileDateTime) lastProfiled = fmtDate(child.lastProfileDateTime);
 
-      // Open alerts count from child asset response if provided
       const openAlerts = child.openAlerts ?? child.alertCount ?? 0;
       const upstreamIssues = child.upstreamIssues ?? 0;
 
       results.assets.push({
-        name: childName,
-        type: childType,
+        name,
+        type,
         reliabilityScore,
         dataFreshness,
         lastProfiled,
         openAlerts,
         upstreamIssues,
-        adocLink: `${serverUrl}${ASSET_DETAIL_PATH}${child.id}`
+        adocLink: `${SERVER_URL}${ASSET_DETAIL_PATH}${child.id}`
       });
 
       if (openAlerts > 0) results.assetsWithAlerts++;
-    } catch (err) {
-      console.error(`[ADOC] Error processing child asset ${child.id}:`, err.message);
+    } catch (e) {
+      console.error(`[ADOC] Error processing child ${child.id}:`, e.message);
     }
   }
 
@@ -265,42 +289,44 @@ async function handleFetchReliabilityData(reportName, context) {
   return results;
 }
 
-function formatDate(dateString) {
-  const date = new Date(dateString);
-  if (isNaN(date.getTime())) return 'Invalid date';
-  return date.toLocaleDateString('en-US', {
+// ─────────────────────────────────────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────────────────────────────────────
+function normalizeList(data, keys) {
+  if (!data) return [];
+  if (Array.isArray(data)) return data;
+  for (const k of keys) {
+    if (Array.isArray(data[k])) return data[k];
+  }
+  return [];
+}
+
+function fmtDate(dateString) {
+  const d = new Date(dateString);
+  if (isNaN(d.getTime())) return 'Invalid date';
+  return d.toLocaleDateString('en-US', {
     day: 'numeric', month: 'short', year: 'numeric',
     hour: '2-digit', minute: '2-digit'
   });
 }
 
-async function testAdocConnection() {
-  try {
-    await apiClient.searchAssets('test');
-    return { success: true, message: 'Connection successful' };
-  } catch (error) {
-    return { success: false, message: error.message };
-  }
-}
-
+// ─────────────────────────────────────────────────────────────────────────────
+// LIFECYCLE
+// ─────────────────────────────────────────────────────────────────────────────
 chrome.runtime.onInstalled.addListener((details) => {
   if (details.reason === 'install') {
     console.log('[ADOC] Extension installed');
-    apiClient.getServerUrl().then(serverUrl => {
-      chrome.tabs.create({ url: `${serverUrl}${CATALOG_LIST_PATH}` });
-    });
-  } else if (details.reason === 'update') {
-    console.log('[ADOC] Extension updated');
   }
 });
 
+// Show badge on PowerBI tabs so user knows extension is active
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (changeInfo.status === 'complete' && tab.url) {
-    if (tab.url.includes('app.powerbi.com') || tab.url.includes('msit.powerbi.com')) {
-      chrome.action.setBadgeText({ text: '✓', tabId });
-      chrome.action.setBadgeBackgroundColor({ color: '#10b981', tabId });
-    } else {
-      chrome.action.setBadgeText({ text: '', tabId });
-    }
+  if (changeInfo.status !== 'complete' || !tab.url) return;
+  const isPowerBI = tab.url.includes('app.powerbi.com') || tab.url.includes('msit.powerbi.com');
+  if (isPowerBI) {
+    chrome.action.setBadgeText({ text: '●', tabId });
+    chrome.action.setBadgeBackgroundColor({ color: '#0ea5e9', tabId });
+  } else {
+    chrome.action.setBadgeText({ text: '', tabId });
   }
 });
