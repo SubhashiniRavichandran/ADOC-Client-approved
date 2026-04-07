@@ -472,84 +472,68 @@ h2 {
   background: #dbeafe;
 }
 
-/* Login Form */
-.login-form {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  text-align: left;
-}
-
-.form-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--color-text-label);
-}
-
-.form-input {
-  width: 100%;
-  padding: 9px 12px;
-  border: 1px solid var(--color-border-light);
-  border-radius: var(--radius-md);
-  font-size: 13px;
-  color: var(--color-text);
-  background: var(--color-bg-white);
-  outline: none;
-  transition: border-color 0.2s;
-}
-
-.form-input:focus {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.15);
-}
-
-.input-wrapper {
-  position: relative;
+/* Header actions group (pin / refresh / logout / close) */
+.header-actions {
   display: flex;
   align-items: center;
+  gap: 2px;
 }
 
-.input-wrapper .form-input {
-  padding-right: 38px;
-}
-
-.toggle-btn {
-  position: absolute;
-  right: 10px;
+/* Icon button — icon + optional label text, used in header */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
   background: none;
   border: none;
-  color: #9ca3af;
-  cursor: pointer;
-  padding: 2px;
-  display: flex;
-  align-items: center;
-  transition: color 0.2s;
-}
-
-.toggle-btn:hover {
-  color: #6b7280;
-}
-
-.login-error {
-  font-size: 12px;
-  color: #dc2626;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
   border-radius: var(--radius-md);
-  padding: 8px 12px;
-  text-align: left;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
 }
 
-.login-error.hidden {
-  display: none;
+.icon-btn:hover {
+  background: var(--color-bg);
+  color: var(--color-text);
 }
+
+.icon-btn.active {
+  background: #dbeafe;
+  color: var(--color-blue-dark);
+}
+
+.pin-label {
+  font-size: 11px;
+}
+
+/* Spinning animation for loading SVG in fetching view */
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Alias so both .loading and .fetching work on .btn-fetch */
+.btn-fetch.loading {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Score badge pill shown in asset card header */
+.score-badge {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.score-badge.score-high   { background: var(--color-success-bg); color: var(--color-success-dark); }
+.score-badge.score-medium { background: var(--color-warning-bg); color: var(--color-warning-dark); }
+.score-badge.score-low    { background: var(--color-danger-bg);  color: var(--color-danger-dark); }
 
 .help-link {
   font-size: 12px;

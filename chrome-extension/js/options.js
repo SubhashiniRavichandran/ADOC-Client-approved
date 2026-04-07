@@ -1,7 +1,6 @@
-// ADOC Reliability Metrics - Options Page Script
+// ADOC Reliability Metrics - Options Page (SSO-based, no API keys)
 
 const DEFAULT_SERVER_URL = 'https://cso-enablement.poc.acceldatasolutions.net';
-const STATUS_HIDE_MS = 3000;
 const TEST_TIMEOUT_MS = 30000;
 
 class OptionsController {
@@ -11,95 +10,90 @@ class OptionsController {
 
   async init() {
     await this.loadSettings();
-    this.setupEventListeners();
+    this.renderAuthStatus();
+    this.bindEvents();
   }
 
+  // ── Load saved server URL ─────────────────────────────────────────────────
   async loadSettings() {
     return new Promise((resolve) => {
-      chrome.storage.local.get(['adoc_server_url', 'adoc_access_key', 'adoc_secret_key'], (result) => {
-        if (chrome.runtime.lastError) {
-          console.error('[ADOC] Failed to load settings:', chrome.runtime.lastError.message);
-          resolve();
-          return;
-        }
-
-        const serverUrlEl = document.getElementById('server-url');
-        const accessKeyEl = document.getElementById('access-key');
-        const secretKeyEl = document.getElementById('secret-key');
-
-        if (serverUrlEl) serverUrlEl.value = result.adoc_server_url || DEFAULT_SERVER_URL;
-        if (accessKeyEl) accessKeyEl.value = result.adoc_access_key || '';
-        if (secretKeyEl) secretKeyEl.value = result.adoc_secret_key || '';
-
+      chrome.storage.local.get(['adoc_server_url'], (result) => {
+        if (chrome.runtime.lastError) { resolve(); return; }
+        const el = document.getElementById('server-url');
+        if (el) el.value = result.adoc_server_url || DEFAULT_SERVER_URL;
         resolve();
       });
     });
   }
 
-  setupEventListeners() {
-    document.getElementById('save-btn')?.addEventListener('click', () => this.saveSettings());
-    document.getElementById('test-btn')?.addEventListener('click', () => this.testConnection());
-    document.getElementById('clear-btn')?.addEventListener('click', () => this.clearSettings());
-
-    document.querySelectorAll('input').forEach(input => {
-      input.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') this.saveSettings();
-      });
-    });
-  }
-
-  async saveSettings() {
-    const serverUrlEl = document.getElementById('server-url');
-    const accessKeyEl = document.getElementById('access-key');
-    const secretKeyEl = document.getElementById('secret-key');
-
-    const serverUrl = serverUrlEl?.value.trim() || '';
-    const accessKey = accessKeyEl?.value.trim() || '';
-    const secretKey = secretKeyEl?.value.trim() || '';
-
-    if (!serverUrl) {
-      this.showStatus('Server URL is required', 'error');
-      return;
-    }
-    if (!this.isValidUrl(serverUrl)) {
-      this.showStatus('Invalid server URL format', 'error');
-      return;
-    }
-
+  // ── Show logged-in / logged-out state ────────────────────────────────────
+  async renderAuthStatus() {
     return new Promise((resolve) => {
-      chrome.storage.local.set({
-        adoc_server_url: serverUrl,
-        adoc_access_key: accessKey,
-        adoc_secret_key: secretKey
-      }, () => {
-        if (chrome.runtime.lastError) {
-          this.showStatus(`Save failed: ${chrome.runtime.lastError.message}`, 'error');
-          resolve(false);
-          return;
+      chrome.storage.local.get(['adoc_authenticated'], (result) => {
+        if (chrome.runtime.lastError) { resolve(); return; }
+        const loggedIn = !!result.adoc_authenticated;
+
+        const card      = document.getElementById('auth-card');
+        const dot       = document.getElementById('auth-dot');
+        const label     = document.getElementById('auth-label');
+        const loginBtn  = document.getElementById('login-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+
+        if (loggedIn) {
+          if (card)  card.classList.remove('logged-out');
+          if (dot)   dot.style.background = '#10b981';
+          if (label) label.textContent = 'Logged in to Acceldata';
+          if (loginBtn)  loginBtn.classList.add('hidden');
+          if (logoutBtn) logoutBtn.classList.remove('hidden');
+        } else {
+          if (card)  card.classList.add('logged-out');
+          if (dot)   dot.style.background = '#ef4444';
+          if (label) label.textContent = 'Not logged in';
+          if (loginBtn)  loginBtn.classList.remove('hidden');
+          if (logoutBtn) logoutBtn.classList.add('hidden');
         }
-        this.showStatus('Settings saved successfully!', 'success');
-        if (accessKey && secretKey) {
-          chrome.storage.local.set({ adoc_authenticated: true });
-        }
-        resolve(true);
+        resolve();
       });
     });
   }
 
-  async testConnection() {
-    const serverUrl = document.getElementById('server-url')?.value.trim();
-    if (!serverUrl) {
-      this.showStatus('Please enter server URL', 'error');
+  // ── Event listeners ───────────────────────────────────────────────────────
+  bindEvents() {
+    document.getElementById('save-btn')?.addEventListener('click', () => this.saveUrl());
+    document.getElementById('test-btn')?.addEventListener('click', () => this.testConnection());
+    document.getElementById('login-btn')?.addEventListener('click', () => this.startLogin());
+    document.getElementById('logout-btn')?.addEventListener('click', () => this.logout());
+
+    document.getElementById('server-url')?.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') this.saveUrl();
+    });
+  }
+
+  // ── Save server URL ───────────────────────────────────────────────────────
+  saveUrl() {
+    const el  = document.getElementById('server-url');
+    const url = el?.value.trim() || '';
+
+    if (!url) { this.showStatus('Server URL is required', 'error'); return; }
+
+    try { new URL(url); } catch {
+      this.showStatus('Invalid URL format', 'error');
       return;
     }
 
-    // Save settings first so background uses the latest values
-    const saved = await this.saveSettings();
-    if (!saved) return;
+    chrome.storage.local.set({ adoc_server_url: url }, () => {
+      if (chrome.runtime.lastError) {
+        this.showStatus(`Save failed: ${chrome.runtime.lastError.message}`, 'error');
+        return;
+      }
+      this.showStatus('Server URL saved ✓', 'success');
+    });
+  }
 
-    this.showStatus('Testing connection...', 'info');
+  // ── Test connection ───────────────────────────────────────────────────────
+  async testConnection() {
+    this.showStatus('Testing connection…', 'info');
 
-    // Wrap sendMessage with a timeout so it never hangs forever
     const response = await new Promise((resolve) => {
       const timer = setTimeout(() => resolve(null), TEST_TIMEOUT_MS);
       try {
@@ -108,66 +102,56 @@ class OptionsController {
           if (chrome.runtime.lastError) { resolve(null); return; }
           resolve(res);
         });
-      } catch {
-        clearTimeout(timer);
-        resolve(null);
-      }
+      } catch { clearTimeout(timer); resolve(null); }
     });
 
     if (!response) {
-      this.showStatus('Connection timed out or extension restarted. Try again.', 'error');
+      this.showStatus('Connection timed out. Try again.', 'error');
     } else if (response.success) {
-      this.showStatus('Connection successful! ✓', 'success');
+      this.showStatus('Connection successful ✓', 'success');
     } else {
       this.showStatus(`Connection failed: ${response.message || 'Unknown error'}`, 'error');
     }
   }
 
-  clearSettings() {
-    if (confirm('Are you sure you want to clear all settings?')) {
-      const serverUrlEl = document.getElementById('server-url');
-      const accessKeyEl = document.getElementById('access-key');
-      const secretKeyEl = document.getElementById('secret-key');
+  // ── SSO login: ask background to open login tab ───────────────────────────
+  startLogin() {
+    chrome.runtime.sendMessage({ action: 'startSsoLogin' }, () => {
+      if (chrome.runtime.lastError) {
+        this.showStatus('Could not open login tab', 'error');
+        return;
+      }
+      this.showStatus('Login tab opened — complete sign-in there, then return here.', 'info');
+    });
 
-      if (serverUrlEl) serverUrlEl.value = DEFAULT_SERVER_URL;
-      if (accessKeyEl) accessKeyEl.value = '';
-      if (secretKeyEl) secretKeyEl.value = '';
-
-      chrome.storage.local.remove(
-        ['adoc_server_url', 'adoc_access_key', 'adoc_secret_key', 'adoc_authenticated'],
-        () => {
-          if (chrome.runtime.lastError) {
-            this.showStatus(`Clear failed: ${chrome.runtime.lastError.message}`, 'error');
-            return;
-          }
-          this.showStatus('Settings cleared', 'success');
-        }
-      );
-    }
+    // Re-check auth status after a short delay (user may have already logged in)
+    setTimeout(() => this.renderAuthStatus(), 3000);
   }
 
-  isValidUrl(string) {
-    try {
-      const url = new URL(string);
-      return url.protocol === 'http:' || url.protocol === 'https:';
-    } catch {
-      return false;
-    }
+  // ── Logout: clear session and cached data ─────────────────────────────────
+  logout() {
+    chrome.storage.local.remove(['adoc_authenticated', 'cached_results'], () => {
+      if (chrome.runtime.lastError) {
+        this.showStatus(`Logout failed: ${chrome.runtime.lastError.message}`, 'error');
+        return;
+      }
+      // Also notify background so popup reflects the change
+      chrome.runtime.sendMessage({ action: 'logout' }).catch(() => {});
+      this.renderAuthStatus();
+      this.showStatus('Logged out successfully', 'success');
+    });
   }
 
+  // ── Status message ────────────────────────────────────────────────────────
   showStatus(message, type) {
-    const statusEl = document.getElementById('status-message');
-    if (!statusEl) return;
-    statusEl.textContent = message;
-    statusEl.className = `status-message ${type}`;
-    statusEl.style.display = 'block';
-
+    const el = document.getElementById('status-message');
+    if (!el) return;
+    el.textContent = message;
+    el.className = type;
     if (type === 'success') {
-      setTimeout(() => { statusEl.style.display = 'none'; }, STATUS_HIDE_MS);
+      setTimeout(() => { el.className = ''; el.style.display = 'none'; }, 3000);
     }
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  new OptionsController();
-});
+document.addEventListener('DOMContentLoaded', () => new OptionsController());
