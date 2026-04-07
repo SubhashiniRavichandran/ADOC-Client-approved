@@ -59,20 +59,45 @@ class PopupController {
       this.renderResults(cached);
       this.showView('results');
     } else if (authStatus) {
-      this.showView('fetch');
+      // Authenticated — auto-fetch if already on a PowerBI tab, else show button
+      await this.autoFetchOrShowFetch();
     } else {
       this.showView('login');
     }
 
     this.bindEvents();
 
-    // Listen for background → popup auth state change (SSO login complete)
+    // Background fires authStateChanged when SSO login completes.
+    // Auto-fetch immediately if on a PowerBI tab — no extra click needed.
     chrome.runtime.onMessage.addListener((msg) => {
       if (msg.action === 'authStateChanged') {
-        if (msg.authenticated) this.showView('fetch');
-        else this.showView('login');
+        if (msg.authenticated) {
+          this.autoFetchOrShowFetch();
+        } else {
+          this.showView('login');
+          const btn = document.getElementById('login-btn');
+          if (btn) { btn.textContent = 'Login to Acceldata'; btn.disabled = false; }
+          const hint = document.getElementById('login-hint');
+          if (hint) hint.textContent = '';
+        }
       }
     });
+  }
+
+  // If the active tab is a Power BI report → kick off the fetch automatically.
+  // Otherwise just show the fetch button so the user can navigate first.
+  async autoFetchOrShowFetch() {
+    try {
+      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+      const tab = tabs && tabs[0];
+      if (tab && tab.url && tab.url.includes('powerbi.com')) {
+        await this.handleFetch();   // auto-fetch — no button click required
+      } else {
+        this.showView('fetch');     // not on PowerBI yet
+      }
+    } catch (_) {
+      this.showView('fetch');
+    }
   }
 
   async checkAuth() {
@@ -111,20 +136,26 @@ class PopupController {
 
   // ── Login ──────────────────────────────────────────────────────────────────
   async handleLogin() {
-    const btn = document.getElementById('login-btn');
-    if (btn) { btn.textContent = 'Opening login…'; btn.disabled = true; }
+    const btn  = document.getElementById('login-btn');
+    const hint = document.getElementById('login-hint');
+
+    if (btn)  { btn.textContent = 'Opening login…'; btn.disabled = true; }
+    if (hint) hint.textContent = 'Complete sign-in in the new tab — this popup will update automatically.';
 
     await sendMsg({ action: 'startSsoLogin' });
 
-    // Show waiting message — popup will advance automatically when SSO completes
-    if (btn) {
-      btn.textContent = 'Waiting for login…';
-      btn.disabled = true;
-    }
-    const hint = document.getElementById('login-hint');
-    if (hint) {
-      hint.textContent = 'Complete login in the new tab. This popup will update automatically.';
-    }
+    if (btn) btn.textContent = 'Waiting for login…';
+
+    // Poll storage every 2 s so the popup advances even if the
+    // authStateChanged message was missed (popup closed & re-opened).
+    this._loginPoll = setInterval(async () => {
+      const authenticated = await this.checkAuth();
+      if (authenticated) {
+        clearInterval(this._loginPoll);
+        this._loginPoll = null;
+        await this.autoFetchOrShowFetch();
+      }
+    }, 2000);
   }
 
   // ── Logout ─────────────────────────────────────────────────────────────────

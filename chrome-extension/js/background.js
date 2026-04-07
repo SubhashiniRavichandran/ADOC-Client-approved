@@ -136,21 +136,21 @@ function watchSsoTab(tabId) {
   chrome.tabs.onRemoved.addListener(onRemoved);
 }
 
-// Confirm session by hitting the search API.
-// If it succeeds, mark authenticated, close login tab, notify popup.
+// Mark authenticated as soon as the user reaches the post-login dashboard.
+// We do NOT gate this on the API test call, because credentials:'include'
+// may fail at the CORS pre-flight stage in some deployments.
+// The actual data fetch will show an error if the session is invalid.
 async function confirmSsoSession(tabId) {
-  try {
-    const result = await api.searchAssets('test');
-    if (result !== null) {
-      await chrome.storage.local.set({ adoc_authenticated: true });
-      // Close the login tab
-      chrome.tabs.remove(tabId, () => { loginTabId = null; });
-      // Broadcast to popup so it can advance to the fetch view
-      chrome.runtime.sendMessage({ action: 'authStateChanged', authenticated: true }).catch(() => {});
-    }
-  } catch (e) {
-    console.warn('[ADOC] SSO session confirm failed – user may still be logging in:', e.message);
-  }
+  // Set auth immediately based on successful navigation
+  await chrome.storage.local.set({ adoc_authenticated: true });
+
+  // Close the login tab
+  try { chrome.tabs.remove(tabId, () => { loginTabId = null; }); } catch (_) {}
+
+  // Broadcast to popup → popup will auto-fetch if on a PowerBI tab
+  chrome.runtime.sendMessage({ action: 'authStateChanged', authenticated: true }).catch(() => {});
+
+  console.log('[ADOC] SSO login detected — session marked as authenticated');
 }
 
 function logout() {
