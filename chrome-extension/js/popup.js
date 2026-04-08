@@ -293,9 +293,7 @@ class PopupController {
         <div class="score-badge js-score ${scoreClass}"></div>
       </div>
       <div class="asset-metrics">
-        <div class="metric"><span class="metric-label">Reliability:</span> <span class="metric-value js-score-val"></span></div>
-        <div class="metric"><span class="metric-label">Freshness:</span> <span class="metric-value js-fresh"></span></div>
-        <div class="metric"><span class="metric-label">Last Profiled:</span> <span class="metric-value js-prof"></span></div>
+        <div class="metric"><span class="metric-label">Reliability Score:</span> <span class="metric-value js-score-val"></span></div>
       </div>
       <div class="asset-footer">
         <span class="alert-info">
@@ -312,8 +310,6 @@ class PopupController {
     card.querySelector('.js-type').textContent = asset.type;
     card.querySelector('.js-score').textContent = `${asset.reliabilityScore}%`;
     card.querySelector('.js-score-val').textContent = `${asset.reliabilityScore}%`;
-    card.querySelector('.js-fresh').textContent = asset.dataFreshness;
-    card.querySelector('.js-prof').textContent = asset.lastProfiled;
     card.querySelector('.js-alerts').textContent = `${asset.openAlerts} open alert${asset.openAlerts !== 1 ? 's' : ''}`;
     card.querySelector('.js-link').href = safeUrl(asset.adocLink);
 

@@ -53,7 +53,7 @@ class AdocApiClient {
     }
   }
 
-  // GET /catalog-server/api/assets/search?name=<name>
+  // Step 1: GET /catalog-server/api/assets/search?name=<reportName>
   async searchAssets(name) {
     try {
       return await this.makeRequest(`/assets/search?name=${encodeURIComponent(name)}`);
@@ -63,22 +63,12 @@ class AdocApiClient {
     }
   }
 
-  // GET /catalog-server/api/assets/:id/childAssets
+  // Step 2: GET /catalog-server/api/assets/:id/childAssets
   async getChildAssets(assetId) {
     try {
       return await this.makeRequest(`/assets/${encodeURIComponent(assetId)}/childAssets`);
     } catch (e) {
       console.error('[ADOC] getChildAssets failed:', e.message);
-      return null;
-    }
-  }
-
-  // GET /catalog-server/api/assets/:id/scores  (fallback if scores not in childAssets)
-  async getAssetScores(assetId) {
-    try {
-      return await this.makeRequest(`/assets/${encodeURIComponent(assetId)}/scores`);
-    } catch (e) {
-      console.error('[ADOC] getAssetScores failed:', e.message);
       return null;
     }
   }
@@ -192,10 +182,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CORE DATA FLOW
-// Step 1: extract report name from PowerBI DOM (done in content.js)
-// Step 2: GET /assets/search?name=<reportName>  → assetId
-// Step 3: GET /assets/:id/childAssets           → child assets list
-// Step 4: use name + reliabilityScore from each child asset
+//
+// Step 1: GET /catalog-server/api/assets/search?name=<reportName>
+//         → pick first result, read assetId
+//
+// Step 2: GET /catalog-server/api/assets/:id/childAssets
+//         → read name + reliabilityScore from each child asset
 // ─────────────────────────────────────────────────────────────────────────────
 async function fetchReliabilityData(reportName) {
   const results = {
@@ -211,80 +203,45 @@ async function fetchReliabilityData(reportName) {
     return results;
   }
 
-  // Step 1: search by report name
-  console.log(`[ADOC] Searching for: "${reportName}"`);
+  // ── Step 1: search by report name ─────────────────────────────────────────
+  console.log(`[ADOC] Step 1 — searching assets for: "${reportName}"`);
   const searchResult = await api.searchAssets(reportName);
-  const candidates = normalizeList(searchResult, ['assets', 'data']);
+  const candidates   = normalizeList(searchResult, ['assets', 'data']);
 
   if (!candidates.length) {
-    console.warn(`[ADOC] No ADOC assets matched "${reportName}"`);
+    console.warn(`[ADOC] No assets matched "${reportName}"`);
     return results;
   }
 
-  const reportAsset = candidates[0];
-  const assetId = reportAsset.id;
-  console.log(`[ADOC] Found assetId=${assetId} for "${reportAsset.name || reportAsset.displayName}"`);
+  const assetId = candidates[0].id;
+  console.log(`[ADOC] Step 2 — assetId=${assetId}, fetching childAssets`);
 
-  // Step 2: fetch child assets
+  // ── Step 2: fetch child assets ─────────────────────────────────────────────
   const childResult = await api.getChildAssets(assetId);
-  const children = normalizeList(childResult, ['childAssets', 'assets', 'data']);
-  console.log(`[ADOC] ${children.length} child assets`);
+  const children    = normalizeList(childResult, ['childAssets', 'assets', 'data']);
+  console.log(`[ADOC] ${children.length} child asset(s) found`);
 
-  // Step 3: build results from each child
+  // ── Step 3: build results — name + reliabilityScore from childAssets only ──
   for (const child of children) {
     if (!child || !child.id) continue;
-    try {
-      const name = child.name || child.displayName || `Asset_${child.id}`;
-      const type = child.assetType || child.type || 'TABLE';
 
-      let reliabilityScore = 0;
-      let dataFreshness = 'N/A';
-      let lastProfiled = 'Not profiled';
+    const name             = child.name || child.displayName || `Asset_${child.id}`;
+    const type             = child.assetType || child.type || 'TABLE';
+    const reliabilityScore = Math.round(child.ruleScores?.reliabilityScore ?? 0);
+    const openAlerts       = child.openAlerts ?? child.alertCount ?? 0;
 
-      // Use scores embedded in the child asset response if present
-      if (child.ruleScores && child.ruleScores.reliabilityScore !== undefined) {
-        reliabilityScore = Math.round(child.ruleScores.reliabilityScore);
-        if (child.ruleScores.dataCadenceScore !== undefined) {
-          dataFreshness = `${Math.round(child.ruleScores.dataCadenceScore)}%`;
-        }
-      } else {
-        // Fallback: separate scores call
-        const scores = await api.getAssetScores(child.id);
-        if (scores) {
-          reliabilityScore = Math.round(scores?.ruleScores?.reliabilityScore ?? 0);
-          const cadence = scores?.ruleScores?.dataCadenceScore;
-          if (cadence !== undefined && cadence !== null) {
-            dataFreshness = `${Math.round(cadence)}%`;
-          }
-          if (scores.lastProfileDateTime) {
-            lastProfiled = fmtDate(scores.lastProfileDateTime);
-          }
-        }
-      }
+    results.assets.push({
+      name,
+      type,
+      reliabilityScore,
+      openAlerts,
+      adocLink: `${SERVER_URL}${ASSET_DETAIL_PATH}${child.id}`
+    });
 
-      if (child.lastProfileDateTime) lastProfiled = fmtDate(child.lastProfileDateTime);
-
-      const openAlerts = child.openAlerts ?? child.alertCount ?? 0;
-      const upstreamIssues = child.upstreamIssues ?? 0;
-
-      results.assets.push({
-        name,
-        type,
-        reliabilityScore,
-        dataFreshness,
-        lastProfiled,
-        openAlerts,
-        upstreamIssues,
-        adocLink: `${SERVER_URL}${ASSET_DETAIL_PATH}${child.id}`
-      });
-
-      if (openAlerts > 0) results.assetsWithAlerts++;
-    } catch (e) {
-      console.error(`[ADOC] Error processing child ${child.id}:`, e.message);
-    }
+    if (openAlerts > 0) results.assetsWithAlerts++;
   }
 
-  results.totalAssets = results.assets.length;
+  results.totalAssets  = results.assets.length;
   results.reportStatus = results.assetsWithAlerts > 0 ? 'Risky' : 'Healthy';
   return results;
 }

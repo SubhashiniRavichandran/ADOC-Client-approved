@@ -6,30 +6,21 @@
 
 // ─────────────────────────────────────────────────────────────────────────────
 // REPORT NAME EXTRACTION
+// Reads the Power BI report name directly from the page.
+// Step 1: document.title (always present, format: "Report Name - Power BI")
+// Step 2: visible DOM element if title doesn't contain "Power BI"
 // ─────────────────────────────────────────────────────────────────────────────
 function getPowerBIReportName() {
-  // 1. Try <title>
-  if (document.title && document.title.includes('Power BI')) {
+  // Step 1: document.title is the simplest and most reliable source
+  if (document.title) {
     return document.title.replace(' - Power BI', '').trim();
   }
 
-  // 2. Try common DOM selectors used by different Power BI versions
-  const selectors = [
-    '[data-testid="report-name"]',
-    '.logoBarContent h1',
-    '.headerText',
-    '.logoBarContent .textWithEllipsis',
-    '.reportHeader .title'
-  ];
-
-  for (const s of selectors) {
-    const el = document.querySelector(s);
-    if (el && el.innerText && el.innerText.trim()) {
-      return el.innerText.trim();
-    }
-  }
-
-  return null;
+  // Step 2: fallback to a visible DOM element
+  const el = document.querySelector(
+    '[data-testid="report-name"], .logoBarContent h1, .headerText'
+  );
+  return el ? el.innerText.trim() : null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -272,10 +263,6 @@ class AdocSidebar {
         </div>
         <div class="adoc-score-pill ${scoreClass}"></div>
       </div>
-      <div class="adoc-card-meta">
-        <span class="adoc-meta-item"><b>Freshness:</b> <span class="js-fresh"></span></span>
-        <span class="adoc-meta-item"><b>Profiled:</b> <span class="js-prof"></span></span>
-      </div>
       ${asset.openAlerts > 0 ? `
       <div class="adoc-card-alerts">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
@@ -289,8 +276,6 @@ class AdocSidebar {
     card.querySelector('.adoc-card-name').textContent = asset.name;
     card.querySelector('.adoc-card-type').textContent = asset.type;
     card.querySelector('.adoc-score-pill').textContent = `${asset.reliabilityScore}%`;
-    card.querySelector('.js-fresh').textContent = asset.dataFreshness;
-    card.querySelector('.js-prof').textContent = asset.lastProfiled;
 
     if (asset.openAlerts > 0) {
       card.querySelector('.js-alerts').textContent = `${asset.openAlerts} open alert${asset.openAlerts > 1 ? 's' : ''}`;
