@@ -11,9 +11,10 @@
 // Step 2: visible DOM element if title doesn't contain "Power BI"
 // ─────────────────────────────────────────────────────────────────────────────
 function getPowerBIReportName() {
-  // Step 1: document.title is the simplest and most reliable source
-  if (document.title) {
-    return document.title.replace(' - Power BI', '').trim();
+  // Step 1: document.title — only use it when it actually contains " - Power BI"
+  if (document.title && document.title.includes(' - Power BI')) {
+    const name = document.title.replace(' - Power BI', '').trim();
+    if (name) return name;
   }
 
   // Step 2: fallback to a visible DOM element

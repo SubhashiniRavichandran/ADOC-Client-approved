@@ -161,7 +161,7 @@ class PopupController {
   // ── Logout ─────────────────────────────────────────────────────────────────
   async handleLogout() {
     await sendMsg({ action: 'logout' });
-    chrome.storage.local.remove(['adoc_authenticated', 'cached_results']);
+    // Background clears storage and broadcasts authStateChanged — don't duplicate here
     this.showView('login');
     const btn = document.getElementById('login-btn');
     if (btn) { btn.textContent = 'Login to Acceldata'; btn.disabled = false; }
@@ -232,7 +232,6 @@ class PopupController {
     if (!btn) return;
     btn.title = this.sidebarPinned ? 'Unpin sidebar from page' : 'Pin sidebar to page';
     btn.classList.toggle('active', this.sidebarPinned);
-    btn.querySelector('.pin-label').textContent = this.sidebarPinned ? 'Unpin' : 'Pin to page';
   }
 
   // ── Render results ─────────────────────────────────────────────────────────
