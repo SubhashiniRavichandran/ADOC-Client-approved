@@ -7,34 +7,50 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // REPORT NAME EXTRACTION
 // Reads the Power BI report name directly from the page.
-// Step 1: document.title (always present, format: "Report Name - Power BI")
-// Step 2: visible DOM element if title doesn't contain "Power BI"
+// Step 1: visible DOM elements rendered by Power BI
+// Step 2: document.title fallback (format: "Report Name - Power BI")
 // ─────────────────────────────────────────────────────────────────────────────
 function getPowerBIReportName() {
-  // Step 1: document.title formats used by Power BI:
+  // Step 1: query visible DOM elements used by Power BI to render the report name
+  const el = document.querySelector(
+    '[data-testid="report-name"], ' +
+    '.logoBarContent h1, ' +
+    '.headerText, ' +
+    '.report-name'
+  );
+  if (el) {
+    const name = el.innerText.trim();
+    if (name) {
+      console.log('[ADOC] getPowerBIReportName (DOM):', name);
+      return name;
+    }
+  }
+
+  // Step 2: fallback — document.title formats used by Power BI:
   //   "Report Name - Power BI"  (most common)
   //   "Power BI - Report Name"  (less common)
   if (document.title) {
     if (document.title.includes(' - Power BI')) {
       const name = document.title.replace(' - Power BI', '').trim();
-      if (name) return name;
+      if (name) {
+        console.log('[ADOC] getPowerBIReportName (title):', name);
+        return name;
+      }
     }
     if (document.title.startsWith('Power BI - ')) {
       const name = document.title.replace('Power BI - ', '').trim();
-      if (name) return name;
+      if (name) {
+        console.log('[ADOC] getPowerBIReportName (title):', name);
+        return name;
+      }
     }
   }
 
-  // Step 2: fallback — visible DOM elements used by Power BI
-  const el = document.querySelector(
-    '[data-testid="report-name"], ' +
-    '[aria-label*="report"], ' +
-    '.logoBarContent h1, ' +
-    '.headerText, ' +
-    '.report-name'
-  );
-  return el ? el.innerText.trim() : null;
+  console.log('[ADOC] getPowerBIReportName: null — no report name found');
+  return null;
 }
+
+console.log('[ADOC] Report name:', getPowerBIReportName());
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SIDEBAR — injected directly into the Power BI page
