@@ -506,6 +506,12 @@ h2 {
   color: var(--color-blue-dark);
 }
 
+/* Filled thumbtack when pinned */
+.pin-btn.active svg path {
+  fill: var(--color-blue-dark);
+  stroke: var(--color-blue-dark);
+}
+
 .pin-label {
   font-size: 11px;
 }

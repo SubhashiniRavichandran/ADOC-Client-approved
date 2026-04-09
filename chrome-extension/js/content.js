@@ -11,15 +11,27 @@
 // Step 2: visible DOM element if title doesn't contain "Power BI"
 // ─────────────────────────────────────────────────────────────────────────────
 function getPowerBIReportName() {
-  // Step 1: document.title — only use it when it actually contains " - Power BI"
-  if (document.title && document.title.includes(' - Power BI')) {
-    const name = document.title.replace(' - Power BI', '').trim();
-    if (name) return name;
+  // Step 1: document.title formats used by Power BI:
+  //   "Report Name - Power BI"  (most common)
+  //   "Power BI - Report Name"  (less common)
+  if (document.title) {
+    if (document.title.includes(' - Power BI')) {
+      const name = document.title.replace(' - Power BI', '').trim();
+      if (name) return name;
+    }
+    if (document.title.startsWith('Power BI - ')) {
+      const name = document.title.replace('Power BI - ', '').trim();
+      if (name) return name;
+    }
   }
 
-  // Step 2: fallback to a visible DOM element
+  // Step 2: fallback — visible DOM elements used by Power BI
   const el = document.querySelector(
-    '[data-testid="report-name"], .logoBarContent h1, .headerText'
+    '[data-testid="report-name"], ' +
+    '[aria-label*="report"], ' +
+    '.logoBarContent h1, ' +
+    '.headerText, ' +
+    '.report-name'
   );
   return el ? el.innerText.trim() : null;
 }
@@ -65,7 +77,8 @@ class AdocSidebar {
         <div class="adoc-sidebar-actions">
           <button id="adoc-pin-btn" class="adoc-icon-btn" title="Pin panel">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+              <path d="M12 17v5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1v3.76z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </button>
           <button id="adoc-close-btn" class="adoc-icon-btn" title="Close panel">

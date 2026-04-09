@@ -129,8 +129,9 @@ class PopupController {
     document.getElementById('login-btn')?.addEventListener('click', () => this.handleLogin());
     document.getElementById('fetch-btn')?.addEventListener('click', () => this.handleFetch());
     document.getElementById('refresh-btn')?.addEventListener('click', () => this.handleFetch());
-    document.getElementById('pin-btn')?.addEventListener('click', () => this.handlePin());
-    document.getElementById('logout-btn')?.addEventListener('click', () => this.handleLogout());
+    // Use querySelectorAll — pin-btn and logout-btn appear in both fetch-view and results-view
+    document.querySelectorAll('.pin-btn').forEach(b => b.addEventListener('click', () => this.handlePin()));
+    document.querySelectorAll('.logout-btn').forEach(b => b.addEventListener('click', () => this.handleLogout()));
     document.querySelectorAll('.close-btn').forEach(b => b.addEventListener('click', () => window.close()));
   }
 
@@ -228,10 +229,11 @@ class PopupController {
   }
 
   updatePinBtn() {
-    const btn = document.getElementById('pin-btn');
-    if (!btn) return;
-    btn.title = this.sidebarPinned ? 'Unpin sidebar from page' : 'Pin sidebar to page';
-    btn.classList.toggle('active', this.sidebarPinned);
+    const title = this.sidebarPinned ? 'Unpin sidebar from page' : 'Pin sidebar to page';
+    document.querySelectorAll('.pin-btn').forEach(btn => {
+      btn.title = title;
+      btn.classList.toggle('active', this.sidebarPinned);
+    });
   }
 
   // ── Render results ─────────────────────────────────────────────────────────
