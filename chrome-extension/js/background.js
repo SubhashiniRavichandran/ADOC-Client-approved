@@ -72,6 +72,16 @@ class AdocApiClient {
       return null;
     }
   }
+
+  // Step 3: GET /catalog-server/api/rules/data-cadence/byAsset/:id
+  async getDataCadence(assetId) {
+    try {
+      return await this.makeRequest(`/rules/data-cadence/byAsset/${encodeURIComponent(assetId)}`);
+    } catch (e) {
+      console.error('[ADOC] getDataCadence failed:', e.message);
+      return null;
+    }
+  }
 }
 
 const api = new AdocApiClient();
@@ -183,11 +193,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // CORE DATA FLOW
 //
-// Step 1: GET /catalog-server/api/assets/search?name=<reportName>
-//         → pick first result, read assetId
+// Step 1: GET /assets/search?name=<reportName>
+//         → find asset whose name = "<reportName>::POWERBI_SEMANTIC_MODEL"
 //
-// Step 2: GET /catalog-server/api/assets/:id/childAssets
-//         → read name + reliabilityScore from each child asset
+// Step 2: GET /assets/:id/childAssets
+//         → extract name, reliabilityScore, updatedAt, openAlerts, upstreamIssues
+//
+// Step 3: GET /rules/data-cadence/byAsset/:id  (per child)
+//         → extract freshness value
 // ─────────────────────────────────────────────────────────────────────────────
 async function fetchReliabilityData(reportName) {
   const results = {
@@ -213,28 +226,42 @@ async function fetchReliabilityData(reportName) {
     return results;
   }
 
-  const assetId = candidates[0].id;
-  console.log(`[ADOC] Step 2 — assetId=${assetId}, fetching childAssets`);
+  // Find the POWERBI_SEMANTIC_MODEL asset; fall back to first result
+  const semanticModelName = `${reportName}::POWERBI_SEMANTIC_MODEL`;
+  const semanticAsset     = candidates.find(a => a.name === semanticModelName) || candidates[0];
+  const parentId          = semanticAsset.id;
+  console.log(`[ADOC] Matched asset: "${semanticAsset.name}", id=${parentId}`);
 
-  // ── Step 2: fetch child assets ─────────────────────────────────────────────
-  const childResult = await api.getChildAssets(assetId);
+  // ── Step 2: fetch child assets ────────────────────────────────────────────
+  console.log(`[ADOC] Step 2 — fetching childAssets for id=${parentId}`);
+  const childResult = await api.getChildAssets(parentId);
   const children    = normalizeList(childResult, ['childAssets', 'assets', 'data']);
   console.log(`[ADOC] ${children.length} child asset(s) found`);
 
-  // ── Step 3: build results — name + reliabilityScore from childAssets only ──
+  // ── Step 3: per-child enrichment (freshness via data-cadence API) ─────────
   for (const child of children) {
     if (!child || !child.id) continue;
 
     const name             = child.name || child.displayName || `Asset_${child.id}`;
     const type             = child.assetType || child.type || 'TABLE';
-    const reliabilityScore = Math.round(child.ruleScores?.reliabilityScore ?? 0);
-    const openAlerts       = child.openAlerts ?? child.alertCount ?? 0;
+    const reliabilityScore = child.ruleScores?.reliabilityScore ?? null;
+    const openAlerts       = child.openAlerts   ?? child.alertCount    ?? 0;
+    const upstreamIssues   = child.upstreamIssues ?? child.upstreamAlerts ?? 0;
+    const lastProfiled     = child.updatedAt    || child.lastProfiled  || null;
+
+    // Freshness — separate API call per child asset
+    const cadenceData = await api.getDataCadence(child.id);
+    const freshness   = cadenceData?.freshnessScore ?? cadenceData?.score ?? cadenceData?.freshness ?? null;
+    console.log(`[ADOC] ${name} — reliability=${reliabilityScore}, freshness=${freshness}, alerts=${openAlerts}`);
 
     results.assets.push({
       name,
       type,
       reliabilityScore,
+      freshness,
+      lastProfiled,
       openAlerts,
+      upstreamIssues,
       adocLink: `${SERVER_URL}${ASSET_DETAIL_PATH}${child.id}`
     });
 

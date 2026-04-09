@@ -281,37 +281,73 @@ class AdocSidebar {
     const card = document.createElement('div');
     card.className = `adoc-asset-card${asset.openAlerts > 0 ? ' adoc-has-alerts' : ''}`;
 
-    const scoreClass = asset.reliabilityScore >= 90 ? 'adoc-score-high' :
-                       asset.reliabilityScore >= 70 ? 'adoc-score-med' : 'adoc-score-low';
+    const score      = asset.reliabilityScore;
+    const scoreClass = score >= 90 ? 'adoc-score-high' : score >= 70 ? 'adoc-score-med' : 'adoc-score-low';
+    const scoreText  = score != null ? `${parseFloat(score).toFixed(2)}%` : '—';
+    const freshText  = asset.freshness != null ? `${parseFloat(asset.freshness).toFixed(0)}%` : '—';
+    const profText   = asset.lastProfiled ? fmtDate(asset.lastProfiled) : '—';
 
-    // Static skeleton, dynamic values set via textContent
+    const extIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+      <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`;
+
+    const typeIcon = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" class="adoc-type-icon">
+      <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/>
+      <path d="M3 9h18M3 15h18M9 3v18" stroke="currentColor" stroke-width="2"/>
+    </svg>`;
+
     card.innerHTML = `
       <div class="adoc-card-header">
-        <div class="adoc-card-title">
-          <span class="adoc-card-name"></span>
-          <span class="adoc-card-type"></span>
-        </div>
-        <div class="adoc-score-pill ${scoreClass}"></div>
+        ${typeIcon}
+        <span class="adoc-card-name"></span>
+        <button class="adoc-copy-btn" title="Copy asset name">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+            <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/>
+            <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke="currentColor" stroke-width="2"/>
+          </svg>
+        </button>
       </div>
-      ${asset.openAlerts > 0 ? `
-      <div class="adoc-card-alerts">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-          <path d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="#ef4444" stroke-width="2" stroke-linecap="round"/>
-        </svg>
-        <span class="js-alerts"></span>
-        <a class="adoc-card-link js-link" target="_blank" rel="noopener noreferrer">View ↗</a>
-      </div>` : ''}
+      <div class="adoc-card-body">
+        <div class="adoc-card-row">
+          <span class="adoc-card-label">Data Reliability Score:</span>
+          <span class="adoc-score-pill ${scoreClass} js-score"></span>
+        </div>
+        <div class="adoc-card-row">
+          <span class="adoc-card-label">Data Freshness:</span>
+          <span class="adoc-card-value js-freshness"></span>
+        </div>
+        <div class="adoc-card-row">
+          <span class="adoc-card-label">Last Profiled:</span>
+          <strong class="adoc-card-value js-profiled"></strong>
+        </div>
+        <div class="adoc-card-row adoc-card-row-sep">
+          <span class="adoc-card-label">Open Alerts:</span>
+          <span class="adoc-card-value js-alerts"></span>
+          <a class="adoc-ext-link js-alerts-link" target="_blank" rel="noopener noreferrer"
+             style="${asset.openAlerts > 0 ? '' : 'visibility:hidden'}">${extIcon}</a>
+        </div>
+        <div class="adoc-card-row">
+          <span class="adoc-card-label">Upstream Issues:</span>
+          <span class="adoc-card-value js-upstream"></span>
+          <a class="adoc-ext-link js-upstream-link" target="_blank" rel="noopener noreferrer"
+             style="${asset.upstreamIssues > 0 ? '' : 'visibility:hidden'}">${extIcon}</a>
+        </div>
+      </div>
     `;
 
-    card.querySelector('.adoc-card-name').textContent = asset.name;
-    card.querySelector('.adoc-card-type').textContent = asset.type;
-    card.querySelector('.adoc-score-pill').textContent = `${asset.reliabilityScore}%`;
+    card.querySelector('.adoc-card-name').textContent  = asset.name;
+    card.querySelector('.js-score').textContent        = scoreText;
+    card.querySelector('.js-freshness').textContent    = freshText;
+    card.querySelector('.js-profiled').textContent     = profText;
+    card.querySelector('.js-alerts').textContent       = asset.openAlerts;
+    card.querySelector('.js-upstream').textContent     = asset.upstreamIssues;
+    card.querySelector('.js-alerts-link').href         = asset.adocLink;
+    card.querySelector('.js-upstream-link').href       = asset.adocLink;
 
-    if (asset.openAlerts > 0) {
-      card.querySelector('.js-alerts').textContent = `${asset.openAlerts} open alert${asset.openAlerts > 1 ? 's' : ''}`;
-      const link = card.querySelector('.js-link');
-      if (link) link.href = asset.adocLink;
-    }
+    card.querySelector('.adoc-copy-btn').addEventListener('click', () => {
+      navigator.clipboard.writeText(asset.name).catch(() => {});
+    });
 
     return card;
   }
@@ -427,6 +463,18 @@ function detectContext() {
     if (m) return { type: 'DASHBOARD', workspaceId: m[1], dashboardId: m[2] };
   } catch (_) {}
   return null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────────────────────────────────────
+function fmtDate(dateString) {
+  const d = new Date(dateString);
+  if (isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('en-GB', {
+    day: 'numeric', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit'
+  });
 }
 
 // Notify background that this PowerBI tab is active

@@ -293,74 +293,99 @@ body.adoc-body-pushed {
 .adoc-asset-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
 .adoc-asset-card.adoc-has-alerts { border-left: 3px solid #ef4444; }
 
+/* Card header: type icon + name + copy button */
 .adoc-card-header {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  margin-bottom: 8px;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 10px;
 }
 
-.adoc-card-title { flex: 1; min-width: 0; }
+.adoc-type-icon {
+  color: #6b7280;
+  flex-shrink: 0;
+}
 
 .adoc-card-name {
+  flex: 1;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   color: #1f2937;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  display: block;
 }
 
-.adoc-card-type {
-  font-size: 11px;
+.adoc-copy-btn {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #9ca3af;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+}
+.adoc-copy-btn:hover { color: #374151; background: #f3f4f6; }
+
+/* Card body: label/value rows */
+.adoc-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.adoc-card-row {
+  display: flex;
+  align-items: center;
+  font-size: 12.5px;
+  gap: 6px;
+}
+
+.adoc-card-row-sep {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid #f3f4f6;
+}
+
+.adoc-card-label {
   color: #6b7280;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
+  flex-shrink: 0;
+  min-width: 140px;
 }
 
+.adoc-card-value {
+  color: #1f2937;
+  font-weight: 500;
+  margin-left: auto;
+}
+
+.adoc-ext-link {
+  color: #0ea5e9;
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.adoc-ext-link:hover { color: #0284c7; }
+
+/* Score pill — sits in the row like a value */
 .adoc-score-pill {
-  padding: 3px 10px;
+  padding: 2px 9px;
   border-radius: 999px;
   font-size: 12px;
   font-weight: 700;
   white-space: nowrap;
-  flex-shrink: 0;
-  margin-left: 8px;
+  margin-left: auto;
 }
 
 .adoc-score-high { background: #d1fae5; color: #065f46; }
 .adoc-score-med  { background: #fef3c7; color: #92400e; }
 .adoc-score-low  { background: #fee2e2; color: #991b1b; }
-
-.adoc-card-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  font-size: 12px;
-  color: #4b5563;
-  margin-bottom: 8px;
-}
-
-.adoc-meta-item b { color: #6b7280; font-weight: 500; }
-
-.adoc-card-alerts {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: #ef4444;
-  font-weight: 500;
-}
-
-.adoc-card-link {
-  margin-left: auto;
-  font-size: 11px;
-  color: #0ea5e9;
-  text-decoration: none;
-  font-weight: 500;
-}
-.adoc-card-link:hover { text-decoration: underline; }
 
 /* ── Refresh button ──────────────────────────────────────────────────────── */
 .adoc-refresh-btn {
