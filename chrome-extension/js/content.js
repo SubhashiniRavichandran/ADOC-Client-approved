@@ -20,7 +20,10 @@ function getPowerBIReportName() {
   );
   if (el) {
     const name = el.innerText.trim();
-    if (name) return name;
+    if (name) {
+      console.log('[ADOC] getPowerBIReportName (DOM):', name);
+      return name;
+    }
   }
 
   // Step 2: fallback — document.title formats used by Power BI:
@@ -29,16 +32,25 @@ function getPowerBIReportName() {
   if (document.title) {
     if (document.title.includes(' - Power BI')) {
       const name = document.title.replace(' - Power BI', '').trim();
-      if (name) return name;
+      if (name) {
+        console.log('[ADOC] getPowerBIReportName (title):', name);
+        return name;
+      }
     }
     if (document.title.startsWith('Power BI - ')) {
       const name = document.title.replace('Power BI - ', '').trim();
-      if (name) return name;
+      if (name) {
+        console.log('[ADOC] getPowerBIReportName (title):', name);
+        return name;
+      }
     }
   }
 
+  console.log('[ADOC] getPowerBIReportName: null — no report name found');
   return null;
 }
+
+console.log('[ADOC] Report name:', getPowerBIReportName());
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SIDEBAR — injected directly into the Power BI page
