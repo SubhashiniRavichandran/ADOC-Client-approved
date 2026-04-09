@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "ADOC Reliability Metrics",
-  "version": "1.0.0",
-  "description": "Check data quality instantly and make decisions you can trust - Power BI integration with ADOC",
+  "version": "2.0.0",
+  "description": "Check data reliability instantly for your Power BI reports via Acceldata ADOC",
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
@@ -32,21 +32,26 @@
   ],
   "permissions": [
     "storage",
-    "notifications",
-    "activeTab"
+    "tabs",
+    "cookies",
+    "activeTab",
+    "notifications"
   ],
   "host_permissions": [
     "https://app.powerbi.com/*",
     "https://msit.powerbi.com/*",
-    "https://indiumtech.acceldata.app/*",
+    "https://cso-enablement.poc.acceldatasolutions.net/*",
     "https://*.acceldata.io/*",
-    "https://*.acceldata.dev/*"
+    "https://*.acceldatasolutions.net/*"
   ],
   "options_page": "html/options.html",
   "web_accessible_resources": [
     {
-      "resources": ["html/sidebar.html", "css/sidebar.css", "icons/*"],
-      "matches": ["<all_urls>"]
+      "resources": ["css/sidebar.css", "icons/*"],
+      "matches": [
+        "https://app.powerbi.com/*",
+        "https://msit.powerbi.com/*"
+      ]
     }
   ]
 }
