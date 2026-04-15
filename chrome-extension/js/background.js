@@ -242,15 +242,27 @@ async function fetchReliabilityData(reportName) {
   console.log(`[ADOC] Using asset id=${parentId} for childAssets`);
 
   // ── Step 2: fetch child assets ────────────────────────────────────────────
-  console.log(`[ADOC] Step 2 — fetching childAssets for id=${parentId}`);
   const childResult = await api.getChildAssets(parentId);
 
-  const children = Array.isArray(childResult?.assets) ? childResult.assets
-    : Array.isArray(childResult) ? childResult
-    : normalizeList(childResult, ['childAssets', 'data', 'result', 'items', 'results']);
-  console.log(`[ADOC] Total child asset(s) from API: ${children.length}`);
+  // Try every possible response shape to extract the array
+  let children = [];
+  if (Array.isArray(childResult)) {
+    children = childResult;
+  } else if (childResult && typeof childResult === 'object') {
+    const tryKeys = ['assets', 'childAssets', 'data', 'result', 'results', 'items', 'content', 'records', 'children', 'list'];
+    for (const k of tryKeys) {
+      if (Array.isArray(childResult[k])) { children = childResult[k]; break; }
+    }
+    // last resort — first non-empty array value in the response
+    if (!children.length) {
+      for (const v of Object.values(childResult)) {
+        if (Array.isArray(v) && v.length > 0) { children = v; break; }
+      }
+    }
+  }
 
-  // totalAssets = exact count returned by the childAssets API
+  // Pass raw response back so content.js can log it in the page console
+  results.debug = { parentId, rawChildResult: childResult, childrenLength: children.length };
   results.totalAssets = children.length;
 
   // ── Step 3: per-child enrichment (freshness via data-cadence API) ─────────

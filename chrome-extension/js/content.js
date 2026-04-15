@@ -192,11 +192,12 @@ class AdocSidebar {
         reportName
       });
 
-      console.log('[ADOC] Response from background:', JSON.stringify(response));
-
       if (response && response.results) {
         console.log('[ADOC] Total Assets:', response.results.totalAssets);
         console.log('[ADOC] Assets with Alerts:', response.results.assetsWithAlerts);
+        console.log('[ADOC] parentId used:', response.results.debug?.parentId);
+        console.log('[ADOC] childAssets raw response:', JSON.stringify(response.results.debug?.rawChildResult));
+        console.log('[ADOC] children parsed count:', response.results.debug?.childrenLength);
         console.log('[ADOC] Asset list:', JSON.stringify(response.results.assets));
         this.data = response.results;
         this.renderResults(response.results);
