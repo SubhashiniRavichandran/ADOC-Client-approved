@@ -221,13 +221,19 @@ async function fetchReliabilityData(reportName) {
 
   // Read ONLY response.assets[] — ignore assemblies, parents, assetType
   const assets = Array.isArray(searchResult?.assets) ? searchResult.assets : [];
-
-  // Find the POWERBI_SEMANTIC_MODEL by name, use its top-level id only
   const semanticModelName = `${reportName}::POWERBI_SEMANTIC_MODEL`;
   const semanticAsset = assets.find(a => a.name === semanticModelName);
 
+  // Always populate debug so content.js can log it regardless of outcome
+  results.debug = {
+    reportName,
+    semanticModelName,
+    assetsInResponse: assets.map(a => ({ id: a.id, name: a.name })),
+    semanticAssetFound: !!semanticAsset,
+    parentId: semanticAsset?.id ?? null
+  };
+
   if (!semanticAsset) {
-    console.warn(`[ADOC] "${semanticModelName}" not found in response.assets`);
     return results;
   }
 
@@ -255,7 +261,8 @@ async function fetchReliabilityData(reportName) {
 
   // totalAssets = count of children returned by API
   results.totalAssets = children.length;
-  results.debug = { parentId, rawChildResult: childResult, childrenLength: children.length };
+  results.debug.rawChildResult = childResult;
+  results.debug.childrenLength = children.length;
 
   // ── Step 3: per-child enrichment ──────────────────────────────────────────
   for (const child of children) {

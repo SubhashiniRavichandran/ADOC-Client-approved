@@ -193,11 +193,16 @@ class AdocSidebar {
       });
 
       if (response && response.results) {
+        const dbg = response.results.debug || {};
+        console.log('[ADOC] reportName used:', dbg.reportName);
+        console.log('[ADOC] semanticModelName looked up:', dbg.semanticModelName);
+        console.log('[ADOC] assets in search response:', JSON.stringify(dbg.assetsInResponse));
+        console.log('[ADOC] semanticAsset found?', dbg.semanticAssetFound);
+        console.log('[ADOC] parentId used:', dbg.parentId);
+        console.log('[ADOC] childAssets raw response:', JSON.stringify(dbg.rawChildResult));
+        console.log('[ADOC] children parsed count:', dbg.childrenLength);
         console.log('[ADOC] Total Assets:', response.results.totalAssets);
         console.log('[ADOC] Assets with Alerts:', response.results.assetsWithAlerts);
-        console.log('[ADOC] parentId used:', response.results.debug?.parentId);
-        console.log('[ADOC] childAssets raw response:', JSON.stringify(response.results.debug?.rawChildResult));
-        console.log('[ADOC] children parsed count:', response.results.debug?.childrenLength);
         console.log('[ADOC] Asset list:', JSON.stringify(response.results.assets));
         this.data = response.results;
         this.renderResults(response.results);
