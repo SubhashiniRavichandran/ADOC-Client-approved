@@ -179,6 +179,8 @@ class AdocSidebar {
     if (errorEl) errorEl.classList.add('hidden');
 
     const reportName = getPowerBIReportName();
+    console.log('[ADOC] Report name sent to background:', reportName);
+
     if (!reportName) {
       this.showError('Could not detect the Power BI report name. Please ensure a report is fully loaded.');
       return;
@@ -190,13 +192,19 @@ class AdocSidebar {
         reportName
       });
 
+      console.log('[ADOC] Response from background:', JSON.stringify(response));
+
       if (response && response.results) {
+        console.log('[ADOC] Total Assets:', response.results.totalAssets);
+        console.log('[ADOC] Assets with Alerts:', response.results.assetsWithAlerts);
+        console.log('[ADOC] Asset list:', JSON.stringify(response.results.assets));
         this.data = response.results;
         this.renderResults(response.results);
       } else {
         this.showError(response?.error || 'Failed to fetch reliability data.');
       }
     } catch (e) {
+      console.error('[ADOC] loadData error:', e.message);
       this.showError('Extension error: ' + e.message);
     } finally {
       if (loadingEl) loadingEl.classList.add('hidden');

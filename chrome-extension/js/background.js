@@ -230,10 +230,13 @@ async function fetchReliabilityData(reportName) {
     return results;
   }
 
-  // Find the POWERBI_SEMANTIC_MODEL asset; fall back to first result
+  // Find the POWERBI_SEMANTIC_MODEL asset by name or assetType; fall back to first result
   const semanticModelName = `${reportName}::POWERBI_SEMANTIC_MODEL`;
-  const semanticAsset     = candidates.find(a => a.name === semanticModelName) || candidates[0];
-  const parentId          = semanticAsset.id;
+  const semanticAsset =
+    candidates.find(a => a.name === semanticModelName) ||
+    candidates.find(a => a.assetType?.name === 'POWERBI_SEMANTIC_MODEL') ||
+    candidates[0];
+  const parentId = semanticAsset.id;
   console.log(`[ADOC] Matched asset: "${semanticAsset.name}", id=${parentId}`);
 
   // ── Step 2: fetch child assets ────────────────────────────────────────────
