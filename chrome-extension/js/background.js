@@ -243,51 +243,44 @@ async function fetchReliabilityData(reportName) {
   // ── Step 2: fetch child assets using assets[].id ──────────────────────────
   const childResult = await api.getChildAssets(parentId);
 
-  // Extract the children array — try response.assets first, then other keys
-  let children = [];
-  if (Array.isArray(childResult)) {
-    children = childResult;
-  } else if (childResult && typeof childResult === 'object') {
-    const tryKeys = ['assets', 'childAssets', 'data', 'result', 'results', 'items', 'content', 'records', 'children', 'list'];
-    for (const k of tryKeys) {
-      if (Array.isArray(childResult[k])) { children = childResult[k]; break; }
-    }
-    if (!children.length) {
-      for (const v of Object.values(childResult)) {
-        if (Array.isArray(v) && v.length > 0) { children = v; break; }
-      }
-    }
-  }
+  // childAssets response has top-level "assets" array — use it directly
+  const children = Array.isArray(childResult?.assets) ? childResult.assets : [];
 
-  // totalAssets = count of children returned by API
+  // totalAssets = exact count from response.assets
   results.totalAssets = children.length;
   results.debug.rawChildResult = childResult;
   results.debug.childrenLength = children.length;
 
-  // ── Step 3: per-child enrichment ──────────────────────────────────────────
+  // ── Step 3: extract fields from each child asset ──────────────────────────
+  // Field mapping per spec:
+  //   name             → name
+  //   id               → assetId  (top-level id only, NOT assetType.id)
+  //   reliabilityScore → Data Reliability Score  (direct field)
+  //   updatedAt        → Last Profiled            (direct field)
   for (const child of children) {
-    // Use only child's top-level id — not child.assetType.id
     if (!child || !child.id) continue;
 
-    const name             = child.name || child.displayName || `Asset_${child.id}`;
-    const type             = child.assetType?.name || child.type || 'TABLE';
-    const reliabilityScore = child.ruleScores?.reliabilityScore ?? null;
-    const openAlerts       = child.openAlerts   ?? child.alertCount    ?? 0;
+    const name             = child.name;
+    const assetId          = child.id;                          // assets[].id only
+    const reliabilityScore = child.reliabilityScore ?? null;    // direct field
+    const lastProfiled     = child.updatedAt ?? null;           // direct field
+    const type             = child.assetType?.name || 'TABLE';
+    const openAlerts       = child.openAlerts  ?? child.alertCount   ?? 0;
     const upstreamIssues   = child.upstreamIssues ?? child.upstreamAlerts ?? 0;
-    const lastProfiled     = child.updatedAt    || child.lastProfiled  || null;
 
-    const cadenceData = await api.getDataCadence(child.id);
+    const cadenceData = await api.getDataCadence(assetId);
     const freshness   = cadenceData?.freshnessScore ?? cadenceData?.score ?? cadenceData?.freshness ?? null;
 
     results.assets.push({
       name,
-      type,
+      assetId,
       reliabilityScore,
       freshness,
       lastProfiled,
+      type,
       openAlerts,
       upstreamIssues,
-      adocLink: `${SERVER_URL}${ASSET_DETAIL_PATH}${child.id}`
+      adocLink: `${SERVER_URL}${ASSET_DETAIL_PATH}${assetId}`
     });
 
     if (openAlerts > 0) results.assetsWithAlerts++;
