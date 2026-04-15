@@ -219,32 +219,35 @@ async function fetchReliabilityData(reportName) {
   // ── Step 1: search by report name ─────────────────────────────────────────
   console.log(`[ADOC] Step 1 — searching assets for: "${reportName}"`);
   const searchResult = await api.searchAssets(reportName);
-  console.log('[ADOC] Search raw response:', JSON.stringify(searchResult));
 
-  // searchResult = { assets: [...], assemblies: [...], parents: [] }
-  const candidates = normalizeList(searchResult, ['assets', 'data']);
-  console.log(`[ADOC] Candidates found: ${candidates.length}`);
+  // Use ONLY the "assets" array from the response — ignore assemblies, parents, etc.
+  const candidates = Array.isArray(searchResult?.assets) ? searchResult.assets : [];
+  console.log(`[ADOC] Assets found in response: ${candidates.length}`, candidates.map(a => ({ id: a.id, name: a.name })));
 
   if (!candidates.length) {
-    console.warn(`[ADOC] No assets matched "${reportName}"`);
+    console.warn(`[ADOC] No assets found for "${reportName}"`);
     return results;
   }
 
-  // Find the POWERBI_SEMANTIC_MODEL asset by name or assetType; fall back to first result
+  // Find the asset whose name matches "<reportName>::POWERBI_SEMANTIC_MODEL"
   const semanticModelName = `${reportName}::POWERBI_SEMANTIC_MODEL`;
-  const semanticAsset =
-    candidates.find(a => a.name === semanticModelName) ||
-    candidates.find(a => a.assetType?.name === 'POWERBI_SEMANTIC_MODEL') ||
-    candidates[0];
+  const semanticAsset = candidates.find(a => a.name === semanticModelName);
+
+  if (!semanticAsset) {
+    console.warn(`[ADOC] Could not find "${semanticModelName}" in assets`);
+    return results;
+  }
+
   const parentId = semanticAsset.id;
-  console.log(`[ADOC] Matched asset: "${semanticAsset.name}", id=${parentId}`);
+  console.log(`[ADOC] Using asset id=${parentId} for childAssets`);
 
   // ── Step 2: fetch child assets ────────────────────────────────────────────
   console.log(`[ADOC] Step 2 — fetching childAssets for id=${parentId}`);
   const childResult = await api.getChildAssets(parentId);
-  console.log('[ADOC] childAssets raw response:', JSON.stringify(childResult));
 
-  const children = normalizeList(childResult, ['childAssets', 'assets', 'data', 'result', 'items', 'results']);
+  const children = Array.isArray(childResult?.assets) ? childResult.assets
+    : Array.isArray(childResult) ? childResult
+    : normalizeList(childResult, ['childAssets', 'data', 'result', 'items', 'results']);
   console.log(`[ADOC] Total child asset(s) from API: ${children.length}`);
 
   // totalAssets = exact count returned by the childAssets API
