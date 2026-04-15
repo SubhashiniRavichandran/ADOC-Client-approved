@@ -219,7 +219,11 @@ async function fetchReliabilityData(reportName) {
   // ── Step 1: search by report name ─────────────────────────────────────────
   console.log(`[ADOC] Step 1 — searching assets for: "${reportName}"`);
   const searchResult = await api.searchAssets(reportName);
-  const candidates   = normalizeList(searchResult, ['assets', 'data']);
+  console.log('[ADOC] Search raw response:', JSON.stringify(searchResult));
+
+  // searchResult = { assets: [...], assemblies: [...], parents: [] }
+  const candidates = normalizeList(searchResult, ['assets', 'data']);
+  console.log(`[ADOC] Candidates found: ${candidates.length}`);
 
   if (!candidates.length) {
     console.warn(`[ADOC] No assets matched "${reportName}"`);
@@ -235,10 +239,12 @@ async function fetchReliabilityData(reportName) {
   // ── Step 2: fetch child assets ────────────────────────────────────────────
   console.log(`[ADOC] Step 2 — fetching childAssets for id=${parentId}`);
   const childResult = await api.getChildAssets(parentId);
-  const children    = normalizeList(childResult, ['childAssets', 'assets', 'data', 'result', 'items']);
-  console.log(`[ADOC] ${children.length} child asset(s) found`);
+  console.log('[ADOC] childAssets raw response:', JSON.stringify(childResult));
 
-  // Set totalAssets from the raw API count before any filtering
+  const children = normalizeList(childResult, ['childAssets', 'assets', 'data', 'result', 'items', 'results']);
+  console.log(`[ADOC] Total child asset(s) from API: ${children.length}`);
+
+  // totalAssets = exact count returned by the childAssets API
   results.totalAssets = children.length;
 
   // ── Step 3: per-child enrichment (freshness via data-cadence API) ─────────
@@ -281,8 +287,13 @@ async function fetchReliabilityData(reportName) {
 function normalizeList(data, keys) {
   if (!data) return [];
   if (Array.isArray(data)) return data;
+  // Try known keys first
   for (const k of keys) {
     if (Array.isArray(data[k])) return data[k];
+  }
+  // Fallback: scan all object values for the first array
+  for (const v of Object.values(data)) {
+    if (Array.isArray(v) && v.length > 0) return v;
   }
   return [];
 }
