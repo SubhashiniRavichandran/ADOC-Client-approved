@@ -238,29 +238,30 @@ body.adoc-body-pushed {
 
 .adoc-stats {
   display: flex;
-  gap: 16px;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
 }
 
-.adoc-stat {
+.adoc-stat-row {
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
   align-items: center;
+  font-size: 13px;
+}
+
+.adoc-stat-label {
+  color: #6b7280;
+  font-weight: 400;
 }
 
 .adoc-stat-val {
-  font-size: 20px;
   font-weight: 700;
   color: #1f2937;
+  font-size: 13px;
 }
 
 .adoc-risky-text { color: #ef4444; }
-
-.adoc-stat-label {
-  font-size: 11px;
-  color: #6b7280;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-}
 
 /* ── No-alerts message ───────────────────────────────────────────────────── */
 .adoc-no-alerts {

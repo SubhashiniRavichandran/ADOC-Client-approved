@@ -225,13 +225,13 @@ class AdocSidebar {
     const statsEl = document.createElement('div');
     statsEl.className = 'adoc-stats';
     statsEl.innerHTML = `
-      <div class="adoc-stat">
+      <div class="adoc-stat-row">
+        <span class="adoc-stat-label">Total Assets:</span>
         <span class="adoc-stat-val">${results.totalAssets}</span>
-        <span class="adoc-stat-label">Assets</span>
       </div>
-      <div class="adoc-stat">
+      <div class="adoc-stat-row">
+        <span class="adoc-stat-label">Assets with Alerts:</span>
         <span class="adoc-stat-val ${results.assetsWithAlerts > 0 ? 'adoc-risky-text' : ''}">${results.assetsWithAlerts}</span>
-        <span class="adoc-stat-label">With Alerts</span>
       </div>
     `;
 

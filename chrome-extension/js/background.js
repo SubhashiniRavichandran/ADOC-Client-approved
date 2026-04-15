@@ -235,8 +235,11 @@ async function fetchReliabilityData(reportName) {
   // ── Step 2: fetch child assets ────────────────────────────────────────────
   console.log(`[ADOC] Step 2 — fetching childAssets for id=${parentId}`);
   const childResult = await api.getChildAssets(parentId);
-  const children    = normalizeList(childResult, ['childAssets', 'assets', 'data']);
+  const children    = normalizeList(childResult, ['childAssets', 'assets', 'data', 'result', 'items']);
   console.log(`[ADOC] ${children.length} child asset(s) found`);
+
+  // Set totalAssets from the raw API count before any filtering
+  results.totalAssets = children.length;
 
   // ── Step 3: per-child enrichment (freshness via data-cadence API) ─────────
   for (const child of children) {
@@ -268,7 +271,6 @@ async function fetchReliabilityData(reportName) {
     if (openAlerts > 0) results.assetsWithAlerts++;
   }
 
-  results.totalAssets  = results.assets.length;
   results.reportStatus = results.assetsWithAlerts > 0 ? 'Risky' : 'Healthy';
   return results;
 }
