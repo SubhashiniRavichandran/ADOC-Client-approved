@@ -217,34 +217,27 @@ async function fetchReliabilityData(reportName) {
   }
 
   // ── Step 1: search by report name ─────────────────────────────────────────
-  console.log(`[ADOC] Step 1 — searching assets for: "${reportName}"`);
   const searchResult = await api.searchAssets(reportName);
 
-  // Use ONLY the "assets" array from the response — ignore assemblies, parents, etc.
-  const candidates = Array.isArray(searchResult?.assets) ? searchResult.assets : [];
-  console.log(`[ADOC] Assets found in response: ${candidates.length}`, candidates.map(a => ({ id: a.id, name: a.name })));
+  // Read ONLY response.assets[] — ignore assemblies, parents, assetType
+  const assets = Array.isArray(searchResult?.assets) ? searchResult.assets : [];
 
-  if (!candidates.length) {
-    console.warn(`[ADOC] No assets found for "${reportName}"`);
-    return results;
-  }
-
-  // Find the asset whose name matches "<reportName>::POWERBI_SEMANTIC_MODEL"
+  // Find the POWERBI_SEMANTIC_MODEL by name, use its top-level id only
   const semanticModelName = `${reportName}::POWERBI_SEMANTIC_MODEL`;
-  const semanticAsset = candidates.find(a => a.name === semanticModelName);
+  const semanticAsset = assets.find(a => a.name === semanticModelName);
 
   if (!semanticAsset) {
-    console.warn(`[ADOC] Could not find "${semanticModelName}" in assets`);
+    console.warn(`[ADOC] "${semanticModelName}" not found in response.assets`);
     return results;
   }
 
+  // assets[].id — the top-level numeric id (e.g. 3011855), NOT assetType.id
   const parentId = semanticAsset.id;
-  console.log(`[ADOC] Using asset id=${parentId} for childAssets`);
 
-  // ── Step 2: fetch child assets ────────────────────────────────────────────
+  // ── Step 2: fetch child assets using assets[].id ──────────────────────────
   const childResult = await api.getChildAssets(parentId);
 
-  // Try every possible response shape to extract the array
+  // Extract the children array — try response.assets first, then other keys
   let children = [];
   if (Array.isArray(childResult)) {
     children = childResult;
@@ -253,7 +246,6 @@ async function fetchReliabilityData(reportName) {
     for (const k of tryKeys) {
       if (Array.isArray(childResult[k])) { children = childResult[k]; break; }
     }
-    // last resort — first non-empty array value in the response
     if (!children.length) {
       for (const v of Object.values(childResult)) {
         if (Array.isArray(v) && v.length > 0) { children = v; break; }
@@ -261,25 +253,24 @@ async function fetchReliabilityData(reportName) {
     }
   }
 
-  // Pass raw response back so content.js can log it in the page console
-  results.debug = { parentId, rawChildResult: childResult, childrenLength: children.length };
+  // totalAssets = count of children returned by API
   results.totalAssets = children.length;
+  results.debug = { parentId, rawChildResult: childResult, childrenLength: children.length };
 
-  // ── Step 3: per-child enrichment (freshness via data-cadence API) ─────────
+  // ── Step 3: per-child enrichment ──────────────────────────────────────────
   for (const child of children) {
+    // Use only child's top-level id — not child.assetType.id
     if (!child || !child.id) continue;
 
     const name             = child.name || child.displayName || `Asset_${child.id}`;
-    const type             = child.assetType || child.type || 'TABLE';
+    const type             = child.assetType?.name || child.type || 'TABLE';
     const reliabilityScore = child.ruleScores?.reliabilityScore ?? null;
     const openAlerts       = child.openAlerts   ?? child.alertCount    ?? 0;
     const upstreamIssues   = child.upstreamIssues ?? child.upstreamAlerts ?? 0;
     const lastProfiled     = child.updatedAt    || child.lastProfiled  || null;
 
-    // Freshness — separate API call per child asset
     const cadenceData = await api.getDataCadence(child.id);
     const freshness   = cadenceData?.freshnessScore ?? cadenceData?.score ?? cadenceData?.freshness ?? null;
-    console.log(`[ADOC] ${name} — reliability=${reliabilityScore}, freshness=${freshness}, alerts=${openAlerts}`);
 
     results.assets.push({
       name,
