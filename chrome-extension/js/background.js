@@ -194,13 +194,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 // CORE DATA FLOW
 //
 // Step 1: GET /assets/search?name=<reportName>
-//         → find asset whose name = "<reportName>::POWERBI_SEMANTIC_MODEL"
+//         response.assets[] only → find name === "<reportName>::POWERBI_SEMANTIC_MODEL"
+//         → use assets[].id (NOT assetType.id)
 //
 // Step 2: GET /assets/:id/childAssets
-//         → extract name, reliabilityScore, updatedAt, openAlerts, upstreamIssues
-//
-// Step 3: GET /rules/data-cadence/byAsset/:id  (per child)
-//         → extract freshness value
+//         response.assets[] only → extract name, id, reliabilityScore, updatedAt
+//         → totalAssets = response.assets.length
 // ─────────────────────────────────────────────────────────────────────────────
 async function fetchReliabilityData(reportName) {
   const results = {
@@ -208,79 +207,66 @@ async function fetchReliabilityData(reportName) {
     reportStatus: 'Healthy',
     totalAssets: 0,
     assetsWithAlerts: 0,
-    assets: []
+    assets: [],
+    debug: {}
   };
 
-  if (!reportName) {
-    console.warn('[ADOC] No report name provided');
-    return results;
-  }
+  if (!reportName) return results;
 
-  // ── Step 1: search by report name ─────────────────────────────────────────
-  const searchResult = await api.searchAssets(reportName);
+  const name = reportName.trim();
 
-  // Read ONLY response.assets[] — ignore assemblies, parents, assetType
-  const assets = Array.isArray(searchResult?.assets) ? searchResult.assets : [];
-  const semanticModelName = `${reportName}::POWERBI_SEMANTIC_MODEL`;
-  const semanticAsset = assets.find(a => a.name === semanticModelName);
+  // ── Step 1: Search API ────────────────────────────────────────────────────
+  const searchResult  = await api.searchAssets(name);
+  const searchAssets  = Array.isArray(searchResult?.assets) ? searchResult.assets : [];
 
-  // Always populate debug so content.js can log it regardless of outcome
+  // Only assets[].id considered — assetType.id ignored
+  const semanticName  = `${name}::POWERBI_SEMANTIC_MODEL`;
+  const semanticAsset = searchAssets.find(a => a.name?.trim() === semanticName);
+
   results.debug = {
-    reportName,
-    semanticModelName,
-    assetsInResponse: assets.map(a => ({ id: a.id, name: a.name })),
+    reportName: name,
+    semanticName,
+    searchAssets: searchAssets.map(a => ({ id: a.id, name: a.name })),
     semanticAssetFound: !!semanticAsset,
     parentId: semanticAsset?.id ?? null
   };
 
-  if (!semanticAsset) {
-    return results;
-  }
+  if (!semanticAsset) return results;
 
-  // assets[].id — the top-level numeric id (e.g. 3011855), NOT assetType.id
-  const parentId = semanticAsset.id;
+  const parentId = semanticAsset.id;   // assets[].id only
 
-  // ── Step 2: fetch child assets using assets[].id ──────────────────────────
-  const childResult = await api.getChildAssets(parentId);
+  // ── Step 2: childAssets API ───────────────────────────────────────────────
+  const childResult  = await api.getChildAssets(parentId);
+  const childAssets  = Array.isArray(childResult?.assets) ? childResult.assets : [];
 
-  // childAssets response has top-level "assets" array — use it directly
-  const children = Array.isArray(childResult?.assets) ? childResult.assets : [];
+  results.totalAssets           = childAssets.length;   // Total Assets count
+  results.debug.rawChildResult  = childResult;
+  results.debug.childrenLength  = childAssets.length;
 
-  // totalAssets = exact count from response.assets
-  results.totalAssets = children.length;
-  results.debug.rawChildResult = childResult;
-  results.debug.childrenLength = children.length;
+  // ── Step 3: Extract fields per spec ──────────────────────────────────────
+  // name            → name
+  // id              → assetId          (assets[].id, NOT assetType.id)
+  // reliabilityScore→ reliabilityScore  (direct field)
+  // updatedAt       → lastProfiled     (direct field)
+  for (const child of childAssets) {
+    if (!child?.id) continue;
 
-  // ── Step 3: extract fields from each child asset ──────────────────────────
-  // Field mapping per spec:
-  //   name             → name
-  //   id               → assetId  (top-level id only, NOT assetType.id)
-  //   reliabilityScore → Data Reliability Score  (direct field)
-  //   updatedAt        → Last Profiled            (direct field)
-  for (const child of children) {
-    if (!child || !child.id) continue;
+    const openAlerts     = child.openAlerts    ?? child.alertCount    ?? 0;
+    const upstreamIssues = child.upstreamIssues ?? child.upstreamAlerts ?? 0;
 
-    const name             = child.name;
-    const assetId          = child.id;                          // assets[].id only
-    const reliabilityScore = child.reliabilityScore ?? null;    // direct field
-    const lastProfiled     = child.updatedAt ?? null;           // direct field
-    const type             = child.assetType?.name || 'TABLE';
-    const openAlerts       = child.openAlerts  ?? child.alertCount   ?? 0;
-    const upstreamIssues   = child.upstreamIssues ?? child.upstreamAlerts ?? 0;
-
-    const cadenceData = await api.getDataCadence(assetId);
+    const cadenceData = await api.getDataCadence(child.id);
     const freshness   = cadenceData?.freshnessScore ?? cadenceData?.score ?? cadenceData?.freshness ?? null;
 
     results.assets.push({
-      name,
-      assetId,
-      reliabilityScore,
+      name:             child.name,
+      assetId:          child.id,
+      reliabilityScore: child.reliabilityScore ?? null,
+      lastProfiled:     child.updatedAt        ?? null,
       freshness,
-      lastProfiled,
-      type,
+      type:             child.assetType?.name  || 'TABLE',
       openAlerts,
       upstreamIssues,
-      adocLink: `${SERVER_URL}${ASSET_DETAIL_PATH}${assetId}`
+      adocLink: `${SERVER_URL}${ASSET_DETAIL_PATH}${child.id}`
     });
 
     if (openAlerts > 0) results.assetsWithAlerts++;
