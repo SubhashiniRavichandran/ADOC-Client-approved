@@ -224,11 +224,12 @@ async function fetchReliabilityData(reportName) {
   const semanticAsset = searchAssets.find(a => a.name?.trim() === semanticName);
 
   results.debug = {
-    reportName: name,
+    reportName:         name,
     semanticName,
-    searchAssets: searchAssets.map(a => ({ id: a.id, name: a.name })),
+    rawSearchResult:    searchResult,                              // full search response
+    searchAssets:       searchAssets.map(a => ({ id: a.id, name: a.name })),
     semanticAssetFound: !!semanticAsset,
-    parentId: semanticAsset?.id ?? null
+    parentId:           semanticAsset?.id ?? null
   };
 
   if (!semanticAsset) return results;

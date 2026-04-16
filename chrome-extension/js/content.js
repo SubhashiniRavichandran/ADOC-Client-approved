@@ -194,16 +194,19 @@ class AdocSidebar {
 
       if (response && response.results) {
         const dbg = response.results.debug || {};
-        console.log('[ADOC] reportName used:', dbg.reportName);
-        console.log('[ADOC] semanticModelName looked up:', dbg.semanticModelName);
-        console.log('[ADOC] assets in search response:', JSON.stringify(dbg.assetsInResponse));
-        console.log('[ADOC] semanticAsset found?', dbg.semanticAssetFound);
-        console.log('[ADOC] parentId used:', dbg.parentId);
-        console.log('[ADOC] childAssets raw response:', JSON.stringify(dbg.rawChildResult));
-        console.log('[ADOC] children parsed count:', dbg.childrenLength);
-        console.log('[ADOC] Total Assets:', response.results.totalAssets);
-        console.log('[ADOC] Assets with Alerts:', response.results.assetsWithAlerts);
-        console.log('[ADOC] Asset list:', JSON.stringify(response.results.assets));
+        console.log('=== ADOC DEBUG START ===');
+        console.log('[ADOC] 1. reportName sent         :', dbg.reportName);
+        console.log('[ADOC] 2. semanticName looked up  :', dbg.semanticName);
+        console.log('[ADOC] 3. raw search response     :', JSON.stringify(dbg.rawSearchResult));
+        console.log('[ADOC] 4. assets[] from search    :', JSON.stringify(dbg.searchAssets));
+        console.log('[ADOC] 5. semanticAsset found?    :', dbg.semanticAssetFound);
+        console.log('[ADOC] 6. parentId (assets[].id)  :', dbg.parentId);
+        console.log('[ADOC] 7. raw childAssets response:', JSON.stringify(dbg.rawChildResult));
+        console.log('[ADOC] 8. children parsed count   :', dbg.childrenLength);
+        console.log('[ADOC] 9. Total Assets            :', response.results.totalAssets);
+        console.log('[ADOC] 10. Assets with Alerts     :', response.results.assetsWithAlerts);
+        console.log('[ADOC] 11. asset list             :', JSON.stringify(response.results.assets));
+        console.log('=== ADOC DEBUG END ===');
         this.data = response.results;
         this.renderResults(response.results);
       } else {
