@@ -236,7 +236,10 @@ async function fetchReliabilityData(reportName) {
   if (searchError) return results;
   if (!semanticAsset) return results;
 
-  const parentId = semanticAsset.id;   // assets[].id only
+  // id from search response.assets[] — passed directly to childAssets
+  const parentId        = semanticAsset.id;
+  const childAssetsUrl  = `${SERVER_URL}/${API_PREFIX}/assets/${parentId}/childAssets`;
+  results.debug.childAssetsUrl = childAssetsUrl;
 
   // ── Step 2: GET /assets/:id/childAssets ──────────────────────────────────
   const childResult  = await api.getChildAssets(parentId);

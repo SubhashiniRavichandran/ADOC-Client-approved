@@ -202,6 +202,7 @@ class AdocSidebar {
         console.log('[ADOC] 5. assets[] from search    :', JSON.stringify(dbg.searchAssets));
         console.log('[ADOC] 6. semanticAsset found?    :', dbg.semanticAssetFound);
         console.log('[ADOC] 7. parentId (assets[].id)  :', dbg.parentId);
+        console.log('[ADOC] 7b. childAssets URL         :', dbg.childAssetsUrl);
         console.log('[ADOC] 8. childAssets API error    :', dbg.childError ?? 'none');
         console.log('[ADOC] 9. raw childAssets response:', JSON.stringify(dbg.rawChildResult));
         console.log('[ADOC] 10. children parsed count  :', dbg.childrenLength);
