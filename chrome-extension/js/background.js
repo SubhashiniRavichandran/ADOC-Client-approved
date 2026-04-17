@@ -58,8 +58,7 @@ class AdocApiClient {
     try {
       return await this.makeRequest(`/assets/search?name=${encodeURIComponent(name)}`);
     } catch (e) {
-      console.error('[ADOC] searchAssets failed:', e.message);
-      return null;
+      return { __error: e.message };
     }
   }
 
@@ -68,8 +67,7 @@ class AdocApiClient {
     try {
       return await this.makeRequest(`/assets/${encodeURIComponent(assetId)}/childAssets`);
     } catch (e) {
-      console.error('[ADOC] getChildAssets failed:', e.message);
-      return null;
+      return { __error: e.message };
     }
   }
 
@@ -217,7 +215,8 @@ async function fetchReliabilityData(reportName) {
 
   // ── Step 1: Search API ────────────────────────────────────────────────────
   const searchResult  = await api.searchAssets(name);
-  const searchAssets  = Array.isArray(searchResult?.assets) ? searchResult.assets : [];
+  const searchError   = searchResult?.__error ?? null;
+  const searchAssets  = !searchError && Array.isArray(searchResult?.assets) ? searchResult.assets : [];
 
   // Only assets[].id considered — assetType.id ignored
   const semanticName  = `${name}::POWERBI_SEMANTIC_MODEL`;
@@ -226,12 +225,14 @@ async function fetchReliabilityData(reportName) {
   results.debug = {
     reportName:         name,
     semanticName,
-    rawSearchResult:    searchResult,                              // full search response
+    searchError,                                                   // API error if any
+    rawSearchResult:    searchError ? null : searchResult,
     searchAssets:       searchAssets.map(a => ({ id: a.id, name: a.name })),
     semanticAssetFound: !!semanticAsset,
     parentId:           semanticAsset?.id ?? null
   };
 
+  if (searchError) return results;
   if (!semanticAsset) return results;
 
   const parentId = semanticAsset.id;   // assets[].id only
