@@ -29,6 +29,7 @@ class AdocApiClient {
         credentials: 'include',   // send SSO session cookies
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
           ...(options.headers || {})
         },
         signal: controller.signal
