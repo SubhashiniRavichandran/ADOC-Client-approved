@@ -238,19 +238,23 @@ async function fetchReliabilityData(reportName) {
 
   const parentId = semanticAsset.id;   // assets[].id only
 
-  // ── Step 2: childAssets API ───────────────────────────────────────────────
+  // ── Step 2: GET /assets/:id/childAssets ──────────────────────────────────
   const childResult  = await api.getChildAssets(parentId);
-  const childAssets  = Array.isArray(childResult?.assets) ? childResult.assets : [];
+  const childError   = childResult?.__error ?? null;
+  const childAssets  = !childError && Array.isArray(childResult?.assets) ? childResult.assets : [];
 
-  results.totalAssets           = childAssets.length;   // Total Assets count
-  results.debug.rawChildResult  = childResult;
+  results.totalAssets           = childAssets.length;
+  results.debug.childError      = childError;
+  results.debug.rawChildResult  = childError ? null : childResult;
   results.debug.childrenLength  = childAssets.length;
 
-  // ── Step 3: Extract fields per spec ──────────────────────────────────────
-  // name            → name
-  // id              → assetId          (assets[].id, NOT assetType.id)
-  // reliabilityScore→ reliabilityScore  (direct field)
-  // updatedAt       → lastProfiled     (direct field)
+  if (childError) return results;
+
+  // ── Step 3: Extract per spec ──────────────────────────────────────────────
+  // name             → name
+  // id               → assetId           (assets[].id only, NOT assetType.id)
+  // reliabilityScore → reliabilityScore   (direct field)
+  // updatedAt        → lastProfiled       (direct field)
   for (const child of childAssets) {
     if (!child?.id) continue;
 
