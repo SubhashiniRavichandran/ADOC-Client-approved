@@ -23,13 +23,16 @@ class AdocApiClient {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
+    const method = (options.method || 'GET').toUpperCase();
+    const hasBody = ['POST', 'PUT', 'PATCH'].includes(method);
+
     try {
       const response = await fetch(url, {
         ...options,
         credentials: 'include',   // send SSO session cookies
         headers: {
-          'Content-Type': 'application/json',
           'Accept': 'application/json',
+          ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
           ...(options.headers || {})
         },
         signal: controller.signal
