@@ -282,8 +282,11 @@ class PopupController {
     const card = document.createElement('div');
     card.className = 'asset-card has-alerts';
 
-    const scoreClass = asset.reliabilityScore >= 90 ? 'score-high' :
+    const hasScore = Number.isFinite(asset.reliabilityScore);
+    const scoreClass = !hasScore ? 'score-low' :
+                       asset.reliabilityScore >= 90 ? 'score-high' :
                        asset.reliabilityScore >= 70 ? 'score-medium' : 'score-low';
+    const scoreText = hasScore ? `${asset.reliabilityScore}%` : 'N/A';
 
     card.innerHTML = `
       <div class="asset-header">
@@ -309,8 +312,8 @@ class PopupController {
 
     card.querySelector('.js-name').textContent = asset.name;
     card.querySelector('.js-type').textContent = asset.type;
-    card.querySelector('.js-score').textContent = `${asset.reliabilityScore}%`;
-    card.querySelector('.js-score-val').textContent = `${asset.reliabilityScore}%`;
+    card.querySelector('.js-score').textContent = scoreText;
+    card.querySelector('.js-score-val').textContent = scoreText;
     card.querySelector('.js-alerts').textContent = `${asset.openAlerts} open alert${asset.openAlerts !== 1 ? 's' : ''}`;
     card.querySelector('.js-link').href = safeUrl(asset.adocLink);
 

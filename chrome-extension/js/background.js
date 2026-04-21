@@ -223,8 +223,12 @@ async function fetchReliabilityData(reportName) {
   const searchAssets  = !searchError && Array.isArray(searchResult?.assets) ? searchResult.assets : [];
 
   // Only assets[].id considered — assetType.id ignored
-  const semanticName  = `${name}::POWERBI_SEMANTIC_MODEL`;
-  const semanticAsset = searchAssets.find(a => a.name?.trim() === semanticName);
+  const semanticName        = `${name}::POWERBI_SEMANTIC_MODEL`;
+  const normalizedSemantic  = semanticName.toLowerCase();
+  const semanticAsset = searchAssets.find((a) => {
+    const candidate = String(a?.name || '').trim().toLowerCase();
+    return candidate === normalizedSemantic;
+  });
 
   results.debug = {
     reportName:         name,
@@ -258,34 +262,35 @@ async function fetchReliabilityData(reportName) {
 
   // ── Step 3: Extract per spec ──────────────────────────────────────────────
   // name             → name
-  // id               → assetId           (assets[].id only, NOT assetType.id)
-  // reliabilityScore → reliabilityScore   (direct field)
-  // updatedAt        → lastProfiled       (direct field)
+  // id               → assetId               (assets[].id only, NOT assetType.id)
+  // reliabilityScore → dataReliabilityScore  (direct field)
+  // updatedAt        → lastProfiled          (direct field)
+  //
+  // NOTE: Per requested logic, we only use fields from top-level child assets[].
+  // No additional enrichment is applied here.
   for (const child of childAssets) {
     if (!child?.id) continue;
 
-    const openAlerts     = child.openAlerts    ?? child.alertCount    ?? 0;
-    const upstreamIssues = child.upstreamIssues ?? child.upstreamAlerts ?? 0;
-
-    const cadenceData = await api.getDataCadence(child.id);
-    const freshness   = cadenceData?.freshnessScore ?? cadenceData?.score ?? cadenceData?.freshness ?? null;
+    const dataReliabilityScore = Number.isFinite(Number(child.reliabilityScore))
+      ? Number(child.reliabilityScore)
+      : null;
 
     results.assets.push({
-      name:             child.name,
-      assetId:          child.id,
-      reliabilityScore: child.reliabilityScore ?? null,
-      lastProfiled:     child.updatedAt        ?? null,
-      freshness,
-      type:             child.assetType?.name  || 'TABLE',
-      openAlerts,
-      upstreamIssues,
+      name: child.name ?? null,
+      assetId: child.id,
+      dataReliabilityScore,
+      lastProfiled: child.updatedAt ?? null,
+      // Backward-compatible fields used by popup/sidebar rendering
+      reliabilityScore: dataReliabilityScore,
+      type: 'ASSET',
+      openAlerts: 0,
+      upstreamIssues: 0,
       adocLink: `${SERVER_URL}${ASSET_DETAIL_PATH}${child.id}`
     });
-
-    if (openAlerts > 0) results.assetsWithAlerts++;
   }
 
-  results.reportStatus = results.assetsWithAlerts > 0 ? 'Risky' : 'Healthy';
+  results.assetsWithAlerts = 0;
+  results.reportStatus = 'Healthy';
   return results;
 }
 
