@@ -27,7 +27,20 @@ class AdocApiClient {
     const hasBody = ['POST', 'PUT', 'PATCH'].includes(method);
 
     try {
-      const response = await fetch(url, {
+      const parseResponse = async (resp) => {
+        const contentType = resp.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+          return await resp.json();
+        }
+        const rawText = await resp.text();
+        try {
+          return JSON.parse(rawText);
+        } catch (_) {
+          return { raw: rawText };
+        }
+      };
+
+      let response = await fetch(url, {
         ...options,
         credentials: 'include',   // send SSO session cookies
         headers: {
@@ -40,6 +53,19 @@ class AdocApiClient {
         signal: controller.signal
       });
 
+      // Retry once without Accept header if server rejects content negotiation (406).
+      if (response.status === 406) {
+        response = await fetch(url, {
+          ...options,
+          credentials: 'include',
+          headers: {
+            ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
+            ...(options.headers || {})
+          },
+          signal: controller.signal
+        });
+      }
+
       if (!response.ok) {
         const msg =
           response.status === 401 ? 'Not authenticated – please log in again' :
@@ -49,17 +75,7 @@ class AdocApiClient {
           `Server error (${response.status})`;
         throw new Error(msg);
       }
-
-      const contentType = response.headers.get('content-type') || '';
-      if (contentType.includes('application/json')) {
-        return await response.json();
-      }
-      const rawText = await response.text();
-      try {
-        return JSON.parse(rawText);
-      } catch (_) {
-        return { raw: rawText };
-      }
+      return await parseResponse(response);
     } catch (error) {
       if (error.name === 'AbortError') throw new Error('Request timed out after 30 seconds');
       console.error('[ADOC] Request failed:', url, error.message);
@@ -240,7 +256,6 @@ async function fetchReliabilityData(reportName) {
   apiTrail.push({
     step: 'searchAssets',
     endpoint: searchUrl,
-    params: { name },
     error: searchError,
     response: searchError ? null : searchResult
   });
@@ -270,7 +285,6 @@ async function fetchReliabilityData(reportName) {
     apiTrail.push({
       step: 'childAssets',
       endpoint: null,
-      params: { id: null },
       skipped: true,
       reason: 'search API failed; childAssets not called',
       response: null
@@ -282,7 +296,6 @@ async function fetchReliabilityData(reportName) {
     apiTrail.push({
       step: 'childAssets',
       endpoint: null,
-      params: { id: null },
       skipped: true,
       reason: 'semantic model asset not found; childAssets not called',
       response: null
@@ -302,7 +315,6 @@ async function fetchReliabilityData(reportName) {
   apiTrail.push({
     step: 'childAssets',
     endpoint: childAssetsUrl,
-    params: { id: parentId },
     error: childError,
     response: childError ? null : childResult
   });

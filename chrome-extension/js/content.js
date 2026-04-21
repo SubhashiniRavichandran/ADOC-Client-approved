@@ -216,7 +216,6 @@ class AdocSidebar {
         console.log('[ADOC] 15. API travel trail       :', JSON.stringify(dbg.apiTrail || []));
         (dbg.apiTrail || []).forEach((step, idx) => {
           console.log(`[ADOC] 15.${idx + 1} endpoint         :`, step.endpoint);
-          console.log(`[ADOC] 15.${idx + 1} params           :`, JSON.stringify(step.params || {}));
           console.log(`[ADOC] 15.${idx + 1} skipped?         :`, !!step.skipped, step.reason || '');
           console.log(`[ADOC] 15.${idx + 1} error            :`, step.error ?? 'none');
           console.log(`[ADOC] 15.${idx + 1} response         :`, JSON.stringify(step.response));
