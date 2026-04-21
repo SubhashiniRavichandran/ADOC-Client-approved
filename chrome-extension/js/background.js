@@ -31,7 +31,9 @@ class AdocApiClient {
         ...options,
         credentials: 'include',   // send SSO session cookies
         headers: {
-          'Accept': 'application/json',
+          // Some ADOC deployments return 406 when Accept is too strict.
+          // Keep this broad so search + childAssets endpoints negotiate successfully.
+          'Accept': 'application/json, text/plain, */*',
           ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
           ...(options.headers || {})
         },
@@ -43,11 +45,21 @@ class AdocApiClient {
           response.status === 401 ? 'Not authenticated – please log in again' :
           response.status === 403 ? 'Access denied – insufficient permissions' :
           response.status === 404 ? 'API endpoint not found' :
+          response.status === 406 ? 'Not acceptable – adjust request headers/content negotiation' :
           `Server error (${response.status})`;
         throw new Error(msg);
       }
 
-      return await response.json();
+      const contentType = response.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        return await response.json();
+      }
+      const rawText = await response.text();
+      try {
+        return JSON.parse(rawText);
+      } catch (_) {
+        return { raw: rawText };
+      }
     } catch (error) {
       if (error.name === 'AbortError') throw new Error('Request timed out after 30 seconds');
       console.error('[ADOC] Request failed:', url, error.message);
