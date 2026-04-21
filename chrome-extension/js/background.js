@@ -222,6 +222,7 @@ async function fetchReliabilityData(reportName) {
   const searchResult  = await api.searchAssets(name);
   const searchError   = searchResult?.__error ?? null;
   const searchAssets  = !searchError && Array.isArray(searchResult?.assets) ? searchResult.assets : [];
+  const searchUrl     = `${SERVER_URL}/${API_PREFIX}/assets/search?name=${encodeURIComponent(name)}`;
 
   // Only assets[].id considered — assetType.id ignored
   const semanticName        = `${name}::POWERBI_SEMANTIC_MODEL`;
@@ -233,6 +234,8 @@ async function fetchReliabilityData(reportName) {
 
   results.debug = {
     reportName:         name,
+    searchApiEndpoint:  searchUrl,
+    searchApiNameParam: name,
     semanticName,
     searchError,                                                   // API error if any
     rawSearchResult:    searchError ? null : searchResult,

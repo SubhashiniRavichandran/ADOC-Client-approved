@@ -196,6 +196,8 @@ class AdocSidebar {
         const dbg = response.results.debug || {};
         console.log('=== ADOC DEBUG START ===');
         console.log('[ADOC] 1. reportName sent         :', dbg.reportName);
+        console.log('[ADOC] 1a. search endpoint used   :', dbg.searchApiEndpoint);
+        console.log('[ADOC] 1b. search name param      :', dbg.searchApiNameParam);
         console.log('[ADOC] 2. semanticName looked up  :', dbg.semanticName);
         console.log('[ADOC] 3. search API error        :', dbg.searchError ?? 'none');
         console.log('[ADOC] 4. raw search response     :', JSON.stringify(dbg.rawSearchResult));
