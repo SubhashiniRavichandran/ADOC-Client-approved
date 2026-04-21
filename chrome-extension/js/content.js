@@ -213,6 +213,7 @@ class AdocSidebar {
         console.log('[ADOC] 12. asset list             :', JSON.stringify(response.results.assets));
         console.log('[ADOC] 13. extracted assets       :', JSON.stringify(response.results.extractedAssets || []));
         console.log('[ADOC] 14. Total Assets label     :', `Total Assets: ${response.results.totalAssets}`);
+        console.log('[ADOC] 15. API travel trail       :', JSON.stringify(dbg.apiTrail || []));
         console.log('=== ADOC DEBUG END ===');
         this.data = response.results;
         this.renderResults(response.results);
