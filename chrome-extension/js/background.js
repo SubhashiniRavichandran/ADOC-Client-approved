@@ -210,6 +210,7 @@ async function fetchReliabilityData(reportName) {
     totalAssets: 0,
     assetsWithAlerts: 0,
     assets: [],
+    extractedAssets: [],
     debug: {}
   };
 
@@ -266,31 +267,38 @@ async function fetchReliabilityData(reportName) {
   // reliabilityScore → dataReliabilityScore  (direct field)
   // updatedAt        → lastProfiled          (direct field)
   //
-  // NOTE: Per requested logic, we only use fields from top-level child assets[].
-  // No additional enrichment is applied here.
+  // NOTE: Per requested logic, extractedAssets only uses top-level child assets[] fields.
   for (const child of childAssets) {
     if (!child?.id) continue;
 
     const dataReliabilityScore = Number.isFinite(Number(child.reliabilityScore))
       ? Number(child.reliabilityScore)
       : null;
+    const openAlerts = Number(child.openAlerts ?? child.alertCount ?? 0) || 0;
 
-    results.assets.push({
+    const extracted = {
       name: child.name ?? null,
       assetId: child.id,
       dataReliabilityScore,
-      lastProfiled: child.updatedAt ?? null,
+      lastProfiled: child.updatedAt ?? null
+    };
+    results.extractedAssets.push(extracted);
+
+    results.assets.push({
+      ...extracted,
       // Backward-compatible fields used by popup/sidebar rendering
       reliabilityScore: dataReliabilityScore,
       type: 'ASSET',
-      openAlerts: 0,
+      openAlerts,
       upstreamIssues: 0,
       adocLink: `${SERVER_URL}${ASSET_DETAIL_PATH}${child.id}`
     });
+
+    if (openAlerts > 0) results.assetsWithAlerts++;
   }
 
-  results.assetsWithAlerts = 0;
-  results.reportStatus = 'Healthy';
+  results.debug.extractedAssetsCount = results.extractedAssets.length;
+  results.reportStatus = results.assetsWithAlerts > 0 ? 'Risky' : 'Healthy';
   return results;
 }
 
