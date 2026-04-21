@@ -266,8 +266,29 @@ async function fetchReliabilityData(reportName) {
     apiTrail
   };
 
-  if (searchError) return results;
-  if (!semanticAsset) return results;
+  if (searchError) {
+    apiTrail.push({
+      step: 'childAssets',
+      endpoint: null,
+      params: { id: null },
+      skipped: true,
+      reason: 'search API failed; childAssets not called',
+      response: null
+    });
+    return results;
+  }
+
+  if (!semanticAsset) {
+    apiTrail.push({
+      step: 'childAssets',
+      endpoint: null,
+      params: { id: null },
+      skipped: true,
+      reason: 'semantic model asset not found; childAssets not called',
+      response: null
+    });
+    return results;
+  }
 
   // id from search response.assets[] — passed directly to childAssets
   const parentId        = semanticAsset.id;
