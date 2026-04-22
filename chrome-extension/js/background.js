@@ -31,7 +31,7 @@ class AdocApiClient {
         ...options,
         credentials: 'include',   // send SSO session cookies
         headers: {
-          'Accept': 'application/json',
+          'Accept': 'application/json, */*;q=0.9',
           ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
           ...(options.headers || {})
         },
