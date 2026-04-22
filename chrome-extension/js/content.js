@@ -527,4 +527,16 @@ function fmtDate(dateString) {
 // Notify background that this PowerBI tab is active
 chrome.runtime.sendMessage({ action: 'contentScriptReady', context: detectContext() }).catch(() => {});
 
+// When the extension is removed or disabled Chrome kills the service worker,
+// which causes this port to disconnect.  Use that signal to remove every DOM
+// element we injected so the sidebar doesn't linger after uninstall/disable.
+try {
+  const _port = chrome.runtime.connect({ name: 'content-keepalive' });
+  _port.onDisconnect.addListener(() => {
+    document.getElementById('adoc-sidebar')?.remove();
+    document.getElementById('adoc-toggle-btn')?.remove();
+    document.body.classList.remove('adoc-body-pushed');
+  });
+} catch (_) {}
+
 init();
