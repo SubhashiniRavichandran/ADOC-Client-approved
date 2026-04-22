@@ -236,14 +236,13 @@ async function fetchReliabilityData(reportName) {
   );
 
   results.debug = {
-    reportName:         name,
+    reportName:           name,
     semanticName,
     searchError,
-    rawSearchResultKeys: searchError ? null : Object.keys(searchResult || {}),
-    searchAssets:       searchAssets.map(a => ({ id: a.id, name: a.name })),
-    searchAssetsCount:  searchAssets.length,
-    semanticAssetFound: !!semanticAsset,
-    parentId:           semanticAsset?.id ?? null
+    searchAssetsCount:    searchAssets.length,
+    searchAssets:         searchAssets.map(a => ({ id: a.id, name: a.name, type: a.assetType?.name })),
+    semanticAssetFound:   !!semanticAsset,
+    parentId:             semanticAsset?.id ?? null
   };
 
   if (searchError) return results;
@@ -263,10 +262,12 @@ async function fetchReliabilityData(reportName) {
     ? normalizeList(childResult, ['assets', 'content', 'data', 'items'])
     : [];
 
-  results.totalAssets                 = childAssets.length;
-  results.debug.childError            = childError;
-  results.debug.rawChildResultKeys    = childError ? null : Object.keys(childResult || {});
-  results.debug.childrenLength        = childAssets.length;
+  results.totalAssets              = childAssets.length;
+  results.debug.childError         = childError;
+  results.debug.childResultKeys    = childError ? null : Object.keys(childResult || {});
+  results.debug.childResultSample  = childError ? null
+    : childAssets.slice(0, 3).map(a => ({ id: a.id, name: a.name, type: a.assetType?.name }));
+  results.debug.childrenLength     = childAssets.length;
 
   if (childError) return results;
 

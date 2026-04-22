@@ -201,20 +201,20 @@ class AdocSidebar {
       if (response && response.results) {
         const dbg = response.results.debug || {};
         console.log('=== ADOC DEBUG START ===');
-        console.log('[ADOC] 1. reportName sent         :', dbg.reportName);
-        console.log('[ADOC] 2. semanticName looked up  :', dbg.semanticName);
-        console.log('[ADOC] 3. search API error        :', dbg.searchError ?? 'none');
-        console.log('[ADOC] 4. raw search response     :', JSON.stringify(dbg.rawSearchResult));
-        console.log('[ADOC] 5. assets[] from search    :', JSON.stringify(dbg.searchAssets));
-        console.log('[ADOC] 6. semanticAsset found?    :', dbg.semanticAssetFound);
-        console.log('[ADOC] 7. parentId (assets[].id)  :', dbg.parentId);
-        console.log('[ADOC] 7b. childAssets URL         :', dbg.childAssetsUrl);
-        console.log('[ADOC] 8. childAssets API error    :', dbg.childError ?? 'none');
-        console.log('[ADOC] 9. raw childAssets response:', JSON.stringify(dbg.rawChildResult));
-        console.log('[ADOC] 10. children parsed count  :', dbg.childrenLength);
-        console.log('[ADOC] 10. Total Assets           :', response.results.totalAssets);
-        console.log('[ADOC] 11. Assets with Alerts     :', response.results.assetsWithAlerts);
-        console.log('[ADOC] 12. asset list             :', JSON.stringify(response.results.assets));
+        console.log('[ADOC] 1.  reportName sent          :', dbg.reportName);
+        console.log('[ADOC] 2.  semanticName looked up   :', dbg.semanticName);
+        console.log('[ADOC] 3.  search API error         :', dbg.searchError ?? 'none');
+        console.log('[ADOC] 4.  assets found in search   :', dbg.searchAssetsCount, JSON.stringify(dbg.searchAssets));
+        console.log('[ADOC] 5.  semanticAsset found?     :', dbg.semanticAssetFound);
+        console.log('[ADOC] 6.  parentId (assets[].id)   :', dbg.parentId);
+        console.log('[ADOC] 7.  childAssets URL           :', dbg.childAssetsUrl);
+        console.log('[ADOC] 8.  childAssets API error     :', dbg.childError ?? 'none');
+        console.log('[ADOC] 9.  childResult top-level keys:', JSON.stringify(dbg.childResultKeys));
+        console.log('[ADOC] 10. childResult sample (≤3)  :', JSON.stringify(dbg.childResultSample));
+        console.log('[ADOC] 11. children parsed count    :', dbg.childrenLength);
+        console.log('[ADOC] 12. Total Assets             :', response.results.totalAssets);
+        console.log('[ADOC] 13. Assets with Alerts       :', response.results.assetsWithAlerts);
+        console.log('[ADOC] 14. asset list               :', JSON.stringify(response.results.assets));
         console.log('=== ADOC DEBUG END ===');
         this.data = response.results;
         this.renderResults(response.results);
@@ -266,8 +266,36 @@ class AdocSidebar {
     summary.appendChild(statsEl);
     resultsEl.appendChild(summary);
 
-    // No alerts message
-    if (results.assetsWithAlerts === 0) {
+    const dbg = results.debug || {};
+
+    // When there are no child assets, surface a diagnostic message so the
+    // user knows whether the semantic model was found or the API returned empty.
+    if (results.totalAssets === 0) {
+      const emptyEl = document.createElement('div');
+      emptyEl.className = 'adoc-no-alerts';
+
+      let msg = '';
+      if (dbg.searchError) {
+        msg = `Search API error: ${dbg.searchError}`;
+      } else if (!dbg.semanticAssetFound) {
+        msg = `Semantic model not found in catalog for "${results.reportName}". ` +
+              `Check that the report name matches what is registered in ADOC ` +
+              `(looked for: ${dbg.semanticName}).`;
+      } else if (dbg.childError) {
+        msg = `Child assets API error: ${dbg.childError}`;
+      } else {
+        msg = `No child assets registered in ADOC for this semantic model (id: ${dbg.parentId}).`;
+      }
+
+      emptyEl.innerHTML = `
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
+          <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            stroke="#f59e0b" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <p style="font-size:12px;text-align:center;padding:0 8px;">${msg}</p>
+      `;
+      resultsEl.appendChild(emptyEl);
+    } else if (results.assetsWithAlerts === 0) {
       const noAlerts = document.createElement('div');
       noAlerts.className = 'adoc-no-alerts';
       noAlerts.innerHTML = `
