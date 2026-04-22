@@ -50,7 +50,8 @@ function getPowerBIReportName() {
   return null;
 }
 
-console.log('[ADOC] Report name:', getPowerBIReportName());
+// Defer the diagnostic log so Power BI's SPA has time to set document.title.
+setTimeout(() => console.log('[ADOC] Report name (deferred):', getPowerBIReportName()), 2000);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SIDEBAR — injected directly into the Power BI page
@@ -178,7 +179,12 @@ class AdocSidebar {
     if (resultsEl) resultsEl.classList.add('hidden');
     if (errorEl) errorEl.classList.add('hidden');
 
-    const reportName = getPowerBIReportName();
+    let reportName = getPowerBIReportName();
+    // Retry once in case Power BI's SPA hasn't updated document.title yet.
+    if (!reportName) {
+      await new Promise(r => setTimeout(r, 1500));
+      reportName = getPowerBIReportName();
+    }
     console.log('[ADOC] Report name sent to background:', reportName);
 
     if (!reportName) {
@@ -450,10 +456,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   switch (request.action) {
     case 'extractAssets':
-      sendResponse({
-        context: detectContext(),
-        reportName: getPowerBIReportName()
-      });
+      // Power BI is a SPA: document.title may not be set yet when the popup
+      // opens immediately after navigation.  Try once, wait 1.5 s, try again.
+      (async () => {
+        let reportName = getPowerBIReportName();
+        if (!reportName) {
+          await new Promise(r => setTimeout(r, 1500));
+          reportName = getPowerBIReportName();
+        }
+        sendResponse({ context: detectContext(), reportName });
+      })();
       return true;
 
     case 'showSidebar':
