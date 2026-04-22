@@ -196,6 +196,8 @@ class AdocSidebar {
         const dbg = response.results.debug || {};
         console.log('=== ADOC DEBUG START ===');
         console.log('[ADOC] 1. reportName sent         :', dbg.reportName);
+        console.log('[ADOC] 1a. search endpoint used   :', dbg.searchApiEndpoint);
+        console.log('[ADOC] 1b. search name param      :', dbg.searchApiNameParam);
         console.log('[ADOC] 2. semanticName looked up  :', dbg.semanticName);
         console.log('[ADOC] 3. search API error        :', dbg.searchError ?? 'none');
         console.log('[ADOC] 4. raw search response     :', JSON.stringify(dbg.rawSearchResult));
@@ -209,7 +211,24 @@ class AdocSidebar {
         console.log('[ADOC] 10. Total Assets           :', response.results.totalAssets);
         console.log('[ADOC] 11. Assets with Alerts     :', response.results.assetsWithAlerts);
         console.log('[ADOC] 12. asset list             :', JSON.stringify(response.results.assets));
+        console.log('[ADOC] 13. extracted assets       :', JSON.stringify(response.results.extractedAssets || []));
+        console.log('[ADOC] 14. Total Assets label     :', `Total Assets: ${response.results.totalAssets}`);
+        console.log('[ADOC] 15. API travel trail       :', JSON.stringify(dbg.apiTrail || []));
+        console.log('[ADOC] 16. session logged in?     :', dbg.isSessionLoggedIn);
+        console.log('[ADOC] 17. error message          :', response.results.errorMessage ?? 'none');
+        (dbg.apiTrail || []).forEach((step, idx) => {
+          console.log(`[ADOC] 15.${idx + 1} endpoint         :`, step.endpoint);
+          console.log(`[ADOC] 15.${idx + 1} skipped?         :`, !!step.skipped, step.reason || '');
+          console.log(`[ADOC] 15.${idx + 1} error            :`, step.error ?? 'none');
+          console.log(`[ADOC] 15.${idx + 1} response         :`, JSON.stringify(step.response));
+        });
         console.log('=== ADOC DEBUG END ===');
+
+        if (response.results.errorMessage) {
+          this.showError(response.results.errorMessage);
+          return;
+        }
+
         this.data = response.results;
         this.renderResults(response.results);
       } else {

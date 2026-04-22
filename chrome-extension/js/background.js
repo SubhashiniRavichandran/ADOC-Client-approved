@@ -27,27 +27,51 @@ class AdocApiClient {
     const hasBody = ['POST', 'PUT', 'PATCH'].includes(method);
 
     try {
-      const response = await fetch(url, {
+      const parseResponse = async (resp) => {
+        const contentType = resp.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+          return await resp.json();
+        }
+        const rawText = await resp.text();
+        try {
+          return JSON.parse(rawText);
+        } catch (_) {
+          return { raw: rawText };
+        }
+      };
+
+      const requestHeaders = {
+        ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
+        ...(options.headers || {})
+      };
+
+      let response = await fetch(url, {
         ...options,
         credentials: 'include',   // send SSO session cookies
-        headers: {
-          'Accept': 'application/json',
-          ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
-          ...(options.headers || {})
-        },
+        headers: requestHeaders,
         signal: controller.signal
       });
+
+      // Retry once on 406 (some deployments intermittently reject the first request).
+      if (response.status === 406) {
+        response = await fetch(url, {
+          ...options,
+          credentials: 'include',
+          headers: requestHeaders,
+          signal: controller.signal
+        });
+      }
 
       if (!response.ok) {
         const msg =
           response.status === 401 ? 'Not authenticated – please log in again' :
           response.status === 403 ? 'Access denied – insufficient permissions' :
           response.status === 404 ? 'API endpoint not found' :
+          response.status === 406 ? 'Server returned 406 – possible session/cookie or content-negotiation issue' :
           `Server error (${response.status})`;
         throw new Error(msg);
       }
-
-      return await response.json();
+      return await parseResponse(response);
     } catch (error) {
       if (error.name === 'AbortError') throw new Error('Request timed out after 30 seconds');
       console.error('[ADOC] Request failed:', url, error.message);
@@ -210,6 +234,8 @@ async function fetchReliabilityData(reportName) {
     totalAssets: 0,
     assetsWithAlerts: 0,
     assets: [],
+    extractedAssets: [],
+    errorMessage: null,
     debug: {}
   };
 
@@ -221,23 +247,66 @@ async function fetchReliabilityData(reportName) {
   const searchResult  = await api.searchAssets(name);
   const searchError   = searchResult?.__error ?? null;
   const searchAssets  = !searchError && Array.isArray(searchResult?.assets) ? searchResult.assets : [];
+  const searchUrl     = `${SERVER_URL}/${API_PREFIX}/assets/search?name=${encodeURIComponent(name)}`;
+  const apiTrail      = [];
+
+  apiTrail.push({
+    step: 'searchAssets',
+    endpoint: searchUrl,
+    error: searchError,
+    response: searchError ? null : searchResult
+  });
 
   // Only assets[].id considered — assetType.id ignored
-  const semanticName  = `${name}::POWERBI_SEMANTIC_MODEL`;
-  const semanticAsset = searchAssets.find(a => a.name?.trim() === semanticName);
+  const semanticName        = `${name}::POWERBI_SEMANTIC_MODEL`;
+  const normalizedSemantic  = semanticName.toLowerCase();
+  const semanticAsset = searchAssets.find((a) => {
+    const candidate = String(a?.name || '').trim().toLowerCase();
+    return candidate === normalizedSemantic;
+  });
 
   results.debug = {
     reportName:         name,
+    searchApiEndpoint:  searchUrl,
+    searchApiNameParam: name,
     semanticName,
     searchError,                                                   // API error if any
     rawSearchResult:    searchError ? null : searchResult,
     searchAssets:       searchAssets.map(a => ({ id: a.id, name: a.name })),
     semanticAssetFound: !!semanticAsset,
-    parentId:           semanticAsset?.id ?? null
+    parentId:           semanticAsset?.id ?? null,
+    apiTrail
   };
 
-  if (searchError) return results;
-  if (!semanticAsset) return results;
+  if (searchError) {
+    results.errorMessage = searchError;
+    results.reportStatus = searchError.includes('Not authenticated')
+      ? 'Auth Required'
+      : 'Error';
+    results.debug.isSessionLoggedIn = false;
+    apiTrail.push({
+      step: 'childAssets',
+      endpoint: null,
+      skipped: true,
+      reason: 'search API failed; childAssets not called',
+      response: null
+    });
+    return results;
+  }
+
+  if (!semanticAsset) {
+    results.reportStatus = 'Not Found';
+    results.errorMessage = `No semantic model found for "${semanticName}"`;
+    results.debug.isSessionLoggedIn = true;
+    apiTrail.push({
+      step: 'childAssets',
+      endpoint: null,
+      skipped: true,
+      reason: 'semantic model asset not found; childAssets not called',
+      response: null
+    });
+    return results;
+  }
 
   // id from search response.assets[] — passed directly to childAssets
   const parentId        = semanticAsset.id;
@@ -248,43 +317,64 @@ async function fetchReliabilityData(reportName) {
   const childResult  = await api.getChildAssets(parentId);
   const childError   = childResult?.__error ?? null;
   const childAssets  = !childError && Array.isArray(childResult?.assets) ? childResult.assets : [];
+  apiTrail.push({
+    step: 'childAssets',
+    endpoint: childAssetsUrl,
+    error: childError,
+    response: childError ? null : childResult
+  });
 
   results.totalAssets           = childAssets.length;
   results.debug.childError      = childError;
   results.debug.rawChildResult  = childError ? null : childResult;
   results.debug.childrenLength  = childAssets.length;
+  results.debug.isSessionLoggedIn = true;
 
-  if (childError) return results;
+  if (childError) {
+    results.errorMessage = childError;
+    results.reportStatus = childError.includes('Not authenticated')
+      ? 'Auth Required'
+      : 'Error';
+    return results;
+  }
 
   // ── Step 3: Extract per spec ──────────────────────────────────────────────
   // name             → name
-  // id               → assetId           (assets[].id only, NOT assetType.id)
-  // reliabilityScore → reliabilityScore   (direct field)
-  // updatedAt        → lastProfiled       (direct field)
+  // id               → assetId               (assets[].id only, NOT assetType.id)
+  // reliabilityScore → dataReliabilityScore  (direct field)
+  // updatedAt        → lastProfiled          (direct field)
+  //
+  // NOTE: Per requested logic, extractedAssets only uses top-level child assets[] fields.
   for (const child of childAssets) {
     if (!child?.id) continue;
 
-    const openAlerts     = child.openAlerts    ?? child.alertCount    ?? 0;
-    const upstreamIssues = child.upstreamIssues ?? child.upstreamAlerts ?? 0;
+    const dataReliabilityScore = Number.isFinite(Number(child.reliabilityScore))
+      ? Number(child.reliabilityScore)
+      : null;
+    const openAlerts = Number(child.openAlerts ?? child.alertCount ?? 0) || 0;
 
-    const cadenceData = await api.getDataCadence(child.id);
-    const freshness   = cadenceData?.freshnessScore ?? cadenceData?.score ?? cadenceData?.freshness ?? null;
+    const extracted = {
+      name: child.name ?? null,
+      assetId: child.id,
+      dataReliabilityScore,
+      lastProfiled: child.updatedAt ?? null
+    };
+    results.extractedAssets.push(extracted);
 
     results.assets.push({
-      name:             child.name,
-      assetId:          child.id,
-      reliabilityScore: child.reliabilityScore ?? null,
-      lastProfiled:     child.updatedAt        ?? null,
-      freshness,
-      type:             child.assetType?.name  || 'TABLE',
+      ...extracted,
+      // Backward-compatible fields used by popup/sidebar rendering
+      reliabilityScore: dataReliabilityScore,
+      type: 'ASSET',
       openAlerts,
-      upstreamIssues,
+      upstreamIssues: 0,
       adocLink: `${SERVER_URL}${ASSET_DETAIL_PATH}${child.id}`
     });
 
     if (openAlerts > 0) results.assetsWithAlerts++;
   }
 
+  results.debug.extractedAssetsCount = results.extractedAssets.length;
   results.reportStatus = results.assetsWithAlerts > 0 ? 'Risky' : 'Healthy';
   return results;
 }
