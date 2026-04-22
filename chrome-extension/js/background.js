@@ -40,28 +40,24 @@ class AdocApiClient {
         }
       };
 
+      const requestHeaders = {
+        ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
+        ...(options.headers || {})
+      };
+
       let response = await fetch(url, {
         ...options,
         credentials: 'include',   // send SSO session cookies
-        headers: {
-          // Some ADOC deployments return 406 when Accept is too strict.
-          // Keep this broad so search + childAssets endpoints negotiate successfully.
-          'Accept': 'application/json, text/plain, */*',
-          ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
-          ...(options.headers || {})
-        },
+        headers: requestHeaders,
         signal: controller.signal
       });
 
-      // Retry once without Accept header if server rejects content negotiation (406).
+      // Retry once on 406 (some deployments intermittently reject the first request).
       if (response.status === 406) {
         response = await fetch(url, {
           ...options,
           credentials: 'include',
-          headers: {
-            ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
-            ...(options.headers || {})
-          },
+          headers: requestHeaders,
           signal: controller.signal
         });
       }
@@ -71,7 +67,7 @@ class AdocApiClient {
           response.status === 401 ? 'Not authenticated – please log in again' :
           response.status === 403 ? 'Access denied – insufficient permissions' :
           response.status === 404 ? 'API endpoint not found' :
-          response.status === 406 ? 'Not acceptable – adjust request headers/content negotiation' :
+          response.status === 406 ? 'Server returned 406 – possible session/cookie or content-negotiation issue' :
           `Server error (${response.status})`;
         throw new Error(msg);
       }
@@ -287,7 +283,7 @@ async function fetchReliabilityData(reportName) {
     results.reportStatus = searchError.includes('Not authenticated')
       ? 'Auth Required'
       : 'Error';
-    results.debug.isSessionLoggedIn = !searchError.includes('Not authenticated');
+    results.debug.isSessionLoggedIn = false;
     apiTrail.push({
       step: 'childAssets',
       endpoint: null,
