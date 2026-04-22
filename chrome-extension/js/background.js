@@ -1,11 +1,12 @@
 // ADOC Reliability Metrics - Background Service Worker
+importScripts('config.js');
 
-const SERVER_URL        = 'https://cso-enablement.poc.acceldatasolutions.net';
-const API_PREFIX        = 'catalog-server/api';
-const ASSET_DETAIL_PATH = '/ui/torch/namespace/Default/data-reliability/catalog/';
-const FETCH_TIMEOUT_MS  = 30000;
-const ACCESS_KEY        = 'EHDCRUF4O';
-const SECRET_KEY        = 'TLEO5HPJR8T2DSTXGTN17AZ';
+const SERVER_URL        = CONFIG.serverUrl;
+const API_PREFIX        = CONFIG.apiPrefix;
+const ASSET_DETAIL_PATH = CONFIG.assetDetailPath;
+const FETCH_TIMEOUT_MS  = CONFIG.fetchTimeoutMs;
+const ACCESS_KEY        = CONFIG.accessKey;
+const SECRET_KEY        = CONFIG.secretKey;
 
 // Tab ID of the currently open SSO login tab (null if not open)
 let loginTabId = null;
