@@ -214,6 +214,8 @@ class AdocSidebar {
         console.log('[ADOC] 13. extracted assets       :', JSON.stringify(response.results.extractedAssets || []));
         console.log('[ADOC] 14. Total Assets label     :', `Total Assets: ${response.results.totalAssets}`);
         console.log('[ADOC] 15. API travel trail       :', JSON.stringify(dbg.apiTrail || []));
+        console.log('[ADOC] 16. session logged in?     :', dbg.isSessionLoggedIn);
+        console.log('[ADOC] 17. error message          :', response.results.errorMessage ?? 'none');
         (dbg.apiTrail || []).forEach((step, idx) => {
           console.log(`[ADOC] 15.${idx + 1} endpoint         :`, step.endpoint);
           console.log(`[ADOC] 15.${idx + 1} skipped?         :`, !!step.skipped, step.reason || '');
@@ -221,6 +223,12 @@ class AdocSidebar {
           console.log(`[ADOC] 15.${idx + 1} response         :`, JSON.stringify(step.response));
         });
         console.log('=== ADOC DEBUG END ===');
+
+        if (response.results.errorMessage) {
+          this.showError(response.results.errorMessage);
+          return;
+        }
+
         this.data = response.results;
         this.renderResults(response.results);
       } else {

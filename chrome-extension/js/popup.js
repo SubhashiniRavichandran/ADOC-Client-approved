@@ -209,6 +209,13 @@ class PopupController {
     }
 
     document.getElementById('mock-warning')?.classList.add('hidden');
+
+    if (bgResponse.results.errorMessage) {
+      alert(bgResponse.results.errorMessage);
+      this.showView('fetch');
+      return;
+    }
+
     chrome.storage.local.set({ cached_results: bgResponse.results });
     this.renderResults(bgResponse.results);
     this.showView('results');

@@ -239,6 +239,7 @@ async function fetchReliabilityData(reportName) {
     assetsWithAlerts: 0,
     assets: [],
     extractedAssets: [],
+    errorMessage: null,
     debug: {}
   };
 
@@ -282,6 +283,11 @@ async function fetchReliabilityData(reportName) {
   };
 
   if (searchError) {
+    results.errorMessage = searchError;
+    results.reportStatus = searchError.includes('Not authenticated')
+      ? 'Auth Required'
+      : 'Error';
+    results.debug.isSessionLoggedIn = !searchError.includes('Not authenticated');
     apiTrail.push({
       step: 'childAssets',
       endpoint: null,
@@ -293,6 +299,9 @@ async function fetchReliabilityData(reportName) {
   }
 
   if (!semanticAsset) {
+    results.reportStatus = 'Not Found';
+    results.errorMessage = `No semantic model found for "${semanticName}"`;
+    results.debug.isSessionLoggedIn = true;
     apiTrail.push({
       step: 'childAssets',
       endpoint: null,
@@ -323,8 +332,15 @@ async function fetchReliabilityData(reportName) {
   results.debug.childError      = childError;
   results.debug.rawChildResult  = childError ? null : childResult;
   results.debug.childrenLength  = childAssets.length;
+  results.debug.isSessionLoggedIn = true;
 
-  if (childError) return results;
+  if (childError) {
+    results.errorMessage = childError;
+    results.reportStatus = childError.includes('Not authenticated')
+      ? 'Auth Required'
+      : 'Error';
+    return results;
+  }
 
   // ── Step 3: Extract per spec ──────────────────────────────────────────────
   // name             → name
