@@ -1,9 +1,11 @@
 // ADOC Reliability Metrics - Background Service Worker
 
-const SERVER_URL = 'https://cso-enablement.poc.acceldatasolutions.net';
-const API_PREFIX = 'catalog-server/api';
+const SERVER_URL        = 'https://cso-enablement.poc.acceldatasolutions.net';
+const API_PREFIX        = 'catalog-server/api';
 const ASSET_DETAIL_PATH = '/ui/torch/namespace/Default/data-reliability/catalog/';
-const FETCH_TIMEOUT_MS = 30000;
+const FETCH_TIMEOUT_MS  = 30000;
+const ACCESS_KEY        = 'EHDCRUF4O';
+const SECRET_KEY        = 'TLEO5HPJR8T2DSTXGTN17AZ';
 
 // Tab ID of the currently open SSO login tab (null if not open)
 let loginTabId = null;
@@ -26,21 +28,15 @@ class AdocApiClient {
     const method = (options.method || 'GET').toUpperCase();
     const hasBody = ['POST', 'PUT', 'PATCH'].includes(method);
 
-    // Read API credentials on every request so key changes in Options take
-    // effect immediately without reloading the extension.
-    const creds = await new Promise(r =>
-      chrome.storage.local.get(['adoc_access_key', 'adoc_secret_key'], r)
-    );
-
     try {
       const response = await fetch(url, {
         ...options,
-        credentials: 'include',   // send SSO session cookies when present
+        credentials: 'include',
         headers: {
-          'Accept': 'application/json, */*;q=0.9',
+          'Accept':    'application/json, */*;q=0.9',
+          'accessKey': ACCESS_KEY,
+          'secretKey': SECRET_KEY,
           ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
-          ...(creds.adoc_access_key ? { 'accessKey': creds.adoc_access_key }   : {}),
-          ...(creds.adoc_secret_key ? { 'secretKey': creds.adoc_secret_key }   : {}),
           ...(options.headers || {})
         },
         signal: controller.signal
@@ -164,12 +160,9 @@ async function confirmSsoSession(tabId) {
 }
 
 function logout() {
-  chrome.storage.local.remove(
-    ['adoc_authenticated', 'cached_results', 'adoc_access_key', 'adoc_secret_key'],
-    () => {
-      chrome.runtime.sendMessage({ action: 'authStateChanged', authenticated: false }).catch(() => {});
-    }
-  );
+  chrome.storage.local.remove(['adoc_authenticated', 'cached_results'], () => {
+    chrome.runtime.sendMessage({ action: 'authStateChanged', authenticated: false }).catch(() => {});
+  });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
