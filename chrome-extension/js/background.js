@@ -26,13 +26,21 @@ class AdocApiClient {
     const method = (options.method || 'GET').toUpperCase();
     const hasBody = ['POST', 'PUT', 'PATCH'].includes(method);
 
+    // Read API credentials on every request so key changes in Options take
+    // effect immediately without reloading the extension.
+    const creds = await new Promise(r =>
+      chrome.storage.local.get(['adoc_access_key', 'adoc_secret_key'], r)
+    );
+
     try {
       const response = await fetch(url, {
         ...options,
-        credentials: 'include',   // send SSO session cookies
+        credentials: 'include',   // send SSO session cookies when present
         headers: {
           'Accept': 'application/json, */*;q=0.9',
           ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
+          ...(creds.adoc_access_key ? { 'accessKey': creds.adoc_access_key }   : {}),
+          ...(creds.adoc_secret_key ? { 'secretKey': creds.adoc_secret_key }   : {}),
           ...(options.headers || {})
         },
         signal: controller.signal
@@ -156,9 +164,12 @@ async function confirmSsoSession(tabId) {
 }
 
 function logout() {
-  chrome.storage.local.remove(['adoc_authenticated', 'cached_results'], () => {
-    chrome.runtime.sendMessage({ action: 'authStateChanged', authenticated: false }).catch(() => {});
-  });
+  chrome.storage.local.remove(
+    ['adoc_authenticated', 'cached_results', 'adoc_access_key', 'adoc_secret_key'],
+    () => {
+      chrome.runtime.sendMessage({ action: 'authStateChanged', authenticated: false }).catch(() => {});
+    }
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

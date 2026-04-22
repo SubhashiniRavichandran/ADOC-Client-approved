@@ -1,4 +1,4 @@
-// ADOC Reliability Metrics - Options Page (SSO-based, no API keys)
+// ADOC Reliability Metrics - Options Page
 
 const DEFAULT_SERVER_URL = 'https://cso-enablement.poc.acceldatasolutions.net';
 const TEST_TIMEOUT_MS = 30000;
@@ -14,24 +14,29 @@ class OptionsController {
     this.bindEvents();
   }
 
-  // ── Load saved server URL ─────────────────────────────────────────────────
+  // ── Load saved settings ───────────────────────────────────────────────────
   async loadSettings() {
     return new Promise((resolve) => {
-      chrome.storage.local.get(['adoc_server_url'], (result) => {
+      chrome.storage.local.get(['adoc_server_url', 'adoc_access_key', 'adoc_secret_key'], (result) => {
         if (chrome.runtime.lastError) { resolve(); return; }
-        const el = document.getElementById('server-url');
-        if (el) el.value = result.adoc_server_url || DEFAULT_SERVER_URL;
+        const urlEl = document.getElementById('server-url');
+        if (urlEl) urlEl.value = result.adoc_server_url || DEFAULT_SERVER_URL;
+        const akEl = document.getElementById('access-key');
+        if (akEl) akEl.value = result.adoc_access_key || '';
+        const skEl = document.getElementById('secret-key');
+        if (skEl) skEl.value = result.adoc_secret_key || '';
         resolve();
       });
     });
   }
 
-  // ── Show logged-in / logged-out state ────────────────────────────────────
+  // ── Show connected / not-connected state ─────────────────────────────────
   async renderAuthStatus() {
     return new Promise((resolve) => {
-      chrome.storage.local.get(['adoc_authenticated'], (result) => {
+      chrome.storage.local.get(['adoc_authenticated', 'adoc_access_key', 'adoc_secret_key'], (result) => {
         if (chrome.runtime.lastError) { resolve(); return; }
-        const loggedIn = !!result.adoc_authenticated;
+        const hasApiKeys = !!result.adoc_access_key && !!result.adoc_secret_key;
+        const loggedIn   = !!result.adoc_authenticated || hasApiKeys;
 
         const card      = document.getElementById('auth-card');
         const dot       = document.getElementById('auth-dot');
@@ -42,13 +47,13 @@ class OptionsController {
         if (loggedIn) {
           if (card)  card.classList.remove('logged-out');
           if (dot)   dot.style.background = '#10b981';
-          if (label) label.textContent = 'Logged in to Acceldata';
+          if (label) label.textContent = hasApiKeys ? 'Connected via API keys' : 'Logged in to Acceldata';
           if (loginBtn)  loginBtn.classList.add('hidden');
           if (logoutBtn) logoutBtn.classList.remove('hidden');
         } else {
           if (card)  card.classList.add('logged-out');
           if (dot)   dot.style.background = '#ef4444';
-          if (label) label.textContent = 'Not logged in';
+          if (label) label.textContent = 'Not connected — enter API credentials below';
           if (loginBtn)  loginBtn.classList.remove('hidden');
           if (logoutBtn) logoutBtn.classList.add('hidden');
         }
@@ -59,6 +64,7 @@ class OptionsController {
 
   // ── Event listeners ───────────────────────────────────────────────────────
   bindEvents() {
+    document.getElementById('save-credentials-btn')?.addEventListener('click', () => this.saveCredentials());
     document.getElementById('save-btn')?.addEventListener('click', () => this.saveUrl());
     document.getElementById('test-btn')?.addEventListener('click', () => this.testConnection());
     document.getElementById('login-btn')?.addEventListener('click', () => this.startLogin());
@@ -87,6 +93,26 @@ class OptionsController {
         return;
       }
       this.showStatus('Server URL saved ✓', 'success');
+    });
+  }
+
+  // ── Save API credentials ──────────────────────────────────────────────────
+  saveCredentials() {
+    const ak = document.getElementById('access-key')?.value.trim() || '';
+    const sk = document.getElementById('secret-key')?.value.trim() || '';
+
+    if (!ak || !sk) {
+      this.showCredentialsStatus('Both Access Key and Secret Key are required', 'error');
+      return;
+    }
+
+    chrome.storage.local.set({ adoc_access_key: ak, adoc_secret_key: sk, adoc_authenticated: true }, () => {
+      if (chrome.runtime.lastError) {
+        this.showCredentialsStatus(`Save failed: ${chrome.runtime.lastError.message}`, 'error');
+        return;
+      }
+      this.renderAuthStatus();
+      this.showCredentialsStatus('API credentials saved ✓', 'success');
     });
   }
 
@@ -128,23 +154,38 @@ class OptionsController {
     setTimeout(() => this.renderAuthStatus(), 3000);
   }
 
-  // ── Logout: clear session and cached data ─────────────────────────────────
+  // ── Logout: clear session, API keys, and cached data ─────────────────────
   logout() {
-    chrome.storage.local.remove(['adoc_authenticated', 'cached_results'], () => {
-      if (chrome.runtime.lastError) {
-        this.showStatus(`Logout failed: ${chrome.runtime.lastError.message}`, 'error');
-        return;
+    chrome.storage.local.remove(
+      ['adoc_authenticated', 'cached_results', 'adoc_access_key', 'adoc_secret_key'],
+      () => {
+        if (chrome.runtime.lastError) {
+          this.showStatus(`Logout failed: ${chrome.runtime.lastError.message}`, 'error');
+          return;
+        }
+        // Clear the key fields in the UI
+        const akEl = document.getElementById('access-key');
+        const skEl = document.getElementById('secret-key');
+        if (akEl) akEl.value = '';
+        if (skEl) skEl.value = '';
+        chrome.runtime.sendMessage({ action: 'logout' }).catch(() => {});
+        this.renderAuthStatus();
+        this.showStatus('Logged out successfully', 'success');
       }
-      // Also notify background so popup reflects the change
-      chrome.runtime.sendMessage({ action: 'logout' }).catch(() => {});
-      this.renderAuthStatus();
-      this.showStatus('Logged out successfully', 'success');
-    });
+    );
   }
 
-  // ── Status message ────────────────────────────────────────────────────────
+  // ── Status messages ───────────────────────────────────────────────────────
   showStatus(message, type) {
-    const el = document.getElementById('status-message');
+    this._setStatus('status-message', message, type);
+  }
+
+  showCredentialsStatus(message, type) {
+    this._setStatus('credentials-status', message, type);
+  }
+
+  _setStatus(id, message, type) {
+    const el = document.getElementById(id);
     if (!el) return;
     el.textContent = message;
     el.className = type;
