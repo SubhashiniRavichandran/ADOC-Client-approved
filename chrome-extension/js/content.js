@@ -439,15 +439,8 @@ function init() {
 function injectSidebarIfNeeded() {
   if (sidebar) return;
   sidebar = new AdocSidebar();
-
-  // Auto-show and load data if user is already authenticated
-  chrome.storage.local.get(['adoc_authenticated'], (result) => {
-    if (chrome.runtime.lastError) return;
-    if (result.adoc_authenticated) {
-      // Small delay to let the PowerBI page DOM settle before reading report name
-      setTimeout(() => sidebar.show(), 800);
-    }
-  });
+  // Sidebar stays hidden until the user opens it via the floating ADOC button
+  // or pins it from the popup — no auto-show.
 }
 
 // Watch SPA navigation and re-initialise when user opens a report
@@ -465,16 +458,7 @@ function watchNavigation() {
   }, 1000);
 }
 
-// Also listen for auth state changes broadcast from background.
-// If user just logged in and is already on a PowerBI report → auto-show.
-chrome.runtime.onMessage.addListener((msg) => {
-  if (msg.action === 'authStateChanged' && msg.authenticated && isOnReportPage()) {
-    setTimeout(() => {
-      if (!sidebar) sidebar = new AdocSidebar();
-      sidebar.show();
-    }, 400);
-  }
-});
+// Auth state changes are handled by the popup; no auto-show on this side.
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MESSAGE LISTENER (from popup / background)
@@ -508,8 +492,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       return false;
 
     case 'togglePin':
-      if (sidebar) sidebar.togglePin();
-      sendResponse({ pinned: sidebar ? sidebar.pinned : false });
+      if (!sidebar) sidebar = new AdocSidebar();
+      // When pinning, make the sidebar visible first so the user sees it.
+      if (!sidebar.pinned && !sidebar.visible) sidebar.show();
+      sidebar.togglePin();
+      sendResponse({ pinned: sidebar.pinned });
       return false;
   }
 });
