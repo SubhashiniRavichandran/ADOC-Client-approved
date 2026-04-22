@@ -220,18 +220,28 @@ async function fetchReliabilityData(reportName) {
   // ── Step 1: Search API ────────────────────────────────────────────────────
   const searchResult  = await api.searchAssets(name);
   const searchError   = searchResult?.__error ?? null;
-  const searchAssets  = !searchError && Array.isArray(searchResult?.assets) ? searchResult.assets : [];
+  // Prefer the 'assets' key; fall back via normalizeList for other response shapes.
+  const searchAssets  = !searchError
+    ? (Array.isArray(searchResult?.assets)
+        ? searchResult.assets
+        : normalizeList(searchResult, ['assets', 'content', 'data', 'items']))
+    : [];
 
   // Only assets[].id considered — assetType.id ignored
   const semanticName  = `${name}::POWERBI_SEMANTIC_MODEL`;
-  const semanticAsset = searchAssets.find(a => a.name?.trim() === semanticName);
+  // Case-insensitive match guards against capitalisation differences between
+  // the DOM-extracted name and the name stored in the catalog.
+  const semanticAsset = searchAssets.find(
+    a => a.name?.trim().toLowerCase() === semanticName.toLowerCase()
+  );
 
   results.debug = {
     reportName:         name,
     semanticName,
-    searchError,                                                   // API error if any
-    rawSearchResult:    searchError ? null : searchResult,
+    searchError,
+    rawSearchResultKeys: searchError ? null : Object.keys(searchResult || {}),
     searchAssets:       searchAssets.map(a => ({ id: a.id, name: a.name })),
+    searchAssetsCount:  searchAssets.length,
     semanticAssetFound: !!semanticAsset,
     parentId:           semanticAsset?.id ?? null
   };
@@ -247,12 +257,16 @@ async function fetchReliabilityData(reportName) {
   // ── Step 2: GET /assets/:id/childAssets ──────────────────────────────────
   const childResult  = await api.getChildAssets(parentId);
   const childError   = childResult?.__error ?? null;
-  const childAssets  = !childError && Array.isArray(childResult?.assets) ? childResult.assets : [];
+  // Use normalizeList so we handle 'assets', 'content', 'data', 'items', or a
+  // bare array — whichever shape the child-assets endpoint returns.
+  const childAssets  = !childError
+    ? normalizeList(childResult, ['assets', 'content', 'data', 'items'])
+    : [];
 
-  results.totalAssets           = childAssets.length;
-  results.debug.childError      = childError;
-  results.debug.rawChildResult  = childError ? null : childResult;
-  results.debug.childrenLength  = childAssets.length;
+  results.totalAssets                 = childAssets.length;
+  results.debug.childError            = childError;
+  results.debug.rawChildResultKeys    = childError ? null : Object.keys(childResult || {});
+  results.debug.childrenLength        = childAssets.length;
 
   if (childError) return results;
 
