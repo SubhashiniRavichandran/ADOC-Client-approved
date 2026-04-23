@@ -29,6 +29,8 @@ class AdocApiClient {
     const method = (options.method || 'GET').toUpperCase();
     const hasBody = ['POST', 'PUT', 'PATCH'].includes(method);
 
+    console.log(`[ADOC] ▶ ${method} ${url}`);
+
     try {
       const response = await fetch(url, {
         ...options,
@@ -43,6 +45,8 @@ class AdocApiClient {
         signal: controller.signal
       });
 
+      console.log(`[ADOC] ◀ ${response.status} ${response.statusText} — ${url}`);
+
       if (!response.ok) {
         const msg =
           response.status === 401 ? 'Not authenticated – please log in again' :
@@ -52,10 +56,12 @@ class AdocApiClient {
         throw new Error(msg);
       }
 
-      return await response.json();
+      const data = await response.json();
+      console.log(`[ADOC] ✔ Response from ${url}:`, JSON.stringify(data).slice(0, 500));
+      return data;
     } catch (error) {
       if (error.name === 'AbortError') throw new Error('Request timed out after 30 seconds');
-      console.error('[ADOC] Request failed:', url, error.message);
+      console.error(`[ADOC] ✘ Request failed: ${url}`, error.message);
       throw error;
     } finally {
       clearTimeout(timeoutId);
@@ -65,7 +71,11 @@ class AdocApiClient {
   // Step 1: GET /catalog-server/api/assets/search?name=<reportName>
   async searchAssets(name) {
     try {
-      return await this.makeRequest(`/assets/search?name=${encodeURIComponent(name)}`);
+      const result = await this.makeRequest(`/assets/search?name=${encodeURIComponent(name)}`);
+      const assets = Array.isArray(result?.assets) ? result.assets : [];
+      console.log(`[ADOC] searchAssets("${name}") → ${assets.length} asset(s):`,
+        assets.map(a => `[${a.id}] ${a.name} (${a.assetType?.name})`));
+      return result;
     } catch (e) {
       return { __error: e.message };
     }
@@ -74,7 +84,11 @@ class AdocApiClient {
   // Step 2: GET /catalog-server/api/assets/:id/childAssets
   async getChildAssets(assetId) {
     try {
-      return await this.makeRequest(`/assets/${encodeURIComponent(assetId)}/childAssets`);
+      const result = await this.makeRequest(`/assets/${encodeURIComponent(assetId)}/childAssets`);
+      const assets = Array.isArray(result?.assets) ? result.assets : [];
+      console.log(`[ADOC] getChildAssets(${assetId}) → ${assets.length} child asset(s):`,
+        assets.map(a => `[${a.id}] ${a.name} (${a.assetType?.name})`));
+      return result;
     } catch (e) {
       return { __error: e.message };
     }
@@ -83,9 +97,11 @@ class AdocApiClient {
   // Step 3: GET /catalog-server/api/rules/data-cadence/byAsset/:id
   async getDataCadence(assetId) {
     try {
-      return await this.makeRequest(`/rules/data-cadence/byAsset/${encodeURIComponent(assetId)}`);
+      const result = await this.makeRequest(`/rules/data-cadence/byAsset/${encodeURIComponent(assetId)}`);
+      console.log(`[ADOC] getDataCadence(${assetId}) →`, JSON.stringify(result));
+      return result;
     } catch (e) {
-      console.error('[ADOC] getDataCadence failed:', e.message);
+      console.error(`[ADOC] getDataCadence(${assetId}) failed:`, e.message);
       return null;
     }
   }
