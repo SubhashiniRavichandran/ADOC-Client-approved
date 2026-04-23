@@ -1,12 +1,22 @@
 // ADOC Reliability Metrics - Background Service Worker
-importScripts('config.js');
+try {
+  importScripts('config.js');
+} catch (e) {
+  console.error('[ADOC] importScripts("config.js") failed — API keys will be missing:', e.message);
+  // Provide a safe fallback so the rest of the script doesn't crash.
+  // Requests will still be made but API key headers will be omitted.
+  self.CONFIG = self.CONFIG || {};
+}
 
-const SERVER_URL        = CONFIG.serverUrl;
-const API_PREFIX        = CONFIG.apiPrefix;
-const ASSET_DETAIL_PATH = CONFIG.assetDetailPath;
-const FETCH_TIMEOUT_MS  = CONFIG.fetchTimeoutMs;
-const ACCESS_KEY        = CONFIG.accessKey;
-const SECRET_KEY        = CONFIG.secretKey;
+const SERVER_URL        = CONFIG.serverUrl        || '';
+const API_PREFIX        = CONFIG.apiPrefix        || 'catalog-server/api';
+const ASSET_DETAIL_PATH = CONFIG.assetDetailPath  || '';
+const FETCH_TIMEOUT_MS  = CONFIG.fetchTimeoutMs   || 30000;
+const ACCESS_KEY        = CONFIG.accessKey        || '';
+const SECRET_KEY        = CONFIG.secretKey        || '';
+
+console.log('[ADOC] Config loaded — server:', SERVER_URL,
+            '| apiKeysConfigured:', !!(ACCESS_KEY && SECRET_KEY));
 
 // Tab ID of the currently open SSO login tab (null if not open)
 let loginTabId = null;
@@ -37,8 +47,8 @@ class AdocApiClient {
         credentials: 'include',
         headers: {
           'Accept':    'application/json, */*;q=0.9',
-          'accessKey': ACCESS_KEY,
-          'secretKey': SECRET_KEY,
+          ...(ACCESS_KEY ? { 'accessKey': ACCESS_KEY } : {}),
+          ...(SECRET_KEY ? { 'secretKey': SECRET_KEY } : {}),
           ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
           ...(options.headers || {})
         },
@@ -259,6 +269,8 @@ async function fetchReliabilityData(reportName) {
   results.debug = {
     reportName:           name,
     semanticName,
+    apiKeysConfigured:    !!(ACCESS_KEY && SECRET_KEY),
+    searchEndpoint:       `${SERVER_URL}/${API_PREFIX}/assets/search?name=${encodeURIComponent(name)}`,
     searchError,
     searchAssetsCount:    searchAssets.length,
     searchAssets:         searchAssets.map(a => ({ id: a.id, name: a.name, type: a.assetType?.name })),
