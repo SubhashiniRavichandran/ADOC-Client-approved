@@ -298,11 +298,9 @@ async function fetchReliabilityData(reportName) {
   results.totalAssets              = childAssets.length;
   results.debug.childError         = childError;
   results.debug.childResultKeys    = childError ? null : Object.keys(childResult || {});
-  results.debug.childResultSample  = childError ? null
-    : childAssets.slice(0, 3).map(a => ({ id: a.id, name: a.name, type: a.assetType?.name }));
   results.debug.childrenLength     = childAssets.length;
-  // Full raw keys of the first child asset — tells us which alert/score fields the API actually returns.
-  results.debug.rawFirstChild      = childError ? null : (childAssets[0] ?? null);
+  // Complete raw list from the childAssets endpoint — every field, every asset.
+  results.debug.rawChildAssets     = childError ? [] : childAssets;
 
   if (childError) return results;
 
