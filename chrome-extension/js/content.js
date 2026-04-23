@@ -524,18 +524,22 @@ function fmtDate(dateString) {
   });
 }
 
-// Notify background that this PowerBI tab is active
-chrome.runtime.sendMessage({ action: 'contentScriptReady', context: detectContext() }).catch(() => {});
-
-// When the extension is removed or disabled Chrome kills the service worker,
-// which causes this port to disconnect.  Use that signal to remove every DOM
-// element we injected so the sidebar doesn't linger after uninstall/disable.
+// Detect extension removal and clean up injected DOM elements.
+// Distinguish extension removal (chrome.runtime.id gone) from a normal
+// MV3 service-worker sleep (id still present) so we don't wipe the
+// sidebar just because the SW went idle.
+// Also suppresses "Unchecked runtime.lastError" by reading lastError
+// inside the onDisconnect callback.
 try {
   const _port = chrome.runtime.connect({ name: 'content-keepalive' });
   _port.onDisconnect.addListener(() => {
-    document.getElementById('adoc-sidebar')?.remove();
-    document.getElementById('adoc-toggle-btn')?.remove();
-    document.body.classList.remove('adoc-body-pushed');
+    void chrome.runtime.lastError; // must be read to suppress the warning
+    if (!chrome.runtime?.id) {
+      // Extension was removed or disabled — remove every injected element.
+      document.getElementById('adoc-sidebar')?.remove();
+      document.getElementById('adoc-toggle-btn')?.remove();
+      document.body.classList.remove('adoc-body-pushed');
+    }
   });
 } catch (_) {}
 
