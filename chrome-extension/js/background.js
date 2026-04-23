@@ -301,6 +301,8 @@ async function fetchReliabilityData(reportName) {
   results.debug.childResultSample  = childError ? null
     : childAssets.slice(0, 3).map(a => ({ id: a.id, name: a.name, type: a.assetType?.name }));
   results.debug.childrenLength     = childAssets.length;
+  // Full raw keys of the first child asset — tells us which alert/score fields the API actually returns.
+  results.debug.rawFirstChild      = childError ? null : (childAssets[0] ?? null);
 
   if (childError) return results;
 
@@ -312,8 +314,11 @@ async function fetchReliabilityData(reportName) {
   for (const child of childAssets) {
     if (!child?.id) continue;
 
-    const openAlerts     = child.openAlerts    ?? child.alertCount    ?? 0;
-    const upstreamIssues = child.upstreamIssues ?? child.upstreamAlerts ?? 0;
+    const openAlerts     = child.openAlerts     ?? child.alertCount     ??
+                           child.openAlertCount ?? child.alertsCount    ??
+                           child.totalAlerts    ?? child.alerts         ?? 0;
+    const upstreamIssues = child.upstreamIssues ?? child.upstreamAlerts ??
+                           child.upstreamCount  ?? child.upstreamIssueCount ?? 0;
 
     const cadenceData = await api.getDataCadence(child.id);
     const freshness   = cadenceData?.freshnessScore ?? cadenceData?.score ?? cadenceData?.freshness ?? null;

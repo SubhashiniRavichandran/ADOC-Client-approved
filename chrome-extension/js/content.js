@@ -214,6 +214,7 @@ class AdocSidebar {
         console.log('[ADOC] 10. childResult top-level keys:', JSON.stringify(dbg.childResultKeys));
         console.log('[ADOC] 11. childResult sample (≤3)  :', JSON.stringify(dbg.childResultSample));
         console.log('[ADOC] 12. children parsed count    :', dbg.childrenLength);
+        console.log('[ADOC] 12b. raw first child asset   :', JSON.stringify(dbg.rawFirstChild));
         console.log('[ADOC] 13. Total Assets             :', response.results.totalAssets);
         console.log('[ADOC] 14. Assets with Alerts       :', response.results.assetsWithAlerts);
         console.log('[ADOC] 15. asset list               :', JSON.stringify(response.results.assets));
