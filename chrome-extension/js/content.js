@@ -377,23 +377,25 @@ class AdocSidebar {
       resultsEl.appendChild(noAlerts);
     }
 
-    // "Reliability Details" heading + asset cards
-    if (results.assets.length > 0) {
+    // "Reliability Details" heading + asset cards — only for assets with alerts
+    const alertAssets = results.assets.filter(a => (a.totalAlertsCount ?? 0) > 0);
+
+    if (alertAssets.length > 0) {
       const heading = document.createElement('div');
       heading.textContent = 'Reliability Details';
       heading.style.cssText = 'font-size:13px;font-weight:700;color:#1f2937;margin:12px 0 8px';
       resultsEl.appendChild(heading);
-    }
 
-    const fragment = document.createDocumentFragment();
-    for (const asset of results.assets) {
-      fragment.appendChild(this.buildAssetCard(asset));
-    }
+      const fragment = document.createDocumentFragment();
+      for (const asset of alertAssets) {
+        fragment.appendChild(this.buildAssetCard(asset));
+      }
 
-    const listEl = document.createElement('div');
-    listEl.className = 'adoc-asset-list';
-    listEl.appendChild(fragment);
-    resultsEl.appendChild(listEl);
+      const listEl = document.createElement('div');
+      listEl.className = 'adoc-asset-list';
+      listEl.appendChild(fragment);
+      resultsEl.appendChild(listEl);
+    }
 
     // Refresh button
     const refreshBtn = document.createElement('button');
