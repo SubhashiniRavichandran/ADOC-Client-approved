@@ -14,6 +14,24 @@ function safeUrl(url, fallback = '#') {
   } catch { return fallback; }
 }
 
+function normalizeReportName(name) {
+  return (name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function formatDateTime(value) {
+  if (!value) return '—';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
+  return date.toLocaleString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
+}
+
 function sendMsg(msg, timeoutMs = MSG_TIMEOUT) {
   return new Promise((resolve) => {
     const t = setTimeout(() => resolve(null), timeoutMs);
@@ -93,7 +111,18 @@ class PopupController {
       const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
       const tab = tabs && tabs[0];
       if (tab && tab.url && tab.url.includes('powerbi.com')) {
-        await this.handleFetch();   // auto-fetch — no button click required
+        const context = await this.getTabContext(tab);
+        const cached = await this.getCached();
+        const namesMatch = normalizeReportName(cached?.reportName) === normalizeReportName(context?.reportName);
+        if (cached && (namesMatch || !context.reportName)) {
+          this.renderResults(cached);
+          this.showView('results');
+          // Refresh in the background to keep popup + sidebar in sync without
+          // blocking first paint in the popup.
+          this.handleFetch({ silent: true, tab, reportName: context.reportName });
+          return;
+        }
+        await this.handleFetch({ tab, reportName: context.reportName });   // auto-fetch — no button click required
       } else {
         // Not on a PowerBI page — show cached results if available so the
         // popup doesn't appear empty.
@@ -108,6 +137,12 @@ class PopupController {
     } catch (_) {
       this.showView('fetch');
     }
+  }
+
+  async getTabContext(tab) {
+    if (!tab || !tab.id) return { reportName: null };
+    const csResponse = await sendToTab(tab.id, { action: 'extractAssets' });
+    return { reportName: csResponse?.reportName || null };
   }
 
   async checkAuth() {
@@ -181,28 +216,28 @@ class PopupController {
   }
 
   // ── Fetch reliability data ─────────────────────────────────────────────────
-  async handleFetch() {
-    this.showView('fetching');
+  async handleFetch(opts = {}) {
+    const { silent = false } = opts;
+    if (!silent) this.showView('fetching');
 
-    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    const tab = tabs && tabs[0];
+    let tab = opts.tab;
+    if (!tab) {
+      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+      tab = tabs && tabs[0];
+    }
 
     if (!tab || !tab.url || !tab.url.includes('powerbi.com')) {
-      alert('Please open a Power BI report first, then click Fetch.');
+      if (!silent) alert('Please open a Power BI report first, then click Fetch.');
       this.showView('fetch');
       return;
     }
 
-    // Ask content script for the report name from the DOM
-    const csResponse = await sendToTab(tab.id, { action: 'extractAssets' });
-
-    if (!csResponse || !csResponse.reportName) {
-      alert('Could not detect the Power BI report name. Please refresh the report page and try again.');
+    const reportName = opts.reportName || (await this.getTabContext(tab)).reportName;
+    if (!reportName) {
+      if (!silent) alert('Could not detect the Power BI report name. Please refresh the report page and try again.');
       this.showView('fetch');
       return;
     }
-
-    const { reportName } = csResponse;
     console.log('[ADOC] Report name:', reportName);
 
     // Ask background to run the API flow
@@ -290,50 +325,79 @@ class PopupController {
 
   buildCard(asset) {
     const card = document.createElement('div');
-    card.className = 'asset-card has-alerts';
+    card.className = 'asset-card';
 
     // Support both legacy mock field names and the live background.js field names
     const name        = asset.assetName   ?? asset.name  ?? '—';
     const type        = asset.sourceType  ?? asset.type  ?? '—';
     const score       = asset.reliabilityScore ?? null;
     const alertCount  = asset.totalAlertsCount ?? asset.openAlerts ?? 0;
-    const scoreText   = score != null ? `${parseFloat(score).toFixed(1)}%` : '—';
-    const scoreClass  = score == null ? '' :
-                        score >= 90   ? 'score-high' :
-                        score >= 70   ? 'score-medium' : 'score-low';
+    const freshness   = asset.freshness ?? asset.dataFreshness ?? null;
+    const lastProfile = asset.lastProfileDateTime ?? asset.lastProfiled ?? null;
+    const upstreamIssues = asset.upstreamIssues ?? 0;
+    const scoreText   = score != null ? `${parseFloat(score).toFixed(2)}%` : '—';
+    const scoreClass  = score == null ? '' : 'score-high';
+    const freshText   = freshness != null ? `${parseFloat(freshness).toFixed(0)}%` : '—';
 
     card.innerHTML = `
       <div class="asset-header">
+        <span class="asset-source-icon" aria-hidden="true">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="16" rx="2" stroke="#6b7280" stroke-width="2"/><path d="M3 9h18M9 4v16" stroke="#6b7280" stroke-width="2"/></svg>
+        </span>
         <div class="asset-title">
           <div class="asset-name"><span class="js-name"></span></div>
           <div class="asset-type js-type"></div>
         </div>
-        <div class="score-badge js-score ${scoreClass}"></div>
+        <button class="copy-btn js-copy-btn" title="Copy asset name">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+            <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" stroke="currentColor" stroke-width="2"/>
+          </svg>
+        </button>
       </div>
       <div class="asset-metrics">
-        <div class="metric">
+        <div class="metric metric-row">
           <span class="metric-label">Reliability Score:</span>
-          <span class="metric-value js-score-val"></span>
+          <span class="metric-value score-badge js-score ${scoreClass}"></span>
+        </div>
+        <div class="metric metric-row">
+          <span class="metric-label">Data Freshness:</span>
+          <span class="metric-value js-freshness"></span>
+        </div>
+        <div class="metric metric-row">
+          <span class="metric-label">Last Profiled:</span>
+          <span class="metric-value js-profile"></span>
+        </div>
+        <div class="metric metric-row">
+          <span class="metric-label">Open Alerts:</span>
+          <span class="metric-value js-alerts-count"></span>
+          <a class="js-link link-icon" target="_blank" rel="noopener noreferrer">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </a>
+        </div>
+        <div class="metric metric-row">
+          <span class="metric-label">Upstream Issues:</span>
+          <span class="metric-value js-upstream"></span>
+          <a class="js-link js-upstream-link link-icon" target="_blank" rel="noopener noreferrer">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </a>
         </div>
       </div>
-      <div class="asset-footer">
-        <span class="alert-info">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="#ef4444" stroke-width="2" stroke-linecap="round"/></svg>
-          <span class="js-alerts"></span>
-        </span>
-        <a class="js-link link-icon" target="_blank" rel="noopener noreferrer">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-        </a>
-      </div>
+      <div class="asset-divider"></div>
     `;
 
     card.querySelector('.js-name').textContent      = name;
     card.querySelector('.js-type').textContent      = type;
     card.querySelector('.js-score').textContent     = scoreText;
-    card.querySelector('.js-score-val').textContent = scoreText;
-    card.querySelector('.js-alerts').textContent    =
-      `${alertCount} open alert${alertCount !== 1 ? 's' : ''}`;
+    card.querySelector('.js-freshness').textContent = freshText;
+    card.querySelector('.js-profile').textContent   = formatDateTime(lastProfile);
+    card.querySelector('.js-alerts-count').textContent = `${alertCount}`;
+    card.querySelector('.js-upstream').textContent = `${upstreamIssues}`;
     card.querySelector('.js-link').href = safeUrl(asset.adocLink || asset.quickLink || '#');
+    card.querySelector('.js-upstream-link').href = safeUrl(asset.quickLink || asset.adocLink || '#');
+    card.querySelector('.js-copy-btn')?.addEventListener('click', () => {
+      navigator.clipboard.writeText(name || '').catch(() => {});
+    });
 
     return card;
   }
