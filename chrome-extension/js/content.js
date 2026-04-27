@@ -409,8 +409,12 @@ class AdocSidebar {
       results.reportName || getPowerBIReportName() || '';
     resultsEl.appendChild(summary);
 
-    // Healthy — no alerts
-    if (results.assetsWithAlerts === 0) {
+    const alertAssets = (results.assets || []).filter(a => (a.totalAlertsCount ?? a.openAlerts ?? 0) > 0);
+    const fallbackAssets = (results.assets || []).filter(a => a.reliabilityScore != null);
+    const detailAssets = alertAssets.length > 0 ? alertAssets : fallbackAssets;
+
+    // Healthy / no detail rows to show
+    if (detailAssets.length === 0) {
       const noAlerts = document.createElement('div');
       noAlerts.className = 'adoc-no-alerts';
       noAlerts.innerHTML = `
@@ -422,9 +426,8 @@ class AdocSidebar {
       resultsEl.appendChild(noAlerts);
     }
 
-    // Reliability Details — only assets with alerts
-    const alertAssets = results.assets.filter(a => (a.totalAlertsCount ?? 0) > 0);
-    if (alertAssets.length > 0) {
+    // Reliability Details
+    if (detailAssets.length > 0) {
       const heading = document.createElement('div');
       heading.textContent = 'Reliability Details';
       heading.style.cssText = 'font-size:13px;font-weight:700;color:#1f2937;margin:12px 0 8px';
@@ -432,7 +435,7 @@ class AdocSidebar {
 
       const listEl = document.createElement('div');
       listEl.className = 'adoc-asset-list';
-      for (const asset of alertAssets) {
+      for (const asset of detailAssets) {
         listEl.appendChild(this.buildAssetCard(asset));
       }
       resultsEl.appendChild(listEl);
