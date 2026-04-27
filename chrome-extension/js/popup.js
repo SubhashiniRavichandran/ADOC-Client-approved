@@ -353,79 +353,88 @@ class PopupController {
     container.appendChild(frag);
   }
 
-  // ── Asset card — synced with sidebar buildAssetCard() layout ──────────────
+  // ── Asset item — flat list layout, 3-column grid rows (label | value | link)
+  //    Matches sidebar design exactly: no card border/background, all labels
+  //    vertically aligned, all values aligned, all link icons aligned.
   buildCard(asset) {
-    const card = document.createElement('div');
-    card.className = `asset-card${asset.hasCriticalAlert || (asset.totalAlertsCount ?? asset.openAlerts ?? 0) > 0 ? ' has-alerts' : ''}`;
+    const item = document.createElement('div');
+    item.className = 'asset-item';
 
-    const name        = asset.assetName   ?? asset.name  ?? '—';
-    const sourceType  = asset.sourceType  ?? asset.type  ?? null;
-    const assetType   = asset.type        ?? null;
-    const score       = asset.reliabilityScore ?? null;
-    const freshness   = asset.freshness   ?? null;
-    const profDate    = asset.lastProfileDateTime ?? null;
-    const alertCount  = asset.totalAlertsCount ?? asset.openAlerts ?? 0;
+    const name       = asset.assetName  ?? asset.name ?? '—';
+    const sourceType = asset.sourceType ?? null;
+    const assetType  = asset.type       ?? null;
+    const score      = asset.reliabilityScore ?? null;
+    const freshness  = asset.freshness  ?? null;
+    const profDate   = asset.lastProfileDateTime ?? null;
+    const alertCount = asset.totalAlertsCount ?? asset.openAlerts ?? 0;
+    const upstreamCount = asset.upstreamIssues ?? 0;
 
-    const scoreText   = score   != null ? `${parseFloat(score).toFixed(2)}%`   : '—';
-    const freshText   = freshness != null ? `${parseFloat(freshness).toFixed(0)}%` : '—';
-    const profText    = profDate ? fmtDate(profDate) : '—';
-    const alertText   = String(alertCount);
-    const scoreClass  = score == null ? '' :
-                        score >= 90  ? 'score-high' :
-                        score >= 70  ? 'score-medium' : 'score-low';
-    const alertStyle  = alertCount > 0 ? 'color:#ef4444;font-weight:700' : '';
+    const scoreText  = score     != null ? `${parseFloat(score).toFixed(2)}%`     : '—';
+    const freshText  = freshness != null ? `${parseFloat(freshness).toFixed(0)}%` : '—';
+    const profText   = profDate  ? fmtDate(profDate) : '—';
+    const scoreClass = score == null ? '' : score >= 90 ? 'score-high' : score >= 70 ? 'score-medium' : 'score-low';
+    const alertColor = alertCount > 0 ? 'color:#ef4444;font-weight:700' : '';
 
     const extIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none">
       <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"
         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>`;
 
-    card.innerHTML = `
-      <div class="card-header">
-        <span class="card-source-icon" title="${sourceType || 'Unknown source'}">${getSourceIcon(sourceType)}</span>
-        <span class="card-type-icon" title="${assetType || 'Asset'}">${getAssetTypeIcon(assetType)}</span>
-        <span class="card-name js-name"></span>
-        <button class="card-copy-btn" title="Copy asset name">
+    item.innerHTML = `
+      <div class="item-header">
+        <span class="item-src-icon" title="${sourceType || 'Unknown source'}">${getSourceIcon(sourceType)}</span>
+        <span class="item-type-icon" title="${assetType || 'Asset'}">${getAssetTypeIcon(assetType)}</span>
+        <span class="item-name js-name"></span>
+        <button class="item-copy-btn" title="Copy asset name">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
             <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/>
             <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" stroke="currentColor" stroke-width="2"/>
           </svg>
         </button>
       </div>
-      <div class="card-body">
-        <div class="card-row">
-          <span class="card-label">Data Reliability Score:</span>
-          <span class="score-pill js-score ${scoreClass}"></span>
-        </div>
-        <div class="card-row">
-          <span class="card-label">Data Freshness:</span>
-          <span class="card-value js-freshness"></span>
-        </div>
-        <div class="card-row">
-          <span class="card-label">Last Profiled:</span>
-          <span class="card-value js-profiled"></span>
-        </div>
-        <div class="card-row card-row-sep">
-          <span class="card-label">Open Alerts:</span>
-          <span class="card-value js-alerts" style="${alertStyle}"></span>
-          <a class="card-ext-link js-alerts-link" target="_blank" rel="noopener noreferrer"
-             style="${alertCount > 0 ? '' : 'visibility:hidden'}">${extIcon}</a>
-        </div>
+      <div class="item-row">
+        <span class="item-label">Data Reliability Score:</span>
+        <span class="score-pill js-score ${scoreClass}"></span>
+        <span></span>
+      </div>
+      <div class="item-row">
+        <span class="item-label">Data Freshness:</span>
+        <span class="item-value js-freshness"></span>
+        <span></span>
+      </div>
+      <div class="item-row">
+        <span class="item-label">Last Profiled:</span>
+        <span class="item-value js-profiled"></span>
+        <span></span>
+      </div>
+      <div class="item-row">
+        <span class="item-label">Open Alerts:</span>
+        <span class="item-value js-alerts" style="${alertColor}"></span>
+        <a class="item-ext-link js-alerts-link" target="_blank" rel="noopener noreferrer"
+           style="${alertCount > 0 ? '' : 'visibility:hidden'}">${extIcon}</a>
+      </div>
+      <div class="item-row">
+        <span class="item-label">Upstream Issues:</span>
+        <span class="item-value js-upstream"></span>
+        <a class="item-ext-link js-upstream-link" target="_blank" rel="noopener noreferrer"
+           style="${upstreamCount > 0 ? '' : 'visibility:hidden'}">${extIcon}</a>
       </div>
     `;
 
-    card.querySelector('.js-name').textContent      = name;
-    card.querySelector('.js-score').textContent     = scoreText;
-    card.querySelector('.js-freshness').textContent = freshText;
-    card.querySelector('.js-profiled').textContent  = profText;
-    card.querySelector('.js-alerts').textContent    = alertText;
-    card.querySelector('.js-alerts-link').href      = safeUrl(asset.quickLink || asset.adocLink || '#');
+    item.querySelector('.js-name').textContent      = name;
+    item.querySelector('.js-score').textContent     = scoreText;
+    item.querySelector('.js-freshness').textContent = freshText;
+    item.querySelector('.js-profiled').textContent  = profText;
+    item.querySelector('.js-alerts').textContent    = String(alertCount);
+    item.querySelector('.js-upstream').textContent  = String(upstreamCount);
+    item.querySelector('.js-alerts-link').href   = safeUrl(asset.quickLink || asset.adocLink || '#');
+    item.querySelector('.js-upstream-link').href = safeUrl(asset.adocLink  || asset.quickLink || '#');
 
-    card.querySelector('.card-copy-btn').addEventListener('click', () => {
+    item.querySelector('.item-copy-btn').addEventListener('click', () => {
       navigator.clipboard.writeText(name).catch(() => {});
     });
 
-    return card;
+    return item;
   }
 
   // ── Mock / demo data (shown when API unreachable) ─────────────────────────

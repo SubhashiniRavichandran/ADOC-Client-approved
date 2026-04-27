@@ -298,11 +298,11 @@ h2 {
 
 .mock-warning.hidden { display: none; }
 
-/* Reliability Section */
+/* Reliability Section — no background, just a top separator */
 .reliability-section {
-  background: var(--color-bg);
-  padding: 16px;
-  border-radius: var(--radius-lg);
+  border-top: 1px solid var(--color-border);
+  padding-top: 16px;
+  margin-top: 4px;
 }
 
 .no-alerts {
@@ -317,34 +317,30 @@ h2 {
   line-height: 1.5;
 }
 
-/* Assets List */
+/* Assets List — flat, no gaps (items use bottom border as separator) */
 .assets-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
 }
 
-/* ── Asset card — layout mirrors the sidebar card ──────────────────────────── */
-.asset-card {
-  background: var(--color-bg-white);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: 12px 14px;
-  transition: box-shadow 0.15s;
+/* ── Asset item — flat list, no card border or background ─────────────────── */
+.asset-item {
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f1f3;
 }
 
-.asset-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
+.asset-item:last-child { border-bottom: none; }
 
-/* Card header: source icon + type icon + name + copy button */
-.card-header {
+/* Item header: source icon + type icon + name + copy button */
+.item-header {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-bottom: 9px;
+  gap: 5px;
+  margin-bottom: 8px;
 }
 
-.card-source-icon,
-.card-type-icon {
+.item-src-icon,
+.item-type-icon {
   flex-shrink: 0;
   width: 16px;
   height: 16px;
@@ -353,16 +349,16 @@ h2 {
   justify-content: center;
 }
 
-.card-source-icon svg,
-.card-type-icon svg {
+.item-src-icon svg,
+.item-type-icon svg {
   width: 16px;
   height: 16px;
   display: block;
 }
 
-.card-name {
+.item-name {
   flex: 1;
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 700;
   color: var(--color-text);
   text-transform: uppercase;
@@ -372,7 +368,7 @@ h2 {
   text-overflow: ellipsis;
 }
 
-.card-copy-btn {
+.item-copy-btn {
   flex-shrink: 0;
   background: none;
   border: none;
@@ -385,62 +381,49 @@ h2 {
   transition: color 0.15s, background 0.15s;
 }
 
-.card-copy-btn:hover { color: var(--color-text-muted); background: #f3f4f6; }
+.item-copy-btn:hover { color: var(--color-text-muted); background: #f3f4f6; }
 
-/* Card body: label / value rows */
-.card-body {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
+/* 3-column grid row: [label 148px] [value 1fr] [link icon 18px]
+   All rows share the same grid so labels, values and links align perfectly. */
+.item-row {
+  display: grid;
+  grid-template-columns: 148px 1fr 18px;
+  align-items: start;
+  gap: 4px;
+  padding: 3px 0;
+  font-size: 12.5px;
+  line-height: 1.4;
 }
 
-.card-row {
-  display: flex;
-  align-items: center;
-  font-size: 12px;
-  gap: 6px;
-}
+.item-label { color: var(--color-text-muted); }
 
-.card-row-sep {
-  margin-top: 6px;
-  padding-top: 6px;
-  border-top: 1px solid #f3f4f6;
-}
+.item-value { color: var(--color-text); font-weight: 500; }
 
-.card-label {
-  color: var(--color-text-muted);
-  flex-shrink: 0;
-  min-width: 136px;
-}
-
-.card-value {
-  color: var(--color-text);
-  font-weight: 500;
-}
-
-/* Score pill — inline left after the label */
+/* Score pill sits in the value column */
 .score-pill {
   padding: 2px 8px;
   border-radius: 999px;
   font-size: 11px;
   font-weight: 700;
   white-space: nowrap;
+  display: inline-block;
 }
 
 .score-pill.score-high   { background: var(--color-success-bg); color: var(--color-success-dark); }
 .score-pill.score-medium { background: var(--color-warning-bg); color: var(--color-warning-dark); }
 .score-pill.score-low    { background: var(--color-danger-bg);  color: var(--color-danger-dark); }
 
-.card-ext-link {
+/* Link icon lives in the rightmost grid column */
+.item-ext-link {
   color: var(--color-primary);
   display: flex;
   align-items: center;
+  justify-content: center;
   text-decoration: none;
-  flex-shrink: 0;
-  margin-left: auto;
+  width: 18px;
 }
 
-.card-ext-link:hover { color: var(--color-primary-hover); }
+.item-ext-link:hover { color: var(--color-primary-hover); }
 
 /* Header actions group (pin / refresh / logout / close) */
 .header-actions {

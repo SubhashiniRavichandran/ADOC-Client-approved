@@ -6,10 +6,10 @@
 
 console.log('[ADOC] ✅ content.js injected on', window.location.href);
 
-// Inline SVG favicon — dark navy rounded square with white "a", identical to
+// Inline SVG favicon — dark navy "a" on transparent background, identical to
 // icons/favicon.svg. Embedded inline to avoid Power BI's CSP blocking
 // chrome-extension:// URLs in img src attributes.
-const ADOC_LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="28" height="28"><rect width="32" height="32" rx="6" fill="#0d1b3e"/><text x="16" y="23" font-family="Arial,Helvetica,sans-serif" font-size="22" font-weight="bold" fill="white" text-anchor="middle">a</text></svg>`;
+const ADOC_LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="28" height="28"><text x="16" y="25" font-family="Arial,Helvetica,sans-serif" font-size="26" font-weight="bold" fill="#0d1b3e" text-anchor="middle">a</text></svg>`;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // REPORT NAME EXTRACTION
@@ -468,29 +468,31 @@ class AdocSidebar {
     resultsEl.classList.remove('hidden');
   }
 
+  // Flat list item — 3-column grid rows so labels, values and link icons all
+  // align vertically across the entire reliability details section.
   buildAssetCard(asset) {
-    const card = document.createElement('div');
-    card.className = `adoc-asset-card${asset.hasCriticalAlert ? ' adoc-has-alerts' : ''}`;
+    const item = document.createElement('div');
+    item.className = 'adoc-asset-item';
 
-    const score      = asset.reliabilityScore;
-    const scoreClass = score >= 90 ? 'adoc-score-high' : score >= 70 ? 'adoc-score-med' : 'adoc-score-low';
-    const scoreText  = score != null ? `${parseFloat(score).toFixed(2)}%` : '—';
-    const freshText  = asset.freshness != null ? `${parseFloat(asset.freshness).toFixed(0)}%` : '—';
-    const profText   = asset.lastProfileDateTime ? fmtDate(asset.lastProfileDateTime) : '—';
-    const alertCount = asset.totalAlertsCount ?? 0;
-    const alertText  = String(alertCount);
-    const alertStyle = alertCount > 0 ? 'color:#ef4444;font-weight:700' : '';
+    const score         = asset.reliabilityScore;
+    const scoreClass    = score >= 90 ? 'adoc-score-high' : score >= 70 ? 'adoc-score-med' : 'adoc-score-low';
+    const scoreText     = score != null ? `${parseFloat(score).toFixed(2)}%` : '—';
+    const freshText     = asset.freshness != null ? `${parseFloat(asset.freshness).toFixed(0)}%` : '—';
+    const profText      = asset.lastProfileDateTime ? fmtDate(asset.lastProfileDateTime) : '—';
+    const alertCount    = asset.totalAlertsCount ?? 0;
+    const upstreamCount = asset.upstreamIssues ?? 0;
+    const alertColor    = alertCount > 0 ? 'color:#ef4444;font-weight:700' : '';
 
     const extIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none">
       <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"
         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>`;
 
-    card.innerHTML = `
-      <div class="adoc-card-header">
+    item.innerHTML = `
+      <div class="adoc-item-header">
         <span class="adoc-source-icon" title="${asset.sourceType || 'Unknown source'}">${getSourceIcon(asset.sourceType)}</span>
-        <span class="adoc-type-icon adoc-asset-type-icon" title="${asset.type || 'Asset'}">${getAssetTypeIcon(asset.type)}</span>
-        <span class="adoc-card-name"></span>
+        <span class="adoc-asset-type-icon" title="${asset.type || 'Asset'}">${getAssetTypeIcon(asset.type)}</span>
+        <span class="adoc-item-name js-item-name"></span>
         <button class="adoc-copy-btn" title="Copy asset name">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
             <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/>
@@ -498,40 +500,49 @@ class AdocSidebar {
           </svg>
         </button>
       </div>
-      <div class="adoc-card-body">
-        <div class="adoc-card-row">
-          <span class="adoc-card-label">Data Reliability Score:</span>
-          <span class="adoc-score-pill ${scoreClass} js-score"></span>
-        </div>
-        <div class="adoc-card-row">
-          <span class="adoc-card-label">Data Freshness:</span>
-          <span class="adoc-card-value js-freshness"></span>
-        </div>
-        <div class="adoc-card-row">
-          <span class="adoc-card-label">Last Profiled:</span>
-          <strong class="adoc-card-value js-profiled"></strong>
-        </div>
-        <div class="adoc-card-row adoc-card-row-sep">
-          <span class="adoc-card-label">Open Alerts:</span>
-          <span class="adoc-card-value js-alerts" style="${alertStyle}"></span>
-          <a class="adoc-ext-link js-alerts-link" target="_blank" rel="noopener noreferrer"
-             style="${alertCount > 0 ? '' : 'visibility:hidden'}">${extIcon}</a>
-        </div>
+      <div class="adoc-item-row">
+        <span class="adoc-item-label">Data Reliability Score:</span>
+        <span class="adoc-score-pill ${scoreClass} js-score"></span>
+        <span></span>
+      </div>
+      <div class="adoc-item-row">
+        <span class="adoc-item-label">Data Freshness:</span>
+        <span class="adoc-item-value js-freshness"></span>
+        <span></span>
+      </div>
+      <div class="adoc-item-row">
+        <span class="adoc-item-label">Last Profiled:</span>
+        <span class="adoc-item-value js-profiled"></span>
+        <span></span>
+      </div>
+      <div class="adoc-item-row">
+        <span class="adoc-item-label">Open Alerts:</span>
+        <span class="adoc-item-value js-alerts" style="${alertColor}"></span>
+        <a class="adoc-item-link js-alerts-link" target="_blank" rel="noopener noreferrer"
+           style="${alertCount > 0 ? '' : 'visibility:hidden'}">${extIcon}</a>
+      </div>
+      <div class="adoc-item-row">
+        <span class="adoc-item-label">Upstream Issues:</span>
+        <span class="adoc-item-value js-upstream"></span>
+        <a class="adoc-item-link js-upstream-link" target="_blank" rel="noopener noreferrer"
+           style="${upstreamCount > 0 ? '' : 'visibility:hidden'}">${extIcon}</a>
       </div>
     `;
 
-    card.querySelector('.adoc-card-name').textContent  = asset.assetName || '—';
-    card.querySelector('.js-score').textContent        = scoreText;
-    card.querySelector('.js-freshness').textContent    = freshText;
-    card.querySelector('.js-profiled').textContent     = profText;
-    card.querySelector('.js-alerts').textContent       = alertText;
-    card.querySelector('.js-alerts-link').href         = asset.quickLink || asset.adocLink || '#';
+    item.querySelector('.js-item-name').textContent  = asset.assetName || '—';
+    item.querySelector('.js-score').textContent      = scoreText;
+    item.querySelector('.js-freshness').textContent  = freshText;
+    item.querySelector('.js-profiled').textContent   = profText;
+    item.querySelector('.js-alerts').textContent     = String(alertCount);
+    item.querySelector('.js-upstream').textContent   = String(upstreamCount);
+    item.querySelector('.js-alerts-link').href       = asset.quickLink || asset.adocLink || '#';
+    item.querySelector('.js-upstream-link').href     = asset.adocLink  || asset.quickLink || '#';
 
-    card.querySelector('.adoc-copy-btn').addEventListener('click', () => {
+    item.querySelector('.adoc-copy-btn').addEventListener('click', () => {
       navigator.clipboard.writeText(asset.assetName || '').catch(() => {});
     });
 
-    return card;
+    return item;
   }
 
   showError(msg) {

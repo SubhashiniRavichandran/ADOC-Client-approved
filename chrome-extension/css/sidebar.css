@@ -102,7 +102,6 @@ body.adoc-body-pushed {
   display: block !important;
   visibility: visible !important;
   flex-shrink: 0 !important;
-  border-radius: 4px;
 }
 
 .adoc-sidebar-actions {
@@ -297,37 +296,29 @@ body.adoc-body-pushed {
   text-align: center;
 }
 
-/* ── Asset list ──────────────────────────────────────────────────────────── */
+/* ── Asset list — flat, no gaps (items use bottom border) ───────────────── */
 .adoc-asset-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0 !important;
 }
 
-/* ── Asset card ──────────────────────────────────────────────────────────── */
-.adoc-asset-card {
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  padding: 12px 14px;
-  transition: box-shadow 0.15s;
+/* ── Asset item — flat list, no card border or background ───────────────── */
+.adoc-asset-item {
+  padding: 12px 0 !important;
+  border-bottom: 1px solid #f0f1f3 !important;
+}
+.adoc-asset-item:last-child { border-bottom: none !important; }
+
+/* Item header: source icon + type icon + name + copy button */
+.adoc-item-header {
+  display: flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  margin-bottom: 8px !important;
 }
 
-.adoc-asset-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-
-/* Card header: type icon + name + copy button */
-.adoc-card-header {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  margin-bottom: 10px;
-}
-
-.adoc-type-icon {
-  color: #6b7280;
-  flex-shrink: 0;
-}
-
+/* Source-type icon (Redshift, Snowflake, …) */
 .adoc-source-icon {
   flex-shrink: 0 !important;
   width: 18px !important;
@@ -337,7 +328,6 @@ body.adoc-body-pushed {
   justify-content: center !important;
 }
 
-/* Prevent Power BI's global svg rules from hiding inline source type icons */
 .adoc-source-icon svg {
   width: 18px !important;
   height: 18px !important;
@@ -346,7 +336,7 @@ body.adoc-body-pushed {
   flex-shrink: 0 !important;
 }
 
-/* Asset type icon (TABLE, VIEW, etc.) — sits right of the source icon */
+/* Asset-type icon (TABLE, VIEW, …) */
 .adoc-asset-type-icon {
   flex-shrink: 0 !important;
   width: 16px !important;
@@ -364,85 +354,75 @@ body.adoc-body-pushed {
   flex-shrink: 0 !important;
 }
 
-.adoc-card-name {
-  flex: 1;
-  font-size: 13px;
-  font-weight: 700;
-  color: #1f2937;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.adoc-item-name {
+  flex: 1 !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  color: #1f2937 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.3px !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
 }
 
 .adoc-copy-btn {
-  flex-shrink: 0;
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: #9ca3af;
-  padding: 2px;
-  display: flex;
-  align-items: center;
-  border-radius: 4px;
+  flex-shrink: 0 !important;
+  background: none !important;
+  border: none !important;
+  cursor: pointer !important;
+  color: #9ca3af !important;
+  padding: 2px !important;
+  display: flex !important;
+  align-items: center !important;
+  border-radius: 4px !important;
   transition: color 0.15s, background 0.15s;
 }
-.adoc-copy-btn:hover { color: #374151; background: #f3f4f6; }
+.adoc-copy-btn:hover { color: #374151 !important; background: #f3f4f6 !important; }
 
-/* Card body: label/value rows */
-.adoc-card-body {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
+/* 3-column grid row: [label 152px] [value 1fr] [link icon 20px]
+   !important ensures Power BI's layout engine cannot override the grid. */
+.adoc-item-row {
+  display: grid !important;
+  grid-template-columns: 152px 1fr 20px !important;
+  align-items: start !important;
+  gap: 4px !important;
+  padding: 3px 0 !important;
+  font-size: 12.5px !important;
+  line-height: 1.4 !important;
 }
 
-.adoc-card-row {
-  display: flex;
-  align-items: center;
-  font-size: 12.5px;
-  gap: 6px;
-}
+.adoc-item-label { color: #6b7280 !important; }
 
-.adoc-card-row-sep {
-  margin-top: 6px;
-  padding-top: 6px;
-  border-top: 1px solid #f3f4f6;
-}
+.adoc-item-value { color: #1f2937 !important; font-weight: 500 !important; }
 
-.adoc-card-label {
-  color: #6b7280;
-  flex-shrink: 0;
-  min-width: 140px;
-}
-
-.adoc-card-value {
-  color: #1f2937;
-  font-weight: 500;
-}
-
-.adoc-ext-link {
-  color: #0ea5e9;
-  display: flex;
-  align-items: center;
-  text-decoration: none;
-  flex-shrink: 0;
-  margin-left: auto;
-}
-.adoc-ext-link:hover { color: #0284c7; }
-
-/* Score pill — inline left, follows the label */
+/* Score pill — sits in the value column */
 .adoc-score-pill {
-  padding: 2px 9px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 700;
-  white-space: nowrap;
+  padding: 2px 9px !important;
+  border-radius: 999px !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  white-space: nowrap !important;
+  display: inline-block !important;
 }
 
-.adoc-score-high { background: #d1fae5; color: #065f46; }
-.adoc-score-med  { background: #fef3c7; color: #92400e; }
-.adoc-score-low  { background: #fee2e2; color: #991b1b; }
+.adoc-score-high { background: #d1fae5 !important; color: #065f46 !important; }
+.adoc-score-med  { background: #fef3c7 !important; color: #92400e !important; }
+.adoc-score-low  { background: #fee2e2 !important; color: #991b1b !important; }
+
+/* Link icon in the rightmost grid column */
+.adoc-item-link {
+  color: #0ea5e9 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-decoration: none !important;
+  width: 20px !important;
+}
+.adoc-item-link:hover { color: #0284c7 !important; }
+
+.adoc-item-link svg,
+.adoc-item-row span:empty { display: block !important; visibility: visible !important; }
 
 /* ── Refresh button ──────────────────────────────────────────────────────── */
 .adoc-refresh-btn {
