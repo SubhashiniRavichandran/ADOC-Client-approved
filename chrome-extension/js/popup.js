@@ -14,6 +14,24 @@ function safeUrl(url, fallback = '#') {
   } catch { return fallback; }
 }
 
+function normalizeReportName(name) {
+  return (name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function formatDateTime(value) {
+  if (!value) return '—';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
+  return date.toLocaleString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
+}
+
 function sendMsg(msg, timeoutMs = MSG_TIMEOUT) {
   return new Promise((resolve) => {
     const t = setTimeout(() => resolve(null), timeoutMs);
@@ -95,7 +113,8 @@ class PopupController {
       if (tab && tab.url && tab.url.includes('powerbi.com')) {
         const context = await this.getTabContext(tab);
         const cached = await this.getCached();
-        if (cached && context.reportName && cached.reportName === context.reportName) {
+        const namesMatch = normalizeReportName(cached?.reportName) === normalizeReportName(context?.reportName);
+        if (cached && (namesMatch || !context.reportName)) {
           this.renderResults(cached);
           this.showView('results');
           // Refresh in the background to keep popup + sidebar in sync without
@@ -264,6 +283,9 @@ class PopupController {
 
   // ── Render results ─────────────────────────────────────────────────────────
   renderResults(results) {
+    const reportNameEl = document.getElementById('report-name');
+    if (reportNameEl) reportNameEl.textContent = results.reportName || 'Power BI Report';
+
     const statusEl = document.getElementById('report-status');
     if (statusEl) {
       statusEl.textContent = results.reportStatus;
@@ -313,10 +335,13 @@ class PopupController {
     const type        = asset.sourceType  ?? asset.type  ?? '—';
     const score       = asset.reliabilityScore ?? null;
     const alertCount  = asset.totalAlertsCount ?? asset.openAlerts ?? 0;
-    const scoreText   = score != null ? `${parseFloat(score).toFixed(1)}%` : '—';
+    const freshness   = asset.freshness ?? asset.dataFreshness ?? null;
+    const lastProfile = asset.lastProfileDateTime ?? asset.lastProfiled ?? null;
+    const scoreText   = score != null ? `${parseFloat(score).toFixed(2)}%` : '—';
     const scoreClass  = score == null ? '' :
                         score >= 90   ? 'score-high' :
                         score >= 70   ? 'score-medium' : 'score-low';
+    const freshText   = freshness != null ? `${parseFloat(freshness).toFixed(0)}%` : '—';
 
     card.innerHTML = `
       <div class="asset-header">
@@ -331,6 +356,14 @@ class PopupController {
           <span class="metric-label">Reliability Score:</span>
           <span class="metric-value js-score-val"></span>
         </div>
+        <div class="metric">
+          <span class="metric-label">Data Freshness:</span>
+          <span class="metric-value js-freshness"></span>
+        </div>
+        <div class="metric">
+          <span class="metric-label">Last Profiled:</span>
+          <span class="metric-value js-profile"></span>
+        </div>
       </div>
       <div class="asset-footer">
         <span class="alert-info">
@@ -343,10 +376,12 @@ class PopupController {
       </div>
     `;
 
-    card.querySelector('.js-name').textContent      = name;
-    card.querySelector('.js-type').textContent      = type;
+    card.querySelector('.js-name').textContent      = String(name).toUpperCase();
+    card.querySelector('.js-type').textContent      = String(type).toUpperCase();
     card.querySelector('.js-score').textContent     = scoreText;
     card.querySelector('.js-score-val').textContent = scoreText;
+    card.querySelector('.js-freshness').textContent = freshText;
+    card.querySelector('.js-profile').textContent   = formatDateTime(lastProfile);
     card.querySelector('.js-alerts').textContent    =
       `${alertCount} open alert${alertCount !== 1 ? 's' : ''}`;
     card.querySelector('.js-link').href = safeUrl(asset.adocLink || asset.quickLink || '#');

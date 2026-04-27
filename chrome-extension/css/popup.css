@@ -236,6 +236,14 @@ h2 {
   margin-bottom: 16px;
 }
 
+.report-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: -4px 0 14px;
+  text-transform: lowercase;
+}
+
 .summary-grid {
   display: flex;
   flex-direction: column;
@@ -402,8 +410,8 @@ h2 {
 }
 
 .asset-metrics {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 8px;
   margin-bottom: 12px;
   padding: 12px;
