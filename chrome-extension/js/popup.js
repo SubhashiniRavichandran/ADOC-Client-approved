@@ -334,6 +334,7 @@ class PopupController {
     const alertCount  = asset.totalAlertsCount ?? asset.openAlerts ?? 0;
     const freshness   = asset.freshness ?? asset.dataFreshness ?? null;
     const lastProfile = asset.lastProfileDateTime ?? asset.lastProfiled ?? null;
+    const upstreamIssues = asset.upstreamIssues ?? 0;
     const scoreText   = score != null ? `${parseFloat(score).toFixed(2)}%` : '—';
     const scoreClass  = score == null ? '' :
                         score >= 90   ? 'score-high' :
@@ -362,12 +363,18 @@ class PopupController {
           <span class="metric-value js-profile"></span>
         </div>
       </div>
+      <div class="asset-divider"></div>
       <div class="asset-footer">
-        <span class="alert-info">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="#ef4444" stroke-width="2" stroke-linecap="round"/></svg>
-          <span class="js-alerts"></span>
-        </span>
+        <span class="metric-label">Open Alerts:</span>
+        <span class="metric-value js-alerts-count"></span>
         <a class="js-link link-icon" target="_blank" rel="noopener noreferrer">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </a>
+      </div>
+      <div class="asset-footer">
+        <span class="metric-label">Upstream Issues:</span>
+        <span class="metric-value js-upstream"></span>
+        <a class="js-link js-upstream-link link-icon" target="_blank" rel="noopener noreferrer">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         </a>
       </div>
@@ -379,9 +386,10 @@ class PopupController {
     card.querySelector('.js-score-val').textContent = scoreText;
     card.querySelector('.js-freshness').textContent = freshText;
     card.querySelector('.js-profile').textContent   = formatDateTime(lastProfile);
-    card.querySelector('.js-alerts').textContent    =
-      `${alertCount} open alert${alertCount !== 1 ? 's' : ''}`;
+    card.querySelector('.js-alerts-count').textContent = `${alertCount}`;
+    card.querySelector('.js-upstream').textContent = `${upstreamIssues}`;
     card.querySelector('.js-link').href = safeUrl(asset.adocLink || asset.quickLink || '#');
+    card.querySelector('.js-upstream-link').href = safeUrl(asset.quickLink || asset.adocLink || '#');
 
     return card;
   }
