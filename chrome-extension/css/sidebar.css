@@ -108,27 +108,45 @@ body.adoc-body-pushed {
 }
 
 .adoc-icon-btn {
-  width: 30px;
-  height: 30px;
-  border: none;
-  background: transparent;
-  border-radius: 6px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #6b7280;
+  width: 30px !important;
+  height: 30px !important;
+  border: none !important;
+  background: transparent !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: #6b7280 !important;
+  padding: 0 !important;
+  margin: 0 !important;
   transition: background 0.15s, color 0.15s;
 }
 
 .adoc-icon-btn:hover {
-  background: #e5e7eb;
-  color: #1f2937;
+  background: #e5e7eb !important;
+  color: #1f2937 !important;
 }
 
 .adoc-icon-btn.active {
-  background: #dbeafe;
-  color: #2563eb;
+  background: #dbeafe !important;
+  color: #2563eb !important;
+}
+
+/* Force SVG icons inside sidebar action buttons to always be visible —
+   Power BI's own stylesheet can set svg { display:none } or similar. */
+.adoc-sidebar-actions .adoc-icon-btn svg {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  width: 16px !important;
+  height: 16px !important;
+  pointer-events: none !important;
+}
+
+.adoc-sidebar-actions .adoc-icon-btn svg path {
+  stroke: currentColor !important;
+  visibility: visible !important;
 }
 
 /* ── Sidebar scrollable body ─────────────────────────────────────────────── */
@@ -305,6 +323,24 @@ body.adoc-body-pushed {
 .adoc-type-icon {
   color: #6b7280;
   flex-shrink: 0;
+}
+
+.adoc-source-icon {
+  flex-shrink: 0 !important;
+  width: 18px !important;
+  height: 18px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Prevent Power BI's global svg rules from hiding inline source type icons */
+.adoc-source-icon svg {
+  width: 18px !important;
+  height: 18px !important;
+  display: block !important;
+  visibility: visible !important;
+  flex-shrink: 0 !important;
 }
 
 .adoc-card-name {

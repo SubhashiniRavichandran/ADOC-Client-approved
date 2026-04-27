@@ -1,4 +1,4 @@
-// ADOC Reliability Metrics - Options Page (SSO-based, no API keys)
+// ADOC Reliability Metrics - Options Page (SSO-based)
 
 const DEFAULT_SERVER_URL = 'https://cso-enablement.poc.acceldatasolutions.net';
 const TEST_TIMEOUT_MS = 30000;
@@ -128,14 +128,13 @@ class OptionsController {
     setTimeout(() => this.renderAuthStatus(), 3000);
   }
 
-  // ── Logout: clear session and cached data ─────────────────────────────────
+  // ── Logout: clear session and cached data ────────────────────────────────
   logout() {
     chrome.storage.local.remove(['adoc_authenticated', 'cached_results'], () => {
       if (chrome.runtime.lastError) {
         this.showStatus(`Logout failed: ${chrome.runtime.lastError.message}`, 'error');
         return;
       }
-      // Also notify background so popup reflects the change
       chrome.runtime.sendMessage({ action: 'logout' }).catch(() => {});
       this.renderAuthStatus();
       this.showStatus('Logged out successfully', 'success');

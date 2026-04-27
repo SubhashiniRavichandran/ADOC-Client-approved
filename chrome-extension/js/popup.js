@@ -55,12 +55,14 @@ class PopupController {
       this.getCached()
     ]);
 
-    if (cached) {
+    if (authStatus) {
+      // Always auto-fetch when authenticated so the popup stays in sync with
+      // the sidebar. If not on a PowerBI tab, autoFetchOrShowFetch falls back
+      // to cached data or the fetch button.
+      await this.autoFetchOrShowFetch();
+    } else if (cached) {
       this.renderResults(cached);
       this.showView('results');
-    } else if (authStatus) {
-      // Authenticated — auto-fetch if already on a PowerBI tab, else show button
-      await this.autoFetchOrShowFetch();
     } else {
       this.showView('login');
     }
@@ -93,7 +95,15 @@ class PopupController {
       if (tab && tab.url && tab.url.includes('powerbi.com')) {
         await this.handleFetch();   // auto-fetch — no button click required
       } else {
-        this.showView('fetch');     // not on PowerBI yet
+        // Not on a PowerBI page — show cached results if available so the
+        // popup doesn't appear empty.
+        const cached = await this.getCached();
+        if (cached) {
+          this.renderResults(cached);
+          this.showView('results');
+        } else {
+          this.showView('fetch');
+        }
       }
     } catch (_) {
       this.showView('fetch');
@@ -266,7 +276,7 @@ class PopupController {
       if (noAlertsMsg) noAlertsMsg.style.display = 'none';
       if (assetsList) {
         assetsList.style.display = 'block';
-        this.renderAssets(results.assets.filter(a => a.openAlerts > 0), assetsList);
+        this.renderAssets(results.assets.filter(a => (a.totalAlertsCount ?? a.openAlerts ?? 0) > 0), assetsList);
       }
     }
   }
@@ -282,8 +292,15 @@ class PopupController {
     const card = document.createElement('div');
     card.className = 'asset-card has-alerts';
 
-    const scoreClass = asset.reliabilityScore >= 90 ? 'score-high' :
-                       asset.reliabilityScore >= 70 ? 'score-medium' : 'score-low';
+    // Support both legacy mock field names and the live background.js field names
+    const name        = asset.assetName   ?? asset.name  ?? '—';
+    const type        = asset.sourceType  ?? asset.type  ?? '—';
+    const score       = asset.reliabilityScore ?? null;
+    const alertCount  = asset.totalAlertsCount ?? asset.openAlerts ?? 0;
+    const scoreText   = score != null ? `${parseFloat(score).toFixed(1)}%` : '—';
+    const scoreClass  = score == null ? '' :
+                        score >= 90   ? 'score-high' :
+                        score >= 70   ? 'score-medium' : 'score-low';
 
     card.innerHTML = `
       <div class="asset-header">
@@ -294,7 +311,10 @@ class PopupController {
         <div class="score-badge js-score ${scoreClass}"></div>
       </div>
       <div class="asset-metrics">
-        <div class="metric"><span class="metric-label">Reliability Score:</span> <span class="metric-value js-score-val"></span></div>
+        <div class="metric">
+          <span class="metric-label">Reliability Score:</span>
+          <span class="metric-value js-score-val"></span>
+        </div>
       </div>
       <div class="asset-footer">
         <span class="alert-info">
@@ -307,12 +327,13 @@ class PopupController {
       </div>
     `;
 
-    card.querySelector('.js-name').textContent = asset.name;
-    card.querySelector('.js-type').textContent = asset.type;
-    card.querySelector('.js-score').textContent = `${asset.reliabilityScore}%`;
-    card.querySelector('.js-score-val').textContent = `${asset.reliabilityScore}%`;
-    card.querySelector('.js-alerts').textContent = `${asset.openAlerts} open alert${asset.openAlerts !== 1 ? 's' : ''}`;
-    card.querySelector('.js-link').href = safeUrl(asset.adocLink);
+    card.querySelector('.js-name').textContent      = name;
+    card.querySelector('.js-type').textContent      = type;
+    card.querySelector('.js-score').textContent     = scoreText;
+    card.querySelector('.js-score-val').textContent = scoreText;
+    card.querySelector('.js-alerts').textContent    =
+      `${alertCount} open alert${alertCount !== 1 ? 's' : ''}`;
+    card.querySelector('.js-link').href = safeUrl(asset.adocLink || asset.quickLink || '#');
 
     return card;
   }
