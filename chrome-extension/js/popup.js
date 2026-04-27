@@ -367,7 +367,6 @@ class PopupController {
     const freshness  = asset.freshness  ?? null;
     const profDate   = asset.lastProfileDateTime ?? null;
     const alertCount = asset.totalAlertsCount ?? asset.openAlerts ?? 0;
-    const upstreamCount = asset.upstreamIssues ?? 0;
 
     const scoreText  = score     != null ? `${parseFloat(score).toFixed(2)}%`     : '—';
     const freshText  = freshness != null ? `${parseFloat(freshness).toFixed(0)}%` : '—';
@@ -413,12 +412,6 @@ class PopupController {
         <a class="item-ext-link js-alerts-link" target="_blank" rel="noopener noreferrer"
            style="${alertCount > 0 ? '' : 'visibility:hidden'}">${extIcon}</a>
       </div>
-      <div class="item-row">
-        <span class="item-label">Upstream Issues:</span>
-        <span class="item-value js-upstream"></span>
-        <a class="item-ext-link js-upstream-link" target="_blank" rel="noopener noreferrer"
-           style="${upstreamCount > 0 ? '' : 'visibility:hidden'}">${extIcon}</a>
-      </div>
     `;
 
     item.querySelector('.js-name').textContent      = name;
@@ -426,9 +419,7 @@ class PopupController {
     item.querySelector('.js-freshness').textContent = freshText;
     item.querySelector('.js-profiled').textContent  = profText;
     item.querySelector('.js-alerts').textContent    = String(alertCount);
-    item.querySelector('.js-upstream').textContent  = String(upstreamCount);
     item.querySelector('.js-alerts-link').href   = safeUrl(asset.quickLink || asset.adocLink || '#');
-    item.querySelector('.js-upstream-link').href = safeUrl(asset.adocLink  || asset.quickLink || '#');
 
     item.querySelector('.item-copy-btn').addEventListener('click', () => {
       navigator.clipboard.writeText(name).catch(() => {});

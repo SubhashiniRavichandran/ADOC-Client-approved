@@ -480,7 +480,6 @@ class AdocSidebar {
     const freshText     = asset.freshness != null ? `${parseFloat(asset.freshness).toFixed(0)}%` : '—';
     const profText      = asset.lastProfileDateTime ? fmtDate(asset.lastProfileDateTime) : '—';
     const alertCount    = asset.totalAlertsCount ?? 0;
-    const upstreamCount = asset.upstreamIssues ?? 0;
     const alertColor    = alertCount > 0 ? 'color:#ef4444;font-weight:700' : '';
 
     const extIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none">
@@ -521,12 +520,6 @@ class AdocSidebar {
         <a class="adoc-item-link js-alerts-link" target="_blank" rel="noopener noreferrer"
            style="${alertCount > 0 ? '' : 'visibility:hidden'}">${extIcon}</a>
       </div>
-      <div class="adoc-item-row">
-        <span class="adoc-item-label">Upstream Issues:</span>
-        <span class="adoc-item-value js-upstream"></span>
-        <a class="adoc-item-link js-upstream-link" target="_blank" rel="noopener noreferrer"
-           style="${upstreamCount > 0 ? '' : 'visibility:hidden'}">${extIcon}</a>
-      </div>
     `;
 
     item.querySelector('.js-item-name').textContent  = asset.assetName || '—';
@@ -534,9 +527,7 @@ class AdocSidebar {
     item.querySelector('.js-freshness').textContent  = freshText;
     item.querySelector('.js-profiled').textContent   = profText;
     item.querySelector('.js-alerts').textContent     = String(alertCount);
-    item.querySelector('.js-upstream').textContent   = String(upstreamCount);
     item.querySelector('.js-alerts-link').href       = asset.quickLink || asset.adocLink || '#';
-    item.querySelector('.js-upstream-link').href     = asset.adocLink  || asset.quickLink || '#';
 
     item.querySelector('.adoc-copy-btn').addEventListener('click', () => {
       navigator.clipboard.writeText(asset.assetName || '').catch(() => {});
