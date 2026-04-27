@@ -4,6 +4,8 @@
 //  2. Inject the pin/unpin sidebar panel
 //  3. Respond to popup/background messages
 
+console.log('[ADOC] ✅ content.js injected on', window.location.href);
+
 // ─────────────────────────────────────────────────────────────────────────────
 // REPORT NAME EXTRACTION
 // Reads the Power BI report name directly from the page.
@@ -129,6 +131,7 @@ class AdocSidebar {
   }
 
   show() {
+    console.log('[ADOC] sidebar.show() — data already loaded:', !!this.data);
     this.container.classList.remove('hidden');
     this.visible = true;
     this.toggleBtn.classList.add('active');
@@ -171,36 +174,44 @@ class AdocSidebar {
   }
 
   async loadData() {
+    console.log('[ADOC] 🔄 loadData() called');
     const loadingEl = document.getElementById('adoc-loading');
     const resultsEl = document.getElementById('adoc-results');
-    const errorEl = document.getElementById('adoc-error');
+    const errorEl   = document.getElementById('adoc-error');
 
     if (loadingEl) loadingEl.classList.remove('hidden');
     if (resultsEl) resultsEl.classList.add('hidden');
-    if (errorEl) errorEl.classList.add('hidden');
+    if (errorEl)   errorEl.classList.add('hidden');
 
     let reportName = getPowerBIReportName();
-    // Retry once in case Power BI's SPA hasn't updated document.title yet.
     if (!reportName) {
+      console.log('[ADOC] Report name not ready, waiting 1.5s…');
       await new Promise(r => setTimeout(r, 1500));
       reportName = getPowerBIReportName();
     }
-    console.log('[ADOC] Report name sent to background:', reportName);
+    console.log('[ADOC] Report name resolved:', reportName);
 
     if (!reportName) {
       this.showError('Could not detect the Power BI report name. Please ensure a report is fully loaded.');
       return;
     }
 
+    let response;
     try {
-      const response = await chrome.runtime.sendMessage({
+      console.log('[ADOC] 📤 Sending fetchReliabilityData to background for:', reportName);
+      response = await chrome.runtime.sendMessage({
         action: 'fetchReliabilityData',
         reportName
       });
+      console.log('[ADOC] 📥 Raw response from background:', JSON.stringify(response).slice(0, 4000));
+    } catch (sendErr) {
+      console.error('[ADOC] ❌ sendMessage threw:', sendErr.message);
+      this.showError('Could not reach background service: ' + sendErr.message);
+      if (loadingEl) loadingEl.classList.add('hidden');
+      return;
+    }
 
-      // Always log the raw response so errors are visible in page console too.
-      console.log('[ADOC] raw background response:', JSON.stringify(response).slice(0, 3000));
-
+    try {
       if (response && response.results) {
         const dbg = response.results.debug || {};
         try {
@@ -268,11 +279,11 @@ class AdocSidebar {
         this.data = response.results;
         this.renderResults(response.results);
       } else {
-        console.error('[ADOC] ERROR from background:', response?.error);
+        console.error('[ADOC] ❌ ERROR from background:', response?.error ?? '(no results in response)');
         this.showError(response?.error || 'Failed to fetch reliability data.');
       }
     } catch (e) {
-      console.error('[ADOC] loadData error:', e.message);
+      console.error('[ADOC] ❌ loadData render error:', e.message);
       this.showError('Extension error: ' + e.message);
     } finally {
       if (loadingEl) loadingEl.classList.add('hidden');
