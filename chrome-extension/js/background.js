@@ -9,10 +9,13 @@ try {
 const SERVER_URL        = CONFIG.serverUrl        || '';
 const API_PREFIX        = CONFIG.apiPrefix        || 'catalog-server/api';
 const PIPELINE_PREFIX   = 'torch-pipeline/api';
+const MGMT_PREFIX       = 'api/management/v1';
+const INCIDENTS_PREFIX  = 'api/incidents/api/v1';
 const ASSET_DETAIL_PATH = CONFIG.assetDetailPath  || '';
 const FETCH_TIMEOUT_MS  = CONFIG.fetchTimeoutMs   || 30000;
 const ACCESS_KEY        = CONFIG.accessKey        || '';
 const SECRET_KEY        = CONFIG.secretKey        || '';
+const NAMESPACE_NAME    = 'Default';
 
 console.log('[ADOC] Config loaded — server:', SERVER_URL,
             '| apiKeysConfigured:', !!(ACCESS_KEY && SECRET_KEY));
@@ -24,16 +27,13 @@ let loginTabId = null;
 // ─────────────────────────────────────────────────────────────────────────────
 class AdocApiClient {
 
-  // options.apiPrefix overrides the default catalog-server prefix (e.g. for
-  // torch-pipeline endpoints).
   async makeRequest(endpoint, options = {}) {
     const prefix = options.apiPrefix ?? API_PREFIX;
     const url    = `${SERVER_URL}/${prefix}${endpoint}`;
     const controller = new AbortController();
     const timeoutId  = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-
-    const method  = (options.method || 'GET').toUpperCase();
-    const hasBody = ['POST', 'PUT', 'PATCH'].includes(method);
+    const method     = (options.method || 'GET').toUpperCase();
+    const hasBody    = ['POST', 'PUT', 'PATCH'].includes(method);
 
     console.log(`[ADOC] ▶ ${method} ${url}`);
 
@@ -88,19 +88,20 @@ class AdocApiClient {
   }
 
   // Step 2: GET /catalog-server/api/assets/:id/childAssets
+  // Response shape: { childAssets: [{ assetId, name, childType: { name } }] }
   async getChildAssets(assetId) {
     try {
       const result = await this.makeRequest(`/assets/${encodeURIComponent(assetId)}/childAssets`);
-      const assets = Array.isArray(result?.assets) ? result.assets : [];
-      console.log(`[ADOC] getChildAssets(${assetId}) → ${assets.length} child asset(s):`,
-        assets.map(a => `[${a.id}] ${a.name} (${a.assetType?.name})`));
+      const list   = normalizeList(result, ['childAssets', 'assets', 'content', 'data', 'items']);
+      console.log(`[ADOC] getChildAssets(${assetId}) → ${list.length} child(ren):`,
+        list.map(c => `[${c.assetId ?? c.id}] ${c.name} (${c.childType?.name ?? c.assetType?.name})`));
       return result;
     } catch (e) {
       return { __error: e.message };
     }
   }
 
-  // Step 3: GET /torch-pipeline/api/assets/:id/lineage?sublevellineage=true
+  // Step 2.1: GET /torch-pipeline/api/assets/:id/lineage?sublevellineage=true
   async getLineage(assetId) {
     try {
       const result = await this.makeRequest(
@@ -115,7 +116,38 @@ class AdocApiClient {
     }
   }
 
-  // Step 4: GET /catalog-server/api/assets/:id/scores
+  // Step 2.2: GET /api/management/v1/namespaces/name/Default
+  async getNamespace(namespaceName) {
+    try {
+      const result = await this.makeRequest(
+        `/namespaces/name/${encodeURIComponent(namespaceName)}`,
+        { apiPrefix: MGMT_PREFIX }
+      );
+      console.log(`[ADOC] getNamespace("${namespaceName}") → id:`, result?.id);
+      return result;
+    } catch (e) {
+      console.error('[ADOC] getNamespace failed:', e.message);
+      return { __error: e.message };
+    }
+  }
+
+  // Step 2.3: GET /api/incidents/api/v1/:namespaceId/incidents/listing?status=open&severity=CRITICAL
+  async getCriticalIncidents(namespaceId) {
+    try {
+      const result = await this.makeRequest(
+        `/${encodeURIComponent(namespaceId)}/incidents/listing?status=open&severity=CRITICAL`,
+        { apiPrefix: INCIDENTS_PREFIX }
+      );
+      const list = normalizeList(result, ['incidents', 'content', 'data', 'items']);
+      console.log(`[ADOC] getCriticalIncidents(${namespaceId}) → ${list.length} incident(s)`);
+      return result;
+    } catch (e) {
+      console.error(`[ADOC] getCriticalIncidents(${namespaceId}) failed:`, e.message);
+      return { __error: e.message };
+    }
+  }
+
+  // Step 3: GET /catalog-server/api/assets/:id/scores
   async getAssetScores(assetId) {
     try {
       const result = await this.makeRequest(`/assets/${encodeURIComponent(assetId)}/scores`);
@@ -123,20 +155,6 @@ class AdocApiClient {
       return result;
     } catch (e) {
       console.error(`[ADOC] getAssetScores(${assetId}) failed:`, e.message);
-      return { __error: e.message };
-    }
-  }
-
-  // Step 5: GET /catalog-server/api/assets/:id/rulesWithLatestExecution
-  async getAssetRules(assetId) {
-    try {
-      const result = await this.makeRequest(
-        `/assets/${encodeURIComponent(assetId)}/rulesWithLatestExecution`
-      );
-      console.log(`[ADOC] getAssetRules(${assetId}) →`, JSON.stringify(result).slice(0, 500));
-      return result;
-    } catch (e) {
-      console.error(`[ADOC] getAssetRules(${assetId}) failed:`, e.message);
       return { __error: e.message };
     }
   }
@@ -160,14 +178,10 @@ function openSsoLoginTab() {
 
 function watchSsoTab(tabId) {
   const onUpdated = (id, changeInfo, tab) => {
-    if (id !== tabId) return;
-    if (changeInfo.status !== 'complete') return;
+    if (id !== tabId || changeInfo.status !== 'complete') return;
     const url = tab.url || '';
-    const onAdocDomain   = url.startsWith(SERVER_URL);
-    const pastLoginScreen = url.includes('/ui/torch') ||
-                            url.includes('/namespace/') ||
-                            url.includes('/home');
-    if (onAdocDomain && pastLoginScreen) {
+    if (url.startsWith(SERVER_URL) &&
+        (url.includes('/ui/torch') || url.includes('/namespace/') || url.includes('/home'))) {
       chrome.tabs.onUpdated.removeListener(onUpdated);
       confirmSsoSession(tabId);
     }
@@ -230,23 +244,26 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // CORE DATA FLOW
 //
-// Step 1: GET /catalog-server/api/assets/search?name=<reportName>
-//         → find asset where name === "<reportName>::POWERBI_SEMANTIC_MODEL"
-//         → semanticModelAssetId = assets[].id
+// Step 1:   GET /catalog-server/api/assets/search?name=<reportName>
+//           → find POWERBI_SEMANTIC_MODEL → semanticModelAssetId
 //
-// Step 2: GET /catalog-server/api/assets/:semanticModelAssetId/childAssets
-//         → collect childAssetIds[], totalChildAssets = count
+// Step 2:   GET /catalog-server/api/assets/:semanticModelAssetId/childAssets
+//           → childAssets[{ assetId, assetName }], totalChildAssets
 //
-// Step 3: For each childAssetId:
-//         GET /torch-pipeline/api/assets/:childAssetId/lineage?sublevellineage=true
-//         → filter: assetType != "POWERBI_SEMANTIC_MODEL_TABLE" AND lineage == "UPSTREAM"
-//         → upstreamSourceAssetId
+// Step 2.1: GET /torch-pipeline/api/assets/:childAssetId/lineage?sublevellineage=true
+//           → filter assetType != POWERBI_SEMANTIC_MODEL_TABLE AND lineage == UPSTREAM
+//           → upstreamSourceAssetId
 //
-// Step 4: GET /catalog-server/api/assets/:upstreamSourceAssetId/scores
-//         → reliabilityScore, dataCadenceScore (freshness), lastProfileDateTime
+// Step 2.2: GET /api/management/v1/namespaces/name/Default
+//           → namespaceId
 //
-// Step 5: GET /catalog-server/api/assets/:upstreamSourceAssetId/rulesWithLatestExecution
-//         → any rule status == "CRITICAL" → hasCriticalAlert = true
+// Step 2.3: GET /api/incidents/api/v1/:namespaceId/incidents/listing?status=open&severity=CRITICAL
+//           → filter incidents where assets[].assetId == upstreamSourceAssetId
+//           → totalAlertsCount
+//           Quick link: /ui/unified/namespace/Default/incidents/list?searchText=:assetName
+//
+// Step 3:   GET /catalog-server/api/assets/:upstreamSourceAssetId/scores
+//           → reliabilityScore, dataCadenceScore (freshness), lastProfileDateTime
 // ─────────────────────────────────────────────────────────────────────────────
 async function fetchReliabilityData(reportName) {
   const results = {
@@ -259,16 +276,13 @@ async function fetchReliabilityData(reportName) {
   };
 
   if (!reportName) return results;
-
   const name = reportName.trim();
 
   // ── Step 1: Find POWERBI_SEMANTIC_MODEL ──────────────────────────────────
   const searchResult = await api.searchAssets(name);
   const searchError  = searchResult?.__error ?? null;
   const searchAssets = !searchError
-    ? (Array.isArray(searchResult?.assets)
-        ? searchResult.assets
-        : normalizeList(searchResult, ['assets', 'content', 'data', 'items']))
+    ? normalizeList(searchResult, ['assets', 'content', 'data', 'items'])
     : [];
 
   const semanticName  = `${name}::POWERBI_SEMANTIC_MODEL`;
@@ -277,14 +291,14 @@ async function fetchReliabilityData(reportName) {
   );
 
   results.debug = {
-    apiKeysConfigured:   !!(ACCESS_KEY && SECRET_KEY),
-    reportName:          name,
+    apiKeysConfigured:    !!(ACCESS_KEY && SECRET_KEY),
+    reportName:           name,
     semanticName,
-    searchEndpoint:      `${SERVER_URL}/${API_PREFIX}/assets/search?name=${encodeURIComponent(name)}`,
+    searchEndpoint:       `${SERVER_URL}/${API_PREFIX}/assets/search?name=${encodeURIComponent(name)}`,
     searchError,
-    searchAssetsCount:   searchAssets.length,
-    searchAssets:        searchAssets.map(a => ({ id: a.id, name: a.name, type: a.assetType?.name })),
-    semanticAssetFound:  !!semanticAsset,
+    searchAssetsCount:    searchAssets.length,
+    searchAssets:         searchAssets.map(a => ({ id: a.id, name: a.name, type: a.assetType?.name })),
+    semanticAssetFound:   !!semanticAsset,
     semanticModelAssetId: semanticAsset?.id ?? null
   };
 
@@ -293,61 +307,89 @@ async function fetchReliabilityData(reportName) {
   const semanticModelAssetId = semanticAsset.id;
 
   // ── Step 2: Get child assets ──────────────────────────────────────────────
-  const childResult  = await api.getChildAssets(semanticModelAssetId);
-  const childError   = childResult?.__error ?? null;
-  const childAssets  = !childError
-    ? normalizeList(childResult, ['assets', 'content', 'data', 'items'])
+  const childResult = await api.getChildAssets(semanticModelAssetId);
+  const childError  = childResult?.__error ?? null;
+
+  // Handle both { childAssets: [...] } and { assets: [...] } response shapes.
+  const childRaw    = !childError
+    ? normalizeList(childResult, ['childAssets', 'assets', 'content', 'data', 'items'])
     : [];
 
-  const totalChildAssets = childAssets.length;
+  // Normalise to { assetId, assetName } — field may be 'assetId' or 'id'
+  const childList   = childRaw.map(c => ({
+    assetId:   c.assetId   ?? c.id,
+    assetName: c.name      ?? null
+  })).filter(c => c.assetId);
+
+  const totalChildAssets = childList.length;
   results.totalAssets    = totalChildAssets;
 
   results.debug.childAssetsEndpoint = `${SERVER_URL}/${API_PREFIX}/assets/${semanticModelAssetId}/childAssets`;
   results.debug.childError          = childError;
   results.debug.totalChildAssets    = totalChildAssets;
-  results.debug.rawChildAssets      = childError ? [] : childAssets;
+  results.debug.childList           = childList;
+  results.debug.rawChildAssets      = childError ? [] : childRaw;
 
-  if (childError) return results;
+  if (childError || totalChildAssets === 0) return results;
 
-  const childAssetIds = childAssets.map(a => a.id).filter(Boolean);
-  console.log(`[ADOC] childAssetIds (${childAssetIds.length}):`, childAssetIds);
+  // ── Step 2.2: Fetch namespace ID (once, shared) ───────────────────────────
+  const nsResult    = await api.getNamespace(NAMESPACE_NAME);
+  const nsError     = nsResult?.__error ?? null;
+  const namespaceId = nsError ? null : (nsResult?.id ?? nsResult?.namespaceId ?? null);
+  results.debug.namespaceId    = namespaceId;
+  results.debug.namespaceError = nsError;
+  console.log('[ADOC] namespaceId:', namespaceId);
 
-  // ── Steps 3‑5: Per child asset ────────────────────────────────────────────
-  for (const childAssetId of childAssetIds) {
+  // ── Step 2.3: Fetch ALL open CRITICAL incidents for namespace (once) ──────
+  let allIncidents   = [];
+  let incidentsError = null;
+  if (namespaceId) {
+    const incResult = await api.getCriticalIncidents(namespaceId);
+    incidentsError  = incResult?.__error ?? null;
+    if (!incidentsError) {
+      allIncidents = normalizeList(incResult, ['incidents', 'content', 'data', 'items']);
+    }
+  }
+  results.debug.incidentsError = incidentsError;
+  results.debug.totalIncidents = allIncidents.length;
 
-    // Step 3: Lineage → find upstream source asset
+  // ── Steps 2.1 + 3: Per child asset ───────────────────────────────────────
+  for (const child of childList) {
+    const { assetId: childAssetId, assetName } = child;
+
+    // Step 2.1: Lineage → upstream physical source asset
     const lineageResult = await api.getLineage(childAssetId);
     const lineageError  = lineageResult?.__error ?? null;
 
     if (lineageError) {
       results.assets.push({
-        childAssetId,
+        childAssetId, assetName,
         upstreamSourceAssetId: null,
-        name:                  null,
         type:                  null,
         reliabilityScore:      null,
         freshness:             null,
         lastProfileDateTime:   null,
-        openAlerts:            0,
+        totalAlertsCount:      0,
         hasCriticalAlert:      false,
+        quickLink:             buildQuickLink(assetName),
         adocLink:              `${SERVER_URL}${ASSET_DETAIL_PATH}${childAssetId}`,
         lineageError
       });
       continue;
     }
 
-    // Lineage responses vary in shape — try known keys then scan for arrays.
     const lineageItems = normalizeList(
-      lineageResult,
-      ['assets', 'lineage', 'nodes', 'content', 'data', 'items']
+      lineageResult, ['assets', 'lineage', 'nodes', 'content', 'data', 'items']
     );
 
-    console.log(`[ADOC] lineage for child ${childAssetId} → ${lineageItems.length} item(s):`,
-      lineageItems.map(a => `[${a.id ?? a.assetId}] ${a.name} type=${a.assetType?.name} dir=${a.lineage ?? a.direction ?? a.lineageDirection}`));
+    console.log(`[ADOC] lineage for child ${childAssetId}(${assetName}) → ${lineageItems.length} item(s):`,
+      lineageItems.map(a =>
+        `[${a.id ?? a.assetId}] ${a.name} type=${a.assetType?.name ?? a.assetTypeName} dir=${a.lineage ?? a.direction ?? a.lineageDirection}`
+      )
+    );
 
-    // Filter: assetType != POWERBI_SEMANTIC_MODEL_TABLE AND direction == UPSTREAM
     const upstreamAsset = lineageItems.find(a => {
-      const type = a.assetType?.name ?? a.assetTypeName ?? '';
+      const type = a.assetType?.name ?? a.assetTypeName ?? a.childType?.name ?? '';
       const dir  = a.lineage ?? a.direction ?? a.lineageDirection ?? '';
       return type !== 'POWERBI_SEMANTIC_MODEL_TABLE' && dir === 'UPSTREAM';
     });
@@ -355,26 +397,35 @@ async function fetchReliabilityData(reportName) {
     if (!upstreamAsset) {
       console.log(`[ADOC] No upstream source asset found for child ${childAssetId}`);
       results.assets.push({
-        childAssetId,
+        childAssetId, assetName,
         upstreamSourceAssetId: null,
-        name:                  null,
         type:                  null,
         reliabilityScore:      null,
         freshness:             null,
         lastProfileDateTime:   null,
-        openAlerts:            0,
+        totalAlertsCount:      0,
         hasCriticalAlert:      false,
+        quickLink:             buildQuickLink(assetName),
         adocLink:              `${SERVER_URL}${ASSET_DETAIL_PATH}${childAssetId}`,
-        lineageError:          'No upstream source asset found in lineage'
+        lineageError:          'No upstream UPSTREAM asset found in lineage'
       });
       continue;
     }
 
-    const upstreamSourceAssetId = upstreamAsset.id ?? upstreamAsset.assetId;
-    console.log(`[ADOC] upstreamSourceAssetId for child ${childAssetId}:`, upstreamSourceAssetId,
-      upstreamAsset.name, upstreamAsset.assetType?.name);
+    const upstreamSourceAssetId = String(upstreamAsset.id ?? upstreamAsset.assetId ?? '');
+    console.log(`[ADOC] upstreamSourceAssetId for child ${childAssetId}:`,
+      upstreamSourceAssetId, upstreamAsset.name, upstreamAsset.assetType?.name);
 
-    // Step 4: Scores (reliabilityScore, dataCadenceScore, lastProfileDateTime)
+    // Step 2.3 (filter): count incidents where assets[].assetId == upstreamSourceAssetId
+    const totalAlertsCount = allIncidents.filter(inc => {
+      const incAssets = Array.isArray(inc.assets) ? inc.assets : [];
+      return incAssets.some(a => String(a.assetId) === upstreamSourceAssetId);
+    }).length;
+
+    const hasCriticalAlert = totalAlertsCount > 0;
+    if (hasCriticalAlert) results.assetsWithAlerts++;
+
+    // Step 3: Scores → reliabilityScore, dataCadenceScore (freshness), lastProfileDateTime
     const scoresResult = await api.getAssetScores(upstreamSourceAssetId);
     const scoresError  = scoresResult?.__error ?? null;
 
@@ -383,47 +434,34 @@ async function fetchReliabilityData(reportName) {
     let lastProfileDateTime = null;
 
     if (!scoresError) {
-      // Server may return scores nested under ruleScores or flat at the top level.
       const s         = scoresResult?.ruleScores ?? scoresResult ?? {};
       reliabilityScore    = s.reliabilityScore    ?? null;
       freshness           = s.dataCadenceScore    ?? s.freshnessScore ?? null;
       lastProfileDateTime = s.lastProfileDateTime ?? scoresResult?.lastProfileDateTime ?? null;
     }
 
-    // Step 5: Rules with latest execution → CRITICAL = alert
-    const rulesResult = await api.getAssetRules(upstreamSourceAssetId);
-    const rulesError  = rulesResult?.__error ?? null;
-    let hasCriticalAlert = false;
-    let openAlerts       = 0;
-
-    if (!rulesError) {
-      const rules = normalizeList(rulesResult, ['rules', 'content', 'data', 'items']);
-      const criticals = rules.filter(r => {
-        const status = r.latestExecution?.status ?? r.status ?? r.executionStatus ?? '';
-        return status === 'CRITICAL';
-      });
-      openAlerts       = criticals.length;
-      hasCriticalAlert = openAlerts > 0;
-    }
-
-    if (hasCriticalAlert) results.assetsWithAlerts++;
-
     results.assets.push({
       childAssetId,
+      assetName,
       upstreamSourceAssetId,
-      name:                upstreamAsset.name    ?? null,
-      type:                upstreamAsset.assetType?.name ?? null,
+      type:               upstreamAsset.assetType?.name ?? upstreamAsset.assetTypeName ?? null,
       reliabilityScore,
       freshness,
       lastProfileDateTime,
-      openAlerts,
+      totalAlertsCount,
       hasCriticalAlert,
-      adocLink:            `${SERVER_URL}${ASSET_DETAIL_PATH}${upstreamSourceAssetId}`
+      quickLink:          buildQuickLink(assetName),
+      adocLink:           `${SERVER_URL}${ASSET_DETAIL_PATH}${upstreamSourceAssetId}`
     });
   }
 
   results.reportStatus = results.assetsWithAlerts > 0 ? 'Risky' : 'Healthy';
   return results;
+}
+
+function buildQuickLink(assetName) {
+  if (!assetName) return null;
+  return `${SERVER_URL}/ui/unified/namespace/${NAMESPACE_NAME}/incidents/list?searchText=${encodeURIComponent(assetName)}`;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
