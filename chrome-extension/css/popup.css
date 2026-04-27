@@ -335,8 +335,6 @@ h2 {
 
 .asset-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
 
-.asset-card.has-alerts { border-left: 3px solid var(--color-danger); }
-
 /* Card header: source icon + type icon + name + copy button */
 .card-header {
   display: flex;
@@ -418,17 +416,15 @@ h2 {
 .card-value {
   color: var(--color-text);
   font-weight: 500;
-  margin-left: auto;
 }
 
-/* Score pill — right-aligned in the row */
+/* Score pill — inline left after the label */
 .score-pill {
   padding: 2px 8px;
   border-radius: 999px;
   font-size: 11px;
   font-weight: 700;
   white-space: nowrap;
-  margin-left: auto;
 }
 
 .score-pill.score-high   { background: var(--color-success-bg); color: var(--color-success-dark); }
@@ -441,7 +437,7 @@ h2 {
   align-items: center;
   text-decoration: none;
   flex-shrink: 0;
-  margin-left: 2px;
+  margin-left: auto;
 }
 
 .card-ext-link:hover { color: var(--color-primary-hover); }

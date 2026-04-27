@@ -6,9 +6,10 @@
 
 console.log('[ADOC] ✅ content.js injected on', window.location.href);
 
-// Base64-encoded icon48.png — used instead of chrome-extension:// URL because
-// Power BI's CSP blocks chrome-extension:// in img src attributes.
-const ADOC_LOGO_DATA_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAACWklEQVR4nO2aTWsTQRzGfzubbZoQIppaqbVb4guK0mgtFl+u5qagYEVBvHpQP4GQg6CepIgfQDxrxYNYPKrkUGJ9uWgNlErBRhAtEY2YbGY9hNCkm2rrbpis7O/2nxlm/s/MM7Ozy2q04MjVkt2qvBPIZqJaY9wUdHLiy6kLEfUCPyUPS/lqjYEfEX9v0tkIP88+/A8roDoBtwQCVBMIUE0gQDWBANWEPOlEwM4+QcoUDG0RmAlBTxwihoa0ofTLplC0yRckT2ckU7NVL4YFQPPiLnT2UIiLR41Vt389L7lyr0zRg2uYEgvtMwXXx7o86csTC5UtmJqtks1LZhYkiyWbxR82lSqsi2rs6RdcThtsXr/0ArjXFIwkBdNz0tXYngiYyFlM5FrXff1u8/x9zfM3TjfP+oGk3hkCAGJhjfSQzuhWwWCPYEOston1P5i0N66tXLlKPBFweIdO5oRBrHttCUU82AauBQwkNK6NdWHo7pP5F1wLODkSciQ//8Xm1pMK7xYk337WjsrhQcHt82G3wzlwLWD7JqfJb06WHZvTTLTnxHbda6iFdSpWc2zocGq0PR5zLeDDZ+cxeCltsK1X0G3Arj7B+LkwyY3tWQHXFnr4ssrx/aGmb5S7+wV3LzT7/dGrKseGvV8F19OSL0jGJyvIFa41NnDnmcXjN1brBi7x5Dnw4IVF/pPkzMEQKVMQj2gUSzZvP0ru5yym5ySpgfZYyJPbqEp8/0ITCFBNIEA1gQDVBAJUEwhQjf8FLP/3wG/4fwXA+QeIX8hmoppoDFQms1bq+f4GO7Sg3ljaPbQAAAAASUVORK5CYII=';
+// Inline SVG favicon — dark navy rounded square with white "a", identical to
+// icons/favicon.svg. Embedded inline to avoid Power BI's CSP blocking
+// chrome-extension:// URLs in img src attributes.
+const ADOC_LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="28" height="28"><rect width="32" height="32" rx="6" fill="#0d1b3e"/><text x="16" y="23" font-family="Arial,Helvetica,sans-serif" font-size="22" font-weight="bold" fill="white" text-anchor="middle">a</text></svg>`;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // REPORT NAME EXTRACTION
@@ -154,7 +155,7 @@ class AdocSidebar {
     this.container.innerHTML = `
       <div class="adoc-sidebar-header">
         <div class="adoc-sidebar-logo">
-          <img class="adoc-logo-img" src="${ADOC_LOGO_DATA_URL}" alt="ADOC" width="28" height="28">
+          <span class="adoc-logo-wrap">${ADOC_LOGO_SVG}</span>
           <span>ADOC Metrics</span>
         </div>
         <div class="adoc-sidebar-actions">

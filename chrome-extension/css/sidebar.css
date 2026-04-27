@@ -88,11 +88,19 @@ body.adoc-body-pushed {
   color: #1f2937;
 }
 
-.adoc-logo-img {
+.adoc-logo-wrap {
+  flex-shrink: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  line-height: 0 !important;
+}
+
+/* Force Power BI not to suppress the inline favicon SVG */
+.adoc-logo-wrap svg {
   width: 28px !important;
   height: 28px !important;
-  object-fit: contain !important;
   display: block !important;
+  visibility: visible !important;
   flex-shrink: 0 !important;
   border-radius: 4px;
 }
@@ -306,7 +314,6 @@ body.adoc-body-pushed {
 }
 
 .adoc-asset-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-.adoc-asset-card.adoc-has-alerts { border-left: 3px solid #ef4444; }
 
 /* Card header: type icon + name + copy button */
 .adoc-card-header {
@@ -412,7 +419,6 @@ body.adoc-body-pushed {
 .adoc-card-value {
   color: #1f2937;
   font-weight: 500;
-  margin-left: auto;
 }
 
 .adoc-ext-link {
@@ -421,17 +427,17 @@ body.adoc-body-pushed {
   align-items: center;
   text-decoration: none;
   flex-shrink: 0;
+  margin-left: auto;
 }
 .adoc-ext-link:hover { color: #0284c7; }
 
-/* Score pill — sits in the row like a value */
+/* Score pill — inline left, follows the label */
 .adoc-score-pill {
   padding: 2px 9px;
   border-radius: 999px;
   font-size: 12px;
   font-weight: 700;
   white-space: nowrap;
-  margin-left: auto;
 }
 
 .adoc-score-high { background: #d1fae5; color: #065f46; }
