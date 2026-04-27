@@ -350,20 +350,42 @@ async function fetchReliabilityData(reportName) {
       allIncidents = normalizeList(incResult, ['incidents', 'content', 'data', 'items']);
     }
   }
-  results.debug.incidentsError  = incidentsError;
-  results.debug.totalIncidents  = allIncidents.length;
-  // Raw first incident — shows the actual shape so we can verify the filter field names.
-  results.debug.rawFirstIncident = allIncidents[0] ?? null;
+  results.debug.incidentsError   = incidentsError;
+  results.debug.totalIncidents   = allIncidents.length;
+  // All assetIds referenced across every incident — used to verify filter matching.
+  results.debug.incidentAssetIds = allIncidents.flatMap(inc =>
+    (Array.isArray(inc.assets) ? inc.assets : []).map(a => ({
+      incidentId:   inc.id,
+      incidentName: inc.incidentName,
+      assetId:      a.assetId,
+      assetName:    a.assetName
+    }))
+  );
+  // Per-child asset trace (populated inside the loop below).
+  results.debug.assetTrace = [];
 
   // ── Steps 2.1 + 3: Per child asset ───────────────────────────────────────
   for (const child of childList) {
     const { assetId: childAssetId, assetName } = child;
 
+    const trace = {
+      childAssetId,
+      assetName,
+      lineageEndpoint: `${SERVER_URL}/${PIPELINE_PREFIX}/assets/${childAssetId}/lineage?sublevellineage=true`,
+      lineageError:    null,
+      rawLineageItems: [],
+      upstreamAssetRaw:      null,
+      upstreamSourceAssetId: null,
+      incidentMatchDetails:  [],
+      totalAlertsCount:      0
+    };
+
     // Step 2.1: Lineage → upstream physical source asset
     const lineageResult = await api.getLineage(childAssetId);
-    const lineageError  = lineageResult?.__error ?? null;
+    trace.lineageError  = lineageResult?.__error ?? null;
 
-    if (lineageError) {
+    if (trace.lineageError) {
+      results.debug.assetTrace.push(trace);
       results.assets.push({
         childAssetId, assetName,
         upstreamSourceAssetId: null,
@@ -375,7 +397,7 @@ async function fetchReliabilityData(reportName) {
         hasCriticalAlert:      false,
         quickLink:             buildQuickLink(assetName),
         adocLink:              `${SERVER_URL}${ASSET_DETAIL_PATH}${childAssetId}`,
-        lineageError
+        lineageError:          trace.lineageError
       });
       continue;
     }
@@ -383,6 +405,7 @@ async function fetchReliabilityData(reportName) {
     const lineageItems = normalizeList(
       lineageResult, ['assets', 'lineage', 'nodes', 'content', 'data', 'items']
     );
+    trace.rawLineageItems = lineageItems;
 
     console.log(`[ADOC] lineage for child ${childAssetId}(${assetName}) → ${lineageItems.length} item(s):`,
       lineageItems.map(a =>
@@ -398,6 +421,7 @@ async function fetchReliabilityData(reportName) {
 
     if (!upstreamAsset) {
       console.log(`[ADOC] No upstream source asset found for child ${childAssetId}`);
+      results.debug.assetTrace.push(trace);
       results.assets.push({
         childAssetId, assetName,
         upstreamSourceAssetId: null,
@@ -414,24 +438,31 @@ async function fetchReliabilityData(reportName) {
       continue;
     }
 
+    trace.upstreamAssetRaw      = upstreamAsset;
     const upstreamSourceAssetId = String(upstreamAsset.id ?? upstreamAsset.assetId ?? '');
+    trace.upstreamSourceAssetId = upstreamSourceAssetId;
+
     console.log(`[ADOC] upstreamSourceAssetId for child ${childAssetId}:`,
       upstreamSourceAssetId, upstreamAsset.name, upstreamAsset.assetType?.name);
 
     // Step 2.3: count open CRITICAL incidents that reference upstreamSourceAssetId.
-    // Try every plausible field name the API might use inside each incident's asset list.
-    const totalAlertsCount = allIncidents.filter(inc => {
-      // Match at the incident level (some APIs embed assetId directly on the incident)
-      const directId = String(inc.assetId ?? inc.resourceId ?? inc.sourceAssetId ?? '');
+    const matchedIncidents = allIncidents.filter(inc => {
+      const directId  = String(inc.assetId ?? inc.resourceId ?? inc.sourceAssetId ?? '');
       if (directId && directId === upstreamSourceAssetId) return true;
-
-      // Match inside incident.assets[] — field may be assetId, id, resourceId
       const incAssets = Array.isArray(inc.assets) ? inc.assets : [];
       return incAssets.some(a => {
         const id = String(a.assetId ?? a.id ?? a.resourceId ?? '');
         return id === upstreamSourceAssetId;
       });
-    }).length;
+    });
+
+    const totalAlertsCount = matchedIncidents.length;
+    trace.totalAlertsCount     = totalAlertsCount;
+    trace.incidentMatchDetails = matchedIncidents.map(inc => ({
+      incidentId:   inc.id,
+      incidentName: inc.incidentName,
+      assetIds:     (Array.isArray(inc.assets) ? inc.assets : []).map(a => a.assetId)
+    }));
 
     console.log(`[ADOC] incidents matched for upstream ${upstreamSourceAssetId}:`, totalAlertsCount,
       '| total pool:', allIncidents.length);
@@ -454,6 +485,7 @@ async function fetchReliabilityData(reportName) {
       lastProfileDateTime = s.lastProfileDateTime ?? scoresResult?.lastProfileDateTime ?? null;
     }
 
+    results.debug.assetTrace.push(trace);
     results.assets.push({
       childAssetId,
       assetName,

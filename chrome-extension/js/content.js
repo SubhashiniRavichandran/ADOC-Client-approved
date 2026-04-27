@@ -200,30 +200,64 @@ class AdocSidebar {
 
       if (response && response.results) {
         const dbg = response.results.debug || {};
-        console.log('=== ADOC DEBUG START ===');
-        console.log('[ADOC] 0.  API keys configured       :', dbg.apiKeysConfigured);
-        console.log('[ADOC] 1.  reportName sent           :', dbg.reportName);
-        console.log('[ADOC] 2.  semanticName looked up    :', dbg.semanticName);
-        console.log('[ADOC] 3.  search endpoint           :', dbg.searchEndpoint);
-        console.log('[ADOC] 4.  search error              :', dbg.searchError ?? 'none');
-        console.log('[ADOC] 5.  assets found in search    :', dbg.searchAssetsCount, JSON.stringify(dbg.searchAssets));
-        console.log('[ADOC] 6.  semanticAsset found?      :', dbg.semanticAssetFound);
-        console.log('[ADOC] 7.  semanticModelAssetId      :', dbg.semanticModelAssetId);
-        console.log('[ADOC] 8.  childAssets endpoint      :', dbg.childAssetsEndpoint);
-        console.log('[ADOC] 9.  childAssets error         :', dbg.childError ?? 'none');
-        console.log('[ADOC] 10. totalChildAssets          :', dbg.totalChildAssets);
-        console.log('[ADOC] 11. childList                 :', JSON.stringify(dbg.childList));
-        console.log('[ADOC] 12. namespaceId               :', dbg.namespaceId, '| error:', dbg.namespaceError ?? 'none');
-        console.log('[ADOC] 13. incidents error           :', dbg.incidentsError ?? 'none');
-        console.log('[ADOC] 14. total CRITICAL incidents  :', dbg.totalIncidents);
-        console.log('[ADOC] 14b. raw first incident       :', JSON.stringify(dbg.rawFirstIncident));
-        console.log('[ADOC] 15. Assets with Alerts        :', response.results.assetsWithAlerts);
-        console.log('[ADOC] 16. final asset list          :', JSON.stringify(response.results.assets));
-        console.log('=== RAW CHILD ASSETS FROM API ===');
-        (dbg.rawChildAssets || []).forEach((a, i) => {
-          console.log(`[ADOC] child[${i}] raw:`, JSON.stringify(a));
+        console.log('════════════════ ADOC DEBUG START ════════════════');
+        console.log('[ADOC] API keys configured       :', dbg.apiKeysConfigured);
+        console.log('[ADOC] reportName                :', dbg.reportName);
+        console.log('[ADOC] semanticName              :', dbg.semanticName);
+        console.log('[ADOC] search endpoint           :', dbg.searchEndpoint);
+        console.log('[ADOC] search error              :', dbg.searchError ?? 'none');
+        console.log('[ADOC] assets in search result   :', dbg.searchAssetsCount);
+        dbg.searchAssets?.forEach((a, i) =>
+          console.log(`[ADOC]   search[${i}]: id=${a.id} name="${a.name}" type=${a.type}`)
+        );
+        console.log('[ADOC] semanticAsset found?      :', dbg.semanticAssetFound);
+        console.log('[ADOC] semanticModelAssetId      :', dbg.semanticModelAssetId);
+        console.log('[ADOC] childAssets endpoint      :', dbg.childAssetsEndpoint);
+        console.log('[ADOC] childAssets error         :', dbg.childError ?? 'none');
+        console.log('[ADOC] totalChildAssets          :', dbg.totalChildAssets);
+        console.log('[ADOC] childList                 :', JSON.stringify(dbg.childList));
+
+        console.log('──── RAW CHILD ASSETS ────');
+        (dbg.rawChildAssets || []).forEach((a, i) =>
+          console.log(`[ADOC] rawChild[${i}]:`, JSON.stringify(a))
+        );
+
+        console.log('──── NAMESPACE & INCIDENTS ────');
+        console.log('[ADOC] namespaceId               :', dbg.namespaceId, '| error:', dbg.namespaceError ?? 'none');
+        console.log('[ADOC] incidents error           :', dbg.incidentsError ?? 'none');
+        console.log('[ADOC] total CRITICAL incidents  :', dbg.totalIncidents);
+        console.log('[ADOC] all incident assetIds pool:');
+        (dbg.incidentAssetIds || []).forEach(e =>
+          console.log(`[ADOC]   inc#${e.incidentId}(${e.incidentName}): assetId=${e.assetId} assetName="${e.assetName}"`)
+        );
+
+        console.log('──── PER-CHILD ASSET TRACE ────');
+        (dbg.assetTrace || []).forEach((t, i) => {
+          console.log(`[ADOC] child[${i}] ${t.assetName} (id=${t.childAssetId})`);
+          console.log(`[ADOC]   lineage endpoint : ${t.lineageEndpoint}`);
+          console.log(`[ADOC]   lineage error    : ${t.lineageError ?? 'none'}`);
+          console.log(`[ADOC]   lineage items (${t.rawLineageItems?.length ?? 0}):`);
+          (t.rawLineageItems || []).forEach((li, j) =>
+            console.log(`[ADOC]     [${j}] id=${li.id ?? li.assetId} name="${li.name}" type=${li.assetType?.name ?? li.assetTypeName} dir=${li.lineage ?? li.direction ?? li.lineageDirection}`)
+          );
+          console.log(`[ADOC]   upstream found  : ${t.upstreamSourceAssetId ?? 'NOT FOUND'}`);
+          if (t.upstreamAssetRaw) {
+            console.log(`[ADOC]   upstream raw   :`, JSON.stringify(t.upstreamAssetRaw));
+          }
+          console.log(`[ADOC]   totalAlertsCount: ${t.totalAlertsCount}`);
+          (t.incidentMatchDetails || []).forEach(m =>
+            console.log(`[ADOC]     matched inc#${m.incidentId}(${m.incidentName}) assetIds=${JSON.stringify(m.assetIds)}`)
+          );
         });
-        console.log('=== ADOC DEBUG END ===');
+
+        console.log('──── FINAL OUTPUT ────');
+        console.log('[ADOC] totalAssets           :', response.results.totalAssets);
+        console.log('[ADOC] assetsWithAlerts      :', response.results.assetsWithAlerts);
+        console.log('[ADOC] reportStatus          :', response.results.reportStatus);
+        response.results.assets.forEach((a, i) =>
+          console.log(`[ADOC] asset[${i}]: ${a.assetName} upstream=${a.upstreamSourceAssetId} alerts=${a.totalAlertsCount} score=${a.reliabilityScore} fresh=${a.freshness}`)
+        );
+        console.log('════════════════ ADOC DEBUG END ════════════════');
         this.data = response.results;
         this.renderResults(response.results);
       } else {
