@@ -329,8 +329,18 @@ body.adoc-body-pushed {
   flex-shrink: 0 !important;
   width: 18px !important;
   height: 18px !important;
-  object-fit: contain !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Prevent Power BI's global svg rules from hiding inline source type icons */
+.adoc-source-icon svg {
+  width: 18px !important;
+  height: 18px !important;
   display: block !important;
+  visibility: visible !important;
+  flex-shrink: 0 !important;
 }
 
 .adoc-card-name {

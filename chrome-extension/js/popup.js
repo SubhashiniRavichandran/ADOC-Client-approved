@@ -55,12 +55,14 @@ class PopupController {
       this.getCached()
     ]);
 
-    if (cached) {
+    if (authStatus) {
+      // Always auto-fetch when authenticated so the popup stays in sync with
+      // the sidebar. If not on a PowerBI tab, autoFetchOrShowFetch falls back
+      // to cached data or the fetch button.
+      await this.autoFetchOrShowFetch();
+    } else if (cached) {
       this.renderResults(cached);
       this.showView('results');
-    } else if (authStatus) {
-      // Authenticated — auto-fetch if already on a PowerBI tab, else show button
-      await this.autoFetchOrShowFetch();
     } else {
       this.showView('login');
     }
@@ -93,7 +95,15 @@ class PopupController {
       if (tab && tab.url && tab.url.includes('powerbi.com')) {
         await this.handleFetch();   // auto-fetch — no button click required
       } else {
-        this.showView('fetch');     // not on PowerBI yet
+        // Not on a PowerBI page — show cached results if available so the
+        // popup doesn't appear empty.
+        const cached = await this.getCached();
+        if (cached) {
+          this.renderResults(cached);
+          this.showView('results');
+        } else {
+          this.showView('fetch');
+        }
       }
     } catch (_) {
       this.showView('fetch');

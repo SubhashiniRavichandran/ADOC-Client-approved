@@ -460,7 +460,7 @@ async function fetchReliabilityData(reportName) {
     const upstreamSourceAssetId = String(upstreamAsset.assetId ?? upstreamAsset.id ?? '');
     trace.upstreamSourceAssetId = upstreamSourceAssetId;
 
-    console.log(`[ADOC] upstream for child ${childAssetId}(${assetName}): assetId=${upstreamSourceAssetId} name="${upstreamAsset.name}" type=${upstreamAsset.assetType}`);
+    console.log(`[ADOC] upstream for child ${childAssetId}(${assetName}): assetId=${upstreamSourceAssetId} name="${upstreamAsset.name}" type=${upstreamAsset.assetType} sourceType=${upstreamAsset.sourceType ?? 'N/A'}`);
 
     // Step 2.3: count open CRITICAL incidents that reference this upstream asset.
     // Match by assetId (primary) OR by assetName (fallback, in case lineage
