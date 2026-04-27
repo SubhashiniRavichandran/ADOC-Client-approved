@@ -325,6 +325,14 @@ body.adoc-body-pushed {
   flex-shrink: 0;
 }
 
+.adoc-source-icon {
+  flex-shrink: 0 !important;
+  width: 18px !important;
+  height: 18px !important;
+  object-fit: contain !important;
+  display: block !important;
+}
+
 .adoc-card-name {
   flex: 1;
   font-size: 13px;

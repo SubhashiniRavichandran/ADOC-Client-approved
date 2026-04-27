@@ -513,6 +513,7 @@ async function fetchReliabilityData(reportName) {
       type:               typeof upstreamAsset.assetType === 'string'
                             ? upstreamAsset.assetType
                             : (upstreamAsset.assetType?.name ?? null),
+      sourceType:         upstreamAsset.sourceType ?? null,
       reliabilityScore,
       freshness,
       lastProfileDateTime,

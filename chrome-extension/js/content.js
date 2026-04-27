@@ -421,14 +421,14 @@ class AdocSidebar {
         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>`;
 
-    const typeIcon = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" class="adoc-type-icon">
-      <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/>
-      <path d="M3 9h18M3 15h18M9 3v18" stroke="currentColor" stroke-width="2"/>
-    </svg>`;
+    // Source type icon — load from icons/sources/<sourceType>.svg with default fallback
+    const sourceKey      = (asset.sourceType || '').toLowerCase().replace(/[^a-z0-9]/g, '') || 'default';
+    const defaultIconUrl = chrome.runtime.getURL('icons/sources/default.svg');
+    const sourceIconUrl  = chrome.runtime.getURL(`icons/sources/${sourceKey}.svg`);
 
     card.innerHTML = `
       <div class="adoc-card-header">
-        ${typeIcon}
+        <img class="adoc-source-icon" width="18" height="18" alt="${asset.sourceType || 'Data Source'}" title="${asset.sourceType || 'Unknown source'}">
         <span class="adoc-card-name"></span>
         <button class="adoc-copy-btn" title="Copy asset name">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
@@ -458,6 +458,13 @@ class AdocSidebar {
         </div>
       </div>
     `;
+
+    // Set source icon src via DOM to allow onerror fallback without inline JS
+    const iconImg = card.querySelector('.adoc-source-icon');
+    if (iconImg) {
+      iconImg.onerror = () => { iconImg.onerror = null; iconImg.src = defaultIconUrl; };
+      iconImg.src = sourceIconUrl;
+    }
 
     card.querySelector('.adoc-card-name').textContent  = asset.assetName || '—';
     card.querySelector('.js-score').textContent        = scoreText;
