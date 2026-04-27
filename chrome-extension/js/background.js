@@ -402,25 +402,42 @@ async function fetchReliabilityData(reportName) {
       continue;
     }
 
-    const lineageItems = normalizeList(
-      lineageResult, ['assets', 'lineage', 'nodes', 'content', 'data', 'items']
-    );
+    // Lineage response shape: { graph: { nodes: [ { node: {...}, lineage: "UPSTREAM" } ] } }
+    // Flatten: attach the wrapper's lineage field onto each node object.
+    const rawNodes = lineageResult?.graph?.nodes
+      ?? normalizeList(lineageResult, ['nodes', 'assets', 'lineage', 'content', 'data', 'items']);
+
+    const lineageItems = rawNodes.map(item => {
+      // If item has a nested 'node' object, flatten it and attach lineage from wrapper.
+      if (item.node && typeof item.node === 'object') {
+        return { ...item.node, lineage: item.lineage ?? item.node.lineage };
+      }
+      return item; // already flat
+    });
+
     trace.rawLineageItems = lineageItems;
 
     console.log(`[ADOC] lineage for child ${childAssetId}(${assetName}) → ${lineageItems.length} item(s):`,
       lineageItems.map(a =>
-        `[${a.id ?? a.assetId}] ${a.name} type=${a.assetType?.name ?? a.assetTypeName} dir=${a.lineage ?? a.direction ?? a.lineageDirection}`
+        `[nodeId=${a.id} assetId=${a.assetId}] name="${a.name}" assetType=${a.assetType} dir=${a.lineage}`
       )
     );
 
+    // Filter: lineage === "UPSTREAM" AND name matches child asset name
+    // AND assetType is NOT POWERBI_SEMANTIC_MODEL_TABLE.
+    // assetType here is a plain string (e.g. "TABLE"), not an object.
     const upstreamAsset = lineageItems.find(a => {
-      const type = a.assetType?.name ?? a.assetTypeName ?? a.childType?.name ?? '';
-      const dir  = a.lineage ?? a.direction ?? a.lineageDirection ?? '';
-      return type !== 'POWERBI_SEMANTIC_MODEL_TABLE' && dir === 'UPSTREAM';
+      const type      = typeof a.assetType === 'string'
+                          ? a.assetType
+                          : (a.assetType?.name ?? a.assetTypeName ?? '');
+      const dir       = a.lineage ?? a.direction ?? a.lineageDirection ?? '';
+      const nameMatch = a.name?.toLowerCase() === assetName.toLowerCase();
+      return dir === 'UPSTREAM' && type !== 'POWERBI_SEMANTIC_MODEL_TABLE' && nameMatch;
     });
 
     if (!upstreamAsset) {
-      console.log(`[ADOC] No upstream source asset found for child ${childAssetId}`);
+      console.log(`[ADOC] No upstream asset found for child ${childAssetId}(${assetName}). ` +
+        `lineage items:`, lineageItems.map(a => `name="${a.name}" type=${a.assetType} dir=${a.lineage}`));
       results.debug.assetTrace.push(trace);
       results.assets.push({
         childAssetId, assetName,
@@ -433,17 +450,17 @@ async function fetchReliabilityData(reportName) {
         hasCriticalAlert:      false,
         quickLink:             buildQuickLink(assetName),
         adocLink:              `${SERVER_URL}${ASSET_DETAIL_PATH}${childAssetId}`,
-        lineageError:          'No upstream UPSTREAM asset found in lineage'
+        lineageError:          'No upstream asset found in lineage'
       });
       continue;
     }
 
+    // Use assetId (the catalog asset ID), NOT id (the lineage node ID).
     trace.upstreamAssetRaw      = upstreamAsset;
-    const upstreamSourceAssetId = String(upstreamAsset.id ?? upstreamAsset.assetId ?? '');
+    const upstreamSourceAssetId = String(upstreamAsset.assetId ?? upstreamAsset.id ?? '');
     trace.upstreamSourceAssetId = upstreamSourceAssetId;
 
-    console.log(`[ADOC] upstreamSourceAssetId for child ${childAssetId}:`,
-      upstreamSourceAssetId, upstreamAsset.name, upstreamAsset.assetType?.name);
+    console.log(`[ADOC] upstream for child ${childAssetId}(${assetName}): assetId=${upstreamSourceAssetId} name="${upstreamAsset.name}" type=${upstreamAsset.assetType}`);
 
     // Step 2.3: count open CRITICAL incidents that reference this upstream asset.
     // Match by assetId (primary) OR by assetName (fallback, in case lineage
@@ -493,7 +510,9 @@ async function fetchReliabilityData(reportName) {
       childAssetId,
       assetName,
       upstreamSourceAssetId,
-      type:               upstreamAsset.assetType?.name ?? upstreamAsset.assetTypeName ?? null,
+      type:               typeof upstreamAsset.assetType === 'string'
+                            ? upstreamAsset.assetType
+                            : (upstreamAsset.assetType?.name ?? null),
       reliabilityScore,
       freshness,
       lastProfileDateTime,
