@@ -6,6 +6,10 @@
 
 console.log('[ADOC] ✅ content.js injected on', window.location.href);
 
+// Base64-encoded icon48.png — used instead of chrome-extension:// URL because
+// Power BI's CSP blocks chrome-extension:// in img src attributes.
+const ADOC_LOGO_DATA_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAACWklEQVR4nO2aTWsTQRzGfzubbZoQIppaqbVb4guK0mgtFl+u5qagYEVBvHpQP4GQg6CepIgfQDxrxYNYPKrkUGJ9uWgNlErBRhAtEY2YbGY9hNCkm2rrbpis7O/2nxlm/s/MM7Ozy2q04MjVkt2qvBPIZqJaY9wUdHLiy6kLEfUCPyUPS/lqjYEfEX9v0tkIP88+/A8roDoBtwQCVBMIUE0gQDWBANWEPOlEwM4+QcoUDG0RmAlBTxwihoa0ofTLplC0yRckT2ckU7NVL4YFQPPiLnT2UIiLR41Vt389L7lyr0zRg2uYEgvtMwXXx7o86csTC5UtmJqtks1LZhYkiyWbxR82lSqsi2rs6RdcThtsXr/0ArjXFIwkBdNz0tXYngiYyFlM5FrXff1u8/x9zfM3TjfP+oGk3hkCAGJhjfSQzuhWwWCPYEOston1P5i0N66tXLlKPBFweIdO5oRBrHttCUU82AauBQwkNK6NdWHo7pP5F1wLODkSciQ//8Xm1pMK7xYk337WjsrhQcHt82G3wzlwLWD7JqfJb06WHZvTTLTnxHbda6iFdSpWc2zocGq0PR5zLeDDZ+cxeCltsK1X0G3Arj7B+LkwyY3tWQHXFnr4ssrx/aGmb5S7+wV3LzT7/dGrKseGvV8F19OSL0jGJyvIFa41NnDnmcXjN1brBi7x5Dnw4IVF/pPkzMEQKVMQj2gUSzZvP0ru5yym5ySpgfZYyJPbqEp8/0ITCFBNIEA1gQDVBAJUEwhQjf8FLP/3wG/4fwXA+QeIX8hmoppoDFQms1bq+f4GO7Sg3ljaPbQAAAAASUVORK5CYII=';
+
 // ─────────────────────────────────────────────────────────────────────────────
 // REPORT NAME EXTRACTION
 // Reads the Power BI report name directly from the page.
@@ -78,6 +82,24 @@ const ADOC_SOURCE_ICONS = {
   default:    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" stroke="#9CA3AF" stroke-width="2"/><path d="M3 9h18M3 15h18M9 3v18" stroke="#9CA3AF" stroke-width="2"/></svg>`,
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ASSET TYPE ICONS — inline SVG keyed by normalised asset type name.
+// Shown alongside the source icon to indicate the structural type (TABLE/VIEW/…).
+// ─────────────────────────────────────────────────────────────────────────────
+const ADOC_ASSET_TYPE_ICONS = {
+  table:     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="9" x2="9" y2="21"/></svg>`,
+  view:      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`,
+  column:    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>`,
+  report:    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`,
+  dashboard: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>`,
+  default:   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4.03 3-9 3S3 13.66 3 12"/><path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/></svg>`,
+};
+
+function getAssetTypeIcon(assetType) {
+  const key = (assetType || '').toLowerCase().replace(/[^a-z]/g, '') || 'default';
+  return ADOC_ASSET_TYPE_ICONS[key] ?? ADOC_ASSET_TYPE_ICONS.default;
+}
+
 function getSourceIcon(sourceType) {
   const key = (sourceType || '').toLowerCase().replace(/[^a-z0-9]/g, '') || 'default';
   if (ADOC_SOURCE_ICONS[key]) return ADOC_SOURCE_ICONS[key];
@@ -132,7 +154,7 @@ class AdocSidebar {
     this.container.innerHTML = `
       <div class="adoc-sidebar-header">
         <div class="adoc-sidebar-logo">
-          <div class="adoc-logo-mark">a</div>
+          <img class="adoc-logo-img" src="${ADOC_LOGO_DATA_URL}" alt="ADOC" width="28" height="28">
           <span>ADOC Metrics</span>
         </div>
         <div class="adoc-sidebar-actions">
@@ -466,6 +488,7 @@ class AdocSidebar {
     card.innerHTML = `
       <div class="adoc-card-header">
         <span class="adoc-source-icon" title="${asset.sourceType || 'Unknown source'}">${getSourceIcon(asset.sourceType)}</span>
+        <span class="adoc-type-icon adoc-asset-type-icon" title="${asset.type || 'Asset'}">${getAssetTypeIcon(asset.type)}</span>
         <span class="adoc-card-name"></span>
         <button class="adoc-copy-btn" title="Copy asset name">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none">

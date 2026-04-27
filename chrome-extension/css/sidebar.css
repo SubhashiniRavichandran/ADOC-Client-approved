@@ -88,17 +88,13 @@ body.adoc-body-pushed {
   color: #1f2937;
 }
 
-.adoc-logo-mark {
-  width: 28px;
-  height: 28px;
-  background: linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%);
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  font-weight: 700;
-  font-size: 16px;
+.adoc-logo-img {
+  width: 28px !important;
+  height: 28px !important;
+  object-fit: contain !important;
+  display: block !important;
+  flex-shrink: 0 !important;
+  border-radius: 4px;
 }
 
 .adoc-sidebar-actions {
@@ -338,6 +334,24 @@ body.adoc-body-pushed {
 .adoc-source-icon svg {
   width: 18px !important;
   height: 18px !important;
+  display: block !important;
+  visibility: visible !important;
+  flex-shrink: 0 !important;
+}
+
+/* Asset type icon (TABLE, VIEW, etc.) — sits right of the source icon */
+.adoc-asset-type-icon {
+  flex-shrink: 0 !important;
+  width: 16px !important;
+  height: 16px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.adoc-asset-type-icon svg {
+  width: 16px !important;
+  height: 16px !important;
   display: block !important;
   visibility: visible !important;
   flex-shrink: 0 !important;
