@@ -201,22 +201,20 @@ class AdocSidebar {
       if (response && response.results) {
         const dbg = response.results.debug || {};
         console.log('=== ADOC DEBUG START ===');
-        console.log('[ADOC] 0.  API keys configured      :', dbg.apiKeysConfigured);
-        console.log('[ADOC] 1.  reportName sent          :', dbg.reportName);
-        console.log('[ADOC] 2.  semanticName looked up   :', dbg.semanticName);
-        console.log('[ADOC] 3.  search endpoint          :', dbg.searchEndpoint);
-        console.log('[ADOC] 4.  search API error         :', dbg.searchError ?? 'none');
-        console.log('[ADOC] 5.  assets found in search   :', dbg.searchAssetsCount, JSON.stringify(dbg.searchAssets));
-        console.log('[ADOC] 6.  semanticAsset found?     :', dbg.semanticAssetFound);
-        console.log('[ADOC] 7.  parentId (assets[].id)   :', dbg.parentId);
-        console.log('[ADOC] 8.  childAssets URL           :', dbg.childAssetsUrl);
-        console.log('[ADOC] 9.  childAssets API error     :', dbg.childError ?? 'none');
-        console.log('[ADOC] 10. childResult top-level keys:', JSON.stringify(dbg.childResultKeys));
-        console.log('[ADOC] 11. childResult sample (≤3)  :', JSON.stringify(dbg.childResultSample));
-        console.log('[ADOC] 12. children parsed count    :', dbg.childrenLength);
-        console.log('[ADOC] 13. Total Assets             :', response.results.totalAssets);
-        console.log('[ADOC] 14. Assets with Alerts       :', response.results.assetsWithAlerts);
-        console.log('[ADOC] 15. mapped asset list        :', JSON.stringify(response.results.assets));
+        console.log('[ADOC] 0.  API keys configured       :', dbg.apiKeysConfigured);
+        console.log('[ADOC] 1.  reportName sent           :', dbg.reportName);
+        console.log('[ADOC] 2.  semanticName looked up    :', dbg.semanticName);
+        console.log('[ADOC] 3.  search endpoint           :', dbg.searchEndpoint);
+        console.log('[ADOC] 4.  search error              :', dbg.searchError ?? 'none');
+        console.log('[ADOC] 5.  assets found in search    :', dbg.searchAssetsCount, JSON.stringify(dbg.searchAssets));
+        console.log('[ADOC] 6.  semanticAsset found?      :', dbg.semanticAssetFound);
+        console.log('[ADOC] 7.  semanticModelAssetId      :', dbg.semanticModelAssetId);
+        console.log('[ADOC] 8.  childAssets endpoint      :', dbg.childAssetsEndpoint);
+        console.log('[ADOC] 9.  childAssets error         :', dbg.childError ?? 'none');
+        console.log('[ADOC] 10. totalChildAssets          :', dbg.totalChildAssets);
+        console.log('[ADOC] 11. Total Assets (display)    :', response.results.totalAssets);
+        console.log('[ADOC] 12. Assets with Alerts        :', response.results.assetsWithAlerts);
+        console.log('[ADOC] 13. final asset list          :', JSON.stringify(response.results.assets));
         console.log('=== RAW CHILD ASSETS FROM API ===');
         (dbg.rawChildAssets || []).forEach((a, i) => {
           console.log(`[ADOC] child[${i}] raw:`, JSON.stringify(a));
@@ -290,7 +288,7 @@ class AdocSidebar {
       } else if (dbg.childError) {
         msg = `Child assets API error: ${dbg.childError}`;
       } else {
-        msg = `No child assets registered in ADOC for this semantic model (id: ${dbg.parentId}).`;
+        msg = `No child assets registered in ADOC for this semantic model (id: ${dbg.semanticModelAssetId}).`;
       }
 
       emptyEl.innerHTML = `
@@ -339,13 +337,15 @@ class AdocSidebar {
 
   buildAssetCard(asset) {
     const card = document.createElement('div');
-    card.className = `adoc-asset-card${asset.openAlerts > 0 ? ' adoc-has-alerts' : ''}`;
+    card.className = `adoc-asset-card${asset.hasCriticalAlert ? ' adoc-has-alerts' : ''}`;
 
     const score      = asset.reliabilityScore;
     const scoreClass = score >= 90 ? 'adoc-score-high' : score >= 70 ? 'adoc-score-med' : 'adoc-score-low';
     const scoreText  = score != null ? `${parseFloat(score).toFixed(2)}%` : '—';
     const freshText  = asset.freshness != null ? `${parseFloat(asset.freshness).toFixed(0)}%` : '—';
-    const profText   = asset.lastProfiled ? fmtDate(asset.lastProfiled) : '—';
+    const profText   = asset.lastProfileDateTime ? fmtDate(asset.lastProfileDateTime) : '—';
+    const alertText  = asset.hasCriticalAlert ? `${asset.openAlerts} CRITICAL` : 'None';
+    const alertColor = asset.hasCriticalAlert ? 'color:#b91c1c;font-weight:700' : '';
 
     const extIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none">
       <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"
@@ -370,6 +370,10 @@ class AdocSidebar {
       </div>
       <div class="adoc-card-body">
         <div class="adoc-card-row">
+          <span class="adoc-card-label">Source Asset ID:</span>
+          <span class="adoc-card-value js-source-id" style="font-size:11px;word-break:break-all"></span>
+        </div>
+        <div class="adoc-card-row">
           <span class="adoc-card-label">Data Reliability Score:</span>
           <span class="adoc-score-pill ${scoreClass} js-score"></span>
         </div>
@@ -382,31 +386,24 @@ class AdocSidebar {
           <strong class="adoc-card-value js-profiled"></strong>
         </div>
         <div class="adoc-card-row adoc-card-row-sep">
-          <span class="adoc-card-label">Open Alerts:</span>
-          <span class="adoc-card-value js-alerts"></span>
+          <span class="adoc-card-label">Critical Alerts:</span>
+          <span class="adoc-card-value js-alerts" style="${alertColor}"></span>
           <a class="adoc-ext-link js-alerts-link" target="_blank" rel="noopener noreferrer"
-             style="${asset.openAlerts > 0 ? '' : 'visibility:hidden'}">${extIcon}</a>
-        </div>
-        <div class="adoc-card-row">
-          <span class="adoc-card-label">Upstream Issues:</span>
-          <span class="adoc-card-value js-upstream"></span>
-          <a class="adoc-ext-link js-upstream-link" target="_blank" rel="noopener noreferrer"
-             style="${asset.upstreamIssues > 0 ? '' : 'visibility:hidden'}">${extIcon}</a>
+             style="${asset.hasCriticalAlert ? '' : 'visibility:hidden'}">${extIcon}</a>
         </div>
       </div>
     `;
 
-    card.querySelector('.adoc-card-name').textContent  = asset.name;
-    card.querySelector('.js-score').textContent        = scoreText;
-    card.querySelector('.js-freshness').textContent    = freshText;
-    card.querySelector('.js-profiled').textContent     = profText;
-    card.querySelector('.js-alerts').textContent       = asset.openAlerts;
-    card.querySelector('.js-upstream').textContent     = asset.upstreamIssues;
-    card.querySelector('.js-alerts-link').href         = asset.adocLink;
-    card.querySelector('.js-upstream-link').href       = asset.adocLink;
+    card.querySelector('.adoc-card-name').textContent    = asset.name || asset.upstreamSourceAssetId || '—';
+    card.querySelector('.js-source-id').textContent      = asset.upstreamSourceAssetId || '—';
+    card.querySelector('.js-score').textContent          = scoreText;
+    card.querySelector('.js-freshness').textContent      = freshText;
+    card.querySelector('.js-profiled').textContent       = profText;
+    card.querySelector('.js-alerts').textContent         = alertText;
+    card.querySelector('.js-alerts-link').href           = asset.adocLink;
 
     card.querySelector('.adoc-copy-btn').addEventListener('click', () => {
-      navigator.clipboard.writeText(asset.name).catch(() => {});
+      navigator.clipboard.writeText(asset.name || '').catch(() => {});
     });
 
     return card;
