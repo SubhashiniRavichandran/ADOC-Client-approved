@@ -283,9 +283,6 @@ class PopupController {
 
   // ── Render results ─────────────────────────────────────────────────────────
   renderResults(results) {
-    const reportNameEl = document.getElementById('report-name');
-    if (reportNameEl) reportNameEl.textContent = results.reportName || 'Power BI Report';
-
     const statusEl = document.getElementById('report-status');
     if (statusEl) {
       statusEl.textContent = results.reportStatus;
@@ -376,8 +373,8 @@ class PopupController {
       </div>
     `;
 
-    card.querySelector('.js-name').textContent      = String(name).toUpperCase();
-    card.querySelector('.js-type').textContent      = String(type).toUpperCase();
+    card.querySelector('.js-name').textContent      = name;
+    card.querySelector('.js-type').textContent      = type;
     card.querySelector('.js-score').textContent     = scoreText;
     card.querySelector('.js-score-val').textContent = scoreText;
     card.querySelector('.js-freshness').textContent = freshText;
