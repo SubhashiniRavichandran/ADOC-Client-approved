@@ -469,7 +469,8 @@ async function fetchReliabilityData(reportName) {
     });
   }
 
-  results.reportStatus = results.assetsWithAlerts > 0 ? 'Risky' : 'Healthy';
+  results.reportStatus    = results.assetsWithAlerts > 0 ? 'Risky' : 'Healthy';
+  results.allIncidentsUrl = `${SERVER_URL}/ui/unified/namespace/${NAMESPACE_NAME}/incidents/list`;
   return results;
 }
 
