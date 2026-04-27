@@ -216,6 +216,7 @@ class AdocSidebar {
         console.log('[ADOC] 12. namespaceId               :', dbg.namespaceId, '| error:', dbg.namespaceError ?? 'none');
         console.log('[ADOC] 13. incidents error           :', dbg.incidentsError ?? 'none');
         console.log('[ADOC] 14. total CRITICAL incidents  :', dbg.totalIncidents);
+        console.log('[ADOC] 14b. raw first incident       :', JSON.stringify(dbg.rawFirstIncident));
         console.log('[ADOC] 15. Assets with Alerts        :', response.results.assetsWithAlerts);
         console.log('[ADOC] 16. final asset list          :', JSON.stringify(response.results.assets));
         console.log('=== RAW CHILD ASSETS FROM API ===');
@@ -389,10 +390,10 @@ class AdocSidebar {
           <strong class="adoc-card-value js-profiled"></strong>
         </div>
         <div class="adoc-card-row adoc-card-row-sep">
-          <span class="adoc-card-label">Critical Alerts:</span>
+          <span class="adoc-card-label">Assets with Alerts:</span>
           <span class="adoc-card-value js-alerts" style="${alertStyle}"></span>
         </div>
-        <div class="adoc-card-row" style="${asset.quickLink ? '' : 'display:none'}">
+        <div class="adoc-card-row" style="${asset.hasCriticalAlert && asset.quickLink ? '' : 'display:none'}">
           <a class="adoc-ext-link js-quick-link" target="_blank" rel="noopener noreferrer"
              style="font-size:12px;gap:4px">
             View incidents ${extIcon}

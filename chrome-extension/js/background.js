@@ -350,8 +350,10 @@ async function fetchReliabilityData(reportName) {
       allIncidents = normalizeList(incResult, ['incidents', 'content', 'data', 'items']);
     }
   }
-  results.debug.incidentsError = incidentsError;
-  results.debug.totalIncidents = allIncidents.length;
+  results.debug.incidentsError  = incidentsError;
+  results.debug.totalIncidents  = allIncidents.length;
+  // Raw first incident — shows the actual shape so we can verify the filter field names.
+  results.debug.rawFirstIncident = allIncidents[0] ?? null;
 
   // ── Steps 2.1 + 3: Per child asset ───────────────────────────────────────
   for (const child of childList) {
@@ -416,11 +418,23 @@ async function fetchReliabilityData(reportName) {
     console.log(`[ADOC] upstreamSourceAssetId for child ${childAssetId}:`,
       upstreamSourceAssetId, upstreamAsset.name, upstreamAsset.assetType?.name);
 
-    // Step 2.3 (filter): count incidents where assets[].assetId == upstreamSourceAssetId
+    // Step 2.3: count open CRITICAL incidents that reference upstreamSourceAssetId.
+    // Try every plausible field name the API might use inside each incident's asset list.
     const totalAlertsCount = allIncidents.filter(inc => {
+      // Match at the incident level (some APIs embed assetId directly on the incident)
+      const directId = String(inc.assetId ?? inc.resourceId ?? inc.sourceAssetId ?? '');
+      if (directId && directId === upstreamSourceAssetId) return true;
+
+      // Match inside incident.assets[] — field may be assetId, id, resourceId
       const incAssets = Array.isArray(inc.assets) ? inc.assets : [];
-      return incAssets.some(a => String(a.assetId) === upstreamSourceAssetId);
+      return incAssets.some(a => {
+        const id = String(a.assetId ?? a.id ?? a.resourceId ?? '');
+        return id === upstreamSourceAssetId;
+      });
     }).length;
+
+    console.log(`[ADOC] incidents matched for upstream ${upstreamSourceAssetId}:`, totalAlertsCount,
+      '| total pool:', allIncidents.length);
 
     const hasCriticalAlert = totalAlertsCount > 0;
     if (hasCriticalAlert) results.assetsWithAlerts++;
