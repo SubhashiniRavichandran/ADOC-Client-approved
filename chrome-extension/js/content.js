@@ -296,76 +296,76 @@ class AdocSidebar {
 
     resultsEl.innerHTML = '';
 
-    // Summary block
-    const summary = document.createElement('div');
-    summary.className = 'adoc-summary';
+    // ── Case: no datasets found ───────────────────────────────────────────────
+    // Shown when the report name doesn't match any asset in the catalog, or
+    // when the semantic model has no child assets.
+    if (results.totalAssets === 0) {
+      const emptyEl = document.createElement('div');
+      emptyEl.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:48px 24px;text-align:center;';
+      emptyEl.innerHTML = `
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+          <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
+            stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <line x1="12" y1="9" x2="12" y2="13" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="12" y1="17" x2="12.01" y2="17" stroke="#ef4444" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <p style="font-size:13px;font-weight:500;color:#374151;line-height:1.5;margin:0;">
+          We couldn't find the datasets powering this report in Acceldata
+        </p>
+      `;
 
-    const statusClass = results.reportStatus === 'Healthy' ? 'adoc-badge-healthy' : 'adoc-badge-risky';
-    const statusBadge = document.createElement('span');
-    statusBadge.className = `adoc-badge ${statusClass}`;
-    statusBadge.textContent = results.reportStatus;
+      const fetchBtn = document.createElement('button');
+      fetchBtn.className = 'adoc-refresh-btn';
+      fetchBtn.style.cssText = 'display:flex;align-items:center;justify-content:center;gap:6px;width:100%;';
+      fetchBtn.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+          <path d="M23 4v6h-6M1 20v-6h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M3.51 9a9 9 0 0114.13-3.36L23 10M1 14l5.36 4.36A9 9 0 0020.49 15"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Fetch Again
+      `;
+      fetchBtn.addEventListener('click', () => { this.data = null; this.loadData(); });
 
-    const reportNameEl = document.createElement('div');
-    reportNameEl.className = 'adoc-report-name';
-    reportNameEl.textContent = results.reportName || getPowerBIReportName() || '';
+      emptyEl.appendChild(fetchBtn);
+      resultsEl.appendChild(emptyEl);
+      resultsEl.classList.remove('hidden');
+      return;
+    }
 
+    // ── Case: datasets found — show summary + cards ───────────────────────────
     const extIconSm = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none">
       <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"
         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>`;
     const alertsLink = results.allIncidentsUrl || '#';
 
-    const statsEl = document.createElement('div');
-    statsEl.className = 'adoc-stats';
-    statsEl.innerHTML = `
-      <div class="adoc-stat-row">
-        <span class="adoc-stat-label">Total Assets fetched:</span>
-        <span class="adoc-stat-val">${results.totalAssets}</span>
-      </div>
-      <div class="adoc-stat-row">
-        <span class="adoc-stat-label">Assets with Alerts:</span>
-        <span class="adoc-stat-val ${results.assetsWithAlerts > 0 ? 'adoc-risky-text' : ''}">${results.assetsWithAlerts}</span>
-        ${results.assetsWithAlerts > 0
-          ? `<a href="${alertsLink}" target="_blank" rel="noopener noreferrer" class="adoc-ext-link" style="margin-left:6px">${extIconSm}</a>`
-          : ''}
+    const summary = document.createElement('div');
+    summary.className = 'adoc-summary';
+    const statusClass = results.reportStatus === 'Healthy' ? 'adoc-badge-healthy' : 'adoc-badge-risky';
+    summary.innerHTML = `
+      <div class="adoc-report-name"></div>
+      <span class="adoc-badge ${statusClass}">${results.reportStatus}</span>
+      <div class="adoc-stats">
+        <div class="adoc-stat-row">
+          <span class="adoc-stat-label">Total Assets fetched:</span>
+          <span class="adoc-stat-val">${results.totalAssets}</span>
+        </div>
+        <div class="adoc-stat-row">
+          <span class="adoc-stat-label">Assets with Alerts:</span>
+          <span class="adoc-stat-val ${results.assetsWithAlerts > 0 ? 'adoc-risky-text' : ''}">${results.assetsWithAlerts}</span>
+          ${results.assetsWithAlerts > 0
+            ? `<a href="${alertsLink}" target="_blank" rel="noopener noreferrer" class="adoc-ext-link" style="margin-left:6px">${extIconSm}</a>`
+            : ''}
+        </div>
       </div>
     `;
-
-    summary.appendChild(reportNameEl);
-    summary.appendChild(statusBadge);
-    summary.appendChild(statsEl);
+    summary.querySelector('.adoc-report-name').textContent =
+      results.reportName || getPowerBIReportName() || '';
     resultsEl.appendChild(summary);
 
-    const dbg = results.debug || {};
-
-    // When there are no child assets, surface a diagnostic message so the
-    // user knows whether the semantic model was found or the API returned empty.
-    if (results.totalAssets === 0) {
-      const emptyEl = document.createElement('div');
-      emptyEl.className = 'adoc-no-alerts';
-
-      let msg = '';
-      if (dbg.searchError) {
-        msg = `Search API error: ${dbg.searchError}`;
-      } else if (!dbg.semanticAssetFound) {
-        msg = `Semantic model not found in catalog for "${results.reportName}". ` +
-              `Check that the report name matches what is registered in ADOC ` +
-              `(looked for: ${dbg.semanticName}).`;
-      } else if (dbg.childError) {
-        msg = `Child assets API error: ${dbg.childError}`;
-      } else {
-        msg = `No child assets found for semantic model (id: ${dbg.semanticModelAssetId}).`;
-      }
-
-      emptyEl.innerHTML = `
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
-          <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            stroke="#f59e0b" stroke-width="2" stroke-linecap="round"/>
-        </svg>
-        <p style="font-size:12px;text-align:center;padding:0 8px;">${msg}</p>
-      `;
-      resultsEl.appendChild(emptyEl);
-    } else if (results.assetsWithAlerts === 0) {
+    // Healthy — no alerts
+    if (results.assetsWithAlerts === 0) {
       const noAlerts = document.createElement('div');
       noAlerts.className = 'adoc-no-alerts';
       noAlerts.innerHTML = `
@@ -377,23 +377,19 @@ class AdocSidebar {
       resultsEl.appendChild(noAlerts);
     }
 
-    // "Reliability Details" heading + asset cards — only for assets with alerts
+    // Reliability Details — only assets with alerts
     const alertAssets = results.assets.filter(a => (a.totalAlertsCount ?? 0) > 0);
-
     if (alertAssets.length > 0) {
       const heading = document.createElement('div');
       heading.textContent = 'Reliability Details';
       heading.style.cssText = 'font-size:13px;font-weight:700;color:#1f2937;margin:12px 0 8px';
       resultsEl.appendChild(heading);
 
-      const fragment = document.createDocumentFragment();
-      for (const asset of alertAssets) {
-        fragment.appendChild(this.buildAssetCard(asset));
-      }
-
       const listEl = document.createElement('div');
       listEl.className = 'adoc-asset-list';
-      listEl.appendChild(fragment);
+      for (const asset of alertAssets) {
+        listEl.appendChild(this.buildAssetCard(asset));
+      }
       resultsEl.appendChild(listEl);
     }
 
@@ -401,10 +397,7 @@ class AdocSidebar {
     const refreshBtn = document.createElement('button');
     refreshBtn.className = 'adoc-refresh-btn';
     refreshBtn.textContent = 'Refresh';
-    refreshBtn.addEventListener('click', () => {
-      this.data = null;
-      this.loadData();
-    });
+    refreshBtn.addEventListener('click', () => { this.data = null; this.loadData(); });
     resultsEl.appendChild(refreshBtn);
 
     resultsEl.classList.remove('hidden');
