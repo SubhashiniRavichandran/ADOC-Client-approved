@@ -93,7 +93,17 @@ class PopupController {
       const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
       const tab = tabs && tabs[0];
       if (tab && tab.url && tab.url.includes('powerbi.com')) {
-        await this.handleFetch();   // auto-fetch — no button click required
+        const context = await this.getTabContext(tab);
+        const cached = await this.getCached();
+        if (cached && context.reportName && cached.reportName === context.reportName) {
+          this.renderResults(cached);
+          this.showView('results');
+          // Refresh in the background to keep popup + sidebar in sync without
+          // blocking first paint in the popup.
+          this.handleFetch({ silent: true, tab, reportName: context.reportName });
+          return;
+        }
+        await this.handleFetch({ tab, reportName: context.reportName });   // auto-fetch — no button click required
       } else {
         // Not on a PowerBI page — show cached results if available so the
         // popup doesn't appear empty.
@@ -108,6 +118,12 @@ class PopupController {
     } catch (_) {
       this.showView('fetch');
     }
+  }
+
+  async getTabContext(tab) {
+    if (!tab || !tab.id) return { reportName: null };
+    const csResponse = await sendToTab(tab.id, { action: 'extractAssets' });
+    return { reportName: csResponse?.reportName || null };
   }
 
   async checkAuth() {
@@ -181,28 +197,28 @@ class PopupController {
   }
 
   // ── Fetch reliability data ─────────────────────────────────────────────────
-  async handleFetch() {
-    this.showView('fetching');
+  async handleFetch(opts = {}) {
+    const { silent = false } = opts;
+    if (!silent) this.showView('fetching');
 
-    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    const tab = tabs && tabs[0];
+    let tab = opts.tab;
+    if (!tab) {
+      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+      tab = tabs && tabs[0];
+    }
 
     if (!tab || !tab.url || !tab.url.includes('powerbi.com')) {
-      alert('Please open a Power BI report first, then click Fetch.');
+      if (!silent) alert('Please open a Power BI report first, then click Fetch.');
       this.showView('fetch');
       return;
     }
 
-    // Ask content script for the report name from the DOM
-    const csResponse = await sendToTab(tab.id, { action: 'extractAssets' });
-
-    if (!csResponse || !csResponse.reportName) {
-      alert('Could not detect the Power BI report name. Please refresh the report page and try again.');
+    const reportName = opts.reportName || (await this.getTabContext(tab)).reportName;
+    if (!reportName) {
+      if (!silent) alert('Could not detect the Power BI report name. Please refresh the report page and try again.');
       this.showView('fetch');
       return;
     }
-
-    const { reportName } = csResponse;
     console.log('[ADOC] Report name:', reportName);
 
     // Ask background to run the API flow

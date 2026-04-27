@@ -319,6 +319,9 @@ class AdocSidebar {
           console.error('[ADOC] debug logging error:', debugErr.message);
         }
         this.data = response.results;
+        try {
+          chrome.storage.local.set({ cached_results: response.results });
+        } catch (_) {}
         this.renderResults(response.results);
       } else {
         console.error('[ADOC] ❌ ERROR from background:', response?.error ?? '(no results in response)');
