@@ -445,14 +445,17 @@ async function fetchReliabilityData(reportName) {
     console.log(`[ADOC] upstreamSourceAssetId for child ${childAssetId}:`,
       upstreamSourceAssetId, upstreamAsset.name, upstreamAsset.assetType?.name);
 
-    // Step 2.3: count open CRITICAL incidents that reference upstreamSourceAssetId.
+    // Step 2.3: count open CRITICAL incidents that reference this upstream asset.
+    // Match by assetId (primary) OR by assetName (fallback, in case lineage
+    // returns a different ID format than what incidents use).
     const matchedIncidents = allIncidents.filter(inc => {
-      const directId  = String(inc.assetId ?? inc.resourceId ?? inc.sourceAssetId ?? '');
-      if (directId && directId === upstreamSourceAssetId) return true;
       const incAssets = Array.isArray(inc.assets) ? inc.assets : [];
       return incAssets.some(a => {
-        const id = String(a.assetId ?? a.id ?? a.resourceId ?? '');
-        return id === upstreamSourceAssetId;
+        const idMatch   = upstreamSourceAssetId &&
+                          String(a.assetId ?? a.id ?? '') === upstreamSourceAssetId;
+        const nameMatch = assetName &&
+                          (a.assetName ?? a.name ?? '').toLowerCase() === assetName.toLowerCase();
+        return idMatch || nameMatch;
       });
     });
 

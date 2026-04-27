@@ -198,8 +198,12 @@ class AdocSidebar {
         reportName
       });
 
+      // Always log the raw response so errors are visible in page console too.
+      console.log('[ADOC] raw background response:', JSON.stringify(response).slice(0, 3000));
+
       if (response && response.results) {
         const dbg = response.results.debug || {};
+        try {
         console.log('════════════════ ADOC DEBUG START ════════════════');
         console.log('[ADOC] API keys configured       :', dbg.apiKeysConfigured);
         console.log('[ADOC] reportName                :', dbg.reportName);
@@ -258,9 +262,13 @@ class AdocSidebar {
           console.log(`[ADOC] asset[${i}]: ${a.assetName} upstream=${a.upstreamSourceAssetId} alerts=${a.totalAlertsCount} score=${a.reliabilityScore} fresh=${a.freshness}`)
         );
         console.log('════════════════ ADOC DEBUG END ════════════════');
+        } catch (debugErr) {
+          console.error('[ADOC] debug logging error:', debugErr.message);
+        }
         this.data = response.results;
         this.renderResults(response.results);
       } else {
+        console.error('[ADOC] ERROR from background:', response?.error);
         this.showError(response?.error || 'Failed to fetch reliability data.');
       }
     } catch (e) {
